@@ -4,17 +4,15 @@
 
 ## プロジェクト概要
 
-やんわり伝言サービス - AI を使って気まずい用件を優しく伝えるサービスです。上司⇔部下・恋人など「気まずい用件」を AI で優しく伝え、デリケートなコミュニケーションを支援します。Anthropic の Claude API を使用してトーン変換を行います。
+このファイルは、やんわり伝言サービスでの Claude Code との効率的な開発協働のためのガイドです。
+プロジェクトの基本情報は `README.md` を参照してください。
 
-## アーキテクチャ
+## 技術スタック（開発者向け詳細）
 
-**Go バックエンド + Vue.js フロントエンドのフルスタックアプリケーション:**
-
-- **バックエンド**: Go 1.23+ + Gin フレームワーク、JWT 認証 (Argon2 + JWT)、MongoDB Atlas 連携予定
-- **フロントエンド**: Vue 3 + Vite + Pinia + TypeScript によるコンポーネントベースアーキテクチャ
-- **AI 連携**: Anthropic Claude API によるトーン変換 (gentle/constructive/casual)
-- **データベース**: MongoDB Atlas (未実装 - 現在はモックデータ使用)
-- **認証系**: JWT トークン (アクセス15分、リフレッシュ14日) + Argon2 パスワードハッシュ化
+- **バックエンド**: Go 1.24+ + Gin + JWT認証 (Argon2) + MongoDB Atlas
+- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia
+- **AI 連携**: Anthropic Claude API（トーン変換：gentle/constructive/casual）
+- **認証**: JWT（アクセス15分/リフレッシュ14日）+ Argon2パスワードハッシュ
 
 ## Claude Code 運用ルール
 
@@ -110,17 +108,43 @@ npm run clean
 ## 現在の実装状況
 
 **完了済み機能:**
-- F-01: Argon2 パスワードハッシュ化を伴う JWT 認証システム (バックエンドハンドラー実装済み)
+- ✅ **F-01: JWT認証システム（バックエンド・フロントエンド完全統合完了）**
+  - Argon2 パスワードハッシュ化実装完了
+  - JWT アクセストークン（15分）/ リフレッシュトークン（14日）
+  - ユーザー登録・ログイン・トークンリフレッシュ・ログアウト機能
+  - セキュリティ機能：定数時間比較、トークン検証、エラーハンドリング
+  - **MongoDB Atlas 実データ保存・取得動作確認完了**
+  - **Vue.js認証フロントエンド完全実装・統合テスト完了**
+- ✅ **MongoDB Atlas 統合基盤完了**
+  - database/connection.go: 接続管理・ヘルスチェック・プール設定
+  - models/user.go: User モデル・UserService・CRUD操作・インデックス作成
+  - 実際のデータベース接続・ユーザー作成・重複チェック動作確認済み
+- ✅ **main.go システム強化完了**
+  - ヘルスチェック強化（DB接続状況・サーバー稼働時間）
+  - グレースフルシャットダウン実装（SIGINT/SIGTERM対応）
+  - 環境変数読み込み・CORS設定改善・セキュリティヘッダー追加
+- ✅ **環境設定・ドキュメント整備完了**
+  - .env.example: 環境変数テンプレート作成
+  - SETUP_GUIDE.md: セットアップ・トラブルシューティングガイド
+  - API_TEST_COMMANDS.md: 手動テスト用curlコマンド集
 - 基本的なプロジェクト構造と開発環境
-- ローカル開発用の CORS 設定
-- ヘルスチェックエンドポイント
+- ローカル開発用の CORS 設定完了
+- Go 1.24.4 インストール・依存関係解決完了
+
+- ✅ **Vue.js フロントエンド認証システム完全実装**
+  - frontend/src/services/api.ts: axios APIサービス層・JWT自動リフレッシュ
+  - frontend/src/stores/auth.ts: Pinia認証ストア・永続化・JWTトークン期限チェック
+  - frontend/src/components/auth/: LoginForm・RegisterForm コンポーネント
+  - frontend/src/views/: LoginView・RegisterView ページビュー  
+  - frontend/src/router/: 認証ルーティング・ナビゲーションガード
+  - App.vue: 認証状態対応ヘッダー・ログアウト機能
+  - **フロントエンド・バックエンド完全統合動作確認済み**
 
 **進行中/予定:**
 - F-02: AI トーン変換を伴う下書き作成機能 (ハンドラーはスタブ状態)
 - F-03: 送信スケジュールシステム (ハンドラーはスタブ状態)
 - F-04: 下書き/送信履歴と検索機能
-- MongoDB Atlas 連携 (現在はモックデータ使用中)
-- フロントエンド-バックエンド API 連携
+- 認証システムのユニットテスト作成
 
 ## 主要なアーキテクチャパターン
 
@@ -134,13 +158,37 @@ npm run clean
 ### フロントエンド構造
 - TypeScript を使った Vue 3 コンポーネントベースアーキテクチャ
 - `src/components/[feature]/` での機能別コンポーネント構成
-- 状態管理用の Pinia (`src/stores/` 内)
-- ナビゲーション用の Vue Router (`src/router/` で設定)
+- 状態管理用の Pinia (`src/stores/` 内) - 認証ストア実装済み
+- ナビゲーション用の Vue Router (`src/router/` で設定) - 認証ガード実装済み
+- axios APIサービス層 (`src/services/api.ts`) - JWT自動リフレッシュ実装済み
 
 ### 認証フロー
 - ランダムソルトを使った Argon2 パスワードハッシュ化 (64MB メモリ、3回反復、2並列)
 - 15分のアクセストークンと14日のリフレッシュトークンを使った JWT
-- デモ認証情報: `demo@example.com` / `password123` (backend/handlers/auth.go:352)
+- **MongoDB Atlas実データベース認証**: 実際のユーザー登録・ログイン・重複チェック
+
+### API動作確認済みエンドポイント
+```bash
+# サーバー動作確認
+GET /health                    # ✅ 正常動作確認済み
+GET /api/status               # ✅ 正常動作確認済み
+
+# 認証エンドポイント
+POST /api/v1/auth/register    # ✅ Argon2ハッシュ化 + JWT発行確認済み
+POST /api/v1/auth/login       # ✅ JWT認証成功確認済み
+POST /api/v1/auth/refresh     # ✅ トークンリフレッシュ成功確認済み
+POST /api/v1/auth/logout      # ✅ トークン検証 + ログアウト成功確認済み
+```
+
+### 動作確認詳細（2025年6月21日実施）
+- **ユーザー登録**: 新規ユーザー作成、Argon2ハッシュ化、JWT発行成功
+- **重複チェック**: 既存メールアドレスでの適切なエラーレスポンス確認
+- **ログイン**: デモアカウントでのJWT認証成功
+- **トークンリフレッシュ**: 新しいアクセストークン・リフレッシュトークン生成成功
+- **ログアウト**: Authorizationヘッダー検証、ログアウト処理成功
+- **エラーハンドリング**: 無効トークン、認証ヘッダー無しの適切な処理確認
+- **サーバー状態**: `http://localhost:8080` で安定動作中
+- **テストコマンド**: `API_TEST_COMMANDS.md` にcurlコマンド集を作成済み
 
 ## 環境設定
 
@@ -396,6 +444,120 @@ frontend/src/components/
 - パスワード検証でのタイミング攻撃保護
 - TODO: ログアウト機能用の JWT ブラックリスト実装
 
+## APIテスト手順
+
+### 手動テスト
+詳細なAPIテストコマンドは `API_TEST_COMMANDS.md` を参照してください。
+
+**主要テストコマンド:**
+```bash
+# サーバー動作確認
+curl -X GET http://localhost:8080/health
+curl -X GET http://localhost:8080/api/status
+
+# 新規ユーザー登録テスト（MongoDB Atlas実保存）
+curl -X POST http://localhost:8080/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"newuser@example.com","password":"password123"}'
+
+# 登録済みユーザーログインテスト（実データベース認証）
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test-user@example.com","password":"testpassword123"}'
+```
+
+### テストファイル構成
+- `API_TEST_COMMANDS.md`: 全APIエンドポイントのcurlコマンド集
+  - 基本動作確認（ヘルスチェック、ステータス）
+  - 認証システムテスト（登録、ログイン、リフレッシュ、ログアウト）
+  - エラーハンドリングテスト（無効トークン、バリデーションエラー）
+  - 完全テストシーケンス
+  - トラブルシューティング情報
+
+## ドキュメント構成
+
+### ファイル使い分け
+- **README.md**: プロジェクトの公式文書（外部向け、新規参加者向け）
+- **CLAUDE.md**: AI開発アシスタント専用ガイド（内部開発用）
+- **API_TEST_COMMANDS.md**: 手動APIテスト用コマンド集
+- **SETUP.md**: README.mdに統合済み（削除予定）
+
+### 最新更新履歴
+- 2025年6月21日: README.md を外部向け公式文書として全面リニューアル
+- 2025年6月21日: CLAUDE.md を AI協働専用ガイドとして特化
+- 2025年6月21日: API_TEST_COMMANDS.md 作成（手動テスト用）
+
+## セッション管理
+
+### 現在のセッション状況
+- **開発者**: fujinoyuki
+- **現在のブランチ**: feature/auth-system  
+- **最終更新**: 2025年6月21日 13:30
+- **セッション状態**: F-01認証システム完全実装・テスト完了
+
+### 完了したタスク（本セッション）
+- ✅ Go 1.24.4 のインストール
+- ✅ main.go への認証ルート統合・システム強化
+- ✅ **MongoDB Atlas 統合完全実装・動作確認**
+  - database/connection.go: 接続管理・ヘルスチェック実装
+  - models/user.go: User モデル・UserService・CRUD操作実装
+  - handlers/auth.go: 実際のDB操作に変更（モックデータ削除）
+  - 実データでのユーザー登録・ログイン・重複チェック動作確認完了
+- ✅ main.go システム強化（ヘルスチェック・グレースフルシャットダウン・セキュリティ）
+- ✅ 環境設定整備（.env.example, SETUP_GUIDE.md作成）
+- ✅ F-01認証システム完全動作確認（登録・ログイン・リフレッシュ・ログアウト）
+- ✅ API_TEST_COMMANDS.md 作成（手動テスト用コマンド集）
+- ✅ README.md リニューアル（外部向け公式文書化）
+- ✅ CLAUDE.md の AI協働特化への整理
+- ✅ **Vue.js認証フロントエンド完全実装・統合テスト完了**
+  - frontend/src/services/api.ts: axios APIサービス・JWT自動リフレッシュ
+  - frontend/src/stores/auth.ts: Pinia認証ストア・JWTトークン期限チェック・永続化
+  - frontend/src/components/auth/: LoginForm・RegisterForm コンポーネント実装
+  - frontend/src/views/: LoginView・RegisterView ページ実装
+  - frontend/src/router/: 認証ルーティング・ナビゲーションガード実装
+  - App.vue: 認証状態対応UI・ログアウト機能実装
+  - **フロントエンド・バックエンド完全統合動作確認済み（リロード問題解決済み）**
+
+### 次回セッションで取り組むべきタスク
+**優先順位順:**
+
+1. **F-02: 下書き・トーン変換機能実装**
+   - 現状: backend/handlers/drafts.go はスタブ状態
+   - 必要: Anthropic API 連携、プロンプトテンプレート実装
+   - ブランチ: feature/message-drafts
+
+2. **認証システムのユニットテスト作成**
+   - 対象: backend/handlers/auth.go の各関数
+   - Go テスト実装
+
+3. **F-03: 送信スケジュールシステム実装**
+   - 現状: backend/handlers/schedules.go はスタブ状態
+   - 必要: 時間指定送信、タイムゾーン対応実装
+   - ブランチ: feature/schedule-system
+
+### 開発環境状態
+- **バックエンドサーバー**: `http://localhost:8080` で動作中
+- **フロントエンドサーバー**: `http://localhost:5173` で動作中
+- **認証API**: 全エンドポイント動作確認済み
+- **MongoDB Atlas**: 実接続・データ永続化確認済み
+- **フロントエンド認証**: Vue.js認証画面・API統合・リロード対応済み
+- **テストユーザー**: test-user@example.com で実際にDB登録済み
+
+### 環境設定
+- ✅ .env.example ファイル作成済み
+- ✅ MongoDB Atlas URI 設定済み（実動作確認済み）
+- ✅ JWT_SECRET 設定済み
+- ✅ SETUP_GUIDE.md でセットアップ手順文書化済み
+
 ## メモリ
 
-- to memorize
+- プロジェクトファイル整理完了: README.md（公式）+ CLAUDE.md（AI用）+ API_TEST_COMMANDS.md（テスト用）
+- **MongoDB Atlas 統合完全実装・動作確認完了**（fujinoyuki, 2025-06-21 17:10）
+  - 実際のMongoDB AtlasにユーザーデータID `6856690091b5f3e54b80270d` で保存済み
+  - 登録147ms/ログイン97ms/ヘルスチェック13msのパフォーマンス確認
+- F-01認証システム完全実装・MongoDB統合完了（fujinoyuki, 2025-06-21）
+- **Vue.js認証フロントエンド完全実装・統合完了**（fujinoyuki, 2025-06-21 18:10）
+  - フロントエンド・バックエンド完全統合動作確認済み
+  - JWTトークン期限チェック・自動リフレッシュ・リロード対応済み
+  - 認証状態永続化・ルーティングガード・UI状態管理完了
+- 次回優先: F-02 下書き・トーン変換機能実装（Anthropic API連携）

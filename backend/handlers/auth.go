@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -12,23 +13,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
+
+	"yanwari-message-backend/models"
 )
 
-// User ユーザーデータモデル
-// データベースに保存するユーザー情報を表現
-type User struct {
-	ID           string    `json:"id" db:"id"`
-	Email        string    `json:"email" db:"email"`
-	PasswordHash string    `json:"-" db:"password_hash"` // JSONには含めない（セキュリティ上重要）
-	Salt         string    `json:"-" db:"salt"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
-}
 
 // RegisterRequest ユーザー登録リクエスト
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`       // 必須、メール形式
-	Password string `json:"password" binding:"required,min=8"`    // 必須、8文字以上
+	Email    string `json:"email" binding:"required,email"`    // 必須、メール形式
+	Password string `json:"password" binding:"required"`       // 必須（長さは別途チェック）
 }
 
 // LoginRequest ログインリクエスト
@@ -39,10 +32,10 @@ type LoginRequest struct {
 
 // AuthResponse 認証成功時のレスポンス
 type AuthResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`    // アクセストークンの有効期限（秒）
-	User         *User  `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+	ExpiresIn    int64        `json:"expires_in"`    // アクセストークンの有効期限（秒）
+	User         *models.User `json:"user"`
 }
 
 // PasswordConfig Argon2パスワードハッシュ化設定
@@ -239,14 +232,15 @@ func (j *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 
 // AuthHandler 認証関連のハンドラー
 type AuthHandler struct {
-	jwtService *JWTService
-	// TODO: UserService（データベース操作）を追加予定
+	jwtService  *JWTService
+	userService *models.UserService
 }
 
 // NewAuthHandler 認証ハンドラーのコンストラクタ
-func NewAuthHandler() *AuthHandler {
+func NewAuthHandler(userService *models.UserService) *AuthHandler {
 	return &AuthHandler{
-		jwtService: NewJWTService(),
+		jwtService:  NewJWTService(),
+		userService: userService,
 	}
 }
 
@@ -272,10 +266,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 	
-	// 3. ユーザーの重複チェック（本来はデータベースで確認）
-	// TODO: データベース実装時に追加
-	// 現在は仮の処理として、特定のメールアドレスで重複エラーを発生
-	if req.Email == "test@example.com" {
+	// 3. ユーザーの重複チェック（データベースで確認）
+	ctx := context.Background()
+	exists, err := h.userService.EmailExists(ctx, req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "重複チェック中にエラーが発生しました",
+		})
+		return
+	}
+	
+	if exists {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "このメールアドレスは既に登録されています",
 		})
@@ -292,24 +293,22 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	
 	// 5. ユーザーデータ作成
-	userID := uuid.New().String()
-	now := time.Now()
-	
-	user := &User{
-		ID:           userID,
+	user := &models.User{
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		Salt:         salt,
-		CreatedAt:    now,
-		UpdatedAt:    now,
 	}
 	
-	// 6. データベース保存（現在は未実装）
-	// TODO: データベース実装時に追加
-	// userService.CreateUser(user)
+	// 6. データベース保存
+	if err := h.userService.CreateUser(ctx, user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "ユーザー作成中にエラーが発生しました",
+		})
+		return
+	}
 	
 	// 7. JWTトークン生成
-	tokenPair, err := h.jwtService.GenerateTokenPair(user.ID, user.Email)
+	tokenPair, err := h.jwtService.GenerateTokenPair(user.ID.Hex(), user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "認証トークン生成中にエラーが発生しました",
@@ -345,45 +344,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 	
-	// 2. ユーザー情報をデータベースから取得（現在は仮実装）
-	// TODO: データベース実装時に置き換え
-	// 現在は特定のメール・パスワードでデモンストレーション
-	var user *User
-	if req.Email == "demo@example.com" && req.Password == "password123" {
-		// デモ用のユーザーデータ
-		userID := uuid.New().String()
-		hashedPassword, salt, _ := hashPassword("password123", defaultPasswordConfig)
-		
-		user = &User{
-			ID:           userID,
-			Email:        req.Email,
-			PasswordHash: hashedPassword,
-			Salt:         salt,
-			CreatedAt:    time.Now().Add(-24 * time.Hour), // 1日前に作成
-			UpdatedAt:    time.Now(),
-		}
-	} else {
-		// ユーザーが見つからない、またはパスワードが間違っている
-		// セキュリティのため、具体的なエラー理由は明かさない
+	// 2. データベースからユーザー情報を取得
+	ctx := context.Background()
+	user, err := h.userService.GetUserByEmail(ctx, req.Email)
+	if err != nil {
+		// ユーザーが見つからない場合も、セキュリティのため詳細なエラーは返さない
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "メールアドレスまたはパスワードが正しくありません",
 		})
 		return
 	}
 	
-	// 3. パスワード検証（実際のデータベース実装時用のコード例）
-	// 現在はデモのためスキップ（上記で既に検証済み）
-	/*
+	// 3. パスワード検証
 	if !verifyPassword(req.Password, user.PasswordHash, user.Salt, defaultPasswordConfig) {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "メールアドレスまたはパスワードが正しくありません",
 		})
 		return
 	}
-	*/
 	
 	// 4. JWTトークン生成
-	tokenPair, err := h.jwtService.GenerateTokenPair(user.ID, user.Email)
+	tokenPair, err := h.jwtService.GenerateTokenPair(user.ID.Hex(), user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "認証トークン生成中にエラーが発生しました",
@@ -459,13 +440,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 	
-	// 6. ユーザー情報を取得してレスポンスに含める（現在は仮実装）
-	// TODO: データベース実装時に実際のユーザー取得に置き換え
-	user := &User{
-		ID:        claims.UserID,
-		Email:     claims.Email,
-		CreatedAt: time.Now().Add(-24 * time.Hour), // 仮の作成日時
-		UpdatedAt: time.Now(),
+	// 6. ユーザー情報をデータベースから取得
+	ctx := context.Background()
+	user, err := h.userService.GetUserByID(ctx, claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザー情報の取得に失敗しました",
+		})
+		return
 	}
 	
 	// 7. レスポンス返却
