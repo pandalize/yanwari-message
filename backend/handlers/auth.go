@@ -20,8 +20,8 @@ import (
 
 // RegisterRequest ユーザー登録リクエスト
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`       // 必須、メール形式
-	Password string `json:"password" binding:"required,min=8"`    // 必須、8文字以上
+	Email    string `json:"email" binding:"required,email"`    // 必須、メール形式
+	Password string `json:"password" binding:"required"`       // 必須（長さは別途チェック）
 }
 
 // LoginRequest ログインリクエスト
