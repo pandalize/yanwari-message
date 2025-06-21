@@ -7,6 +7,69 @@
 このファイルは、やんわり伝言サービスでの Claude Code との効率的な開発協働のためのガイドです。
 プロジェクトの基本情報は `README.md` を参照してください。
 
+### **やんわり伝言アプリの詳細フロー**
+
+#### ユーザー操作フロー
+```
+1. 送信者がメッセージを入力（例: 「明日の会議、準備できてないから延期してほしい」）
+   ↓
+2. 「変換」ボタンをクリック
+   ↓  
+3. バックエンドでAnthropic APIが複数トーン（優しめ、建設的、カジュアル）に並行変換
+   ↓
+4. 送信者に変換結果を表示（3つの選択肢として）
+   ↓
+5. 送信者がベストなトーンを選択
+   ↓
+6. 送信者が配信時間を設定（今すぐ / 1時間後 / 明日朝 / カスタム）
+   ↓
+7. 受信者に指定時間にやんわりメッセージが配信
+```
+
+#### 画面遷移イメージ
+```
+┌─────────────────────────────────┐
+│ やんわり伝言 - メッセージ作成      │
+├─────────────────────────────────┤
+│ 送信先: user@example.com         │
+│                                │
+│ ┌─────────────────────────────┐ │
+│ │ 明日の会議、準備できてない    │ │
+│ │ から延期してほしい           │ │
+│ └─────────────────────────────┘ │
+│                                │
+│ [🎭 トーン変換]                 │
+└─────────────────────────────────┘
+
+↓ 変換後
+
+┌─────────────────────────────────┐
+│ トーンを選択してください          │
+├─────────────────────────────────┤
+│ 💝 優しめトーン:                │
+│ 「明日の会議についてですが、      │
+│  もう少しお時間をいただけると    │
+│  助かります😊」                 │
+│                                │
+│ 🏗️ 建設的トーン:               │
+│ 「明日の会議の準備に追加時間が   │
+│  必要です。延期をご検討いただけ  │
+│  ますでしょうか？」             │
+│                                │
+│ 🎯 カジュアルトーン:            │
+│ 「明日の会議なんですが、準備が   │
+│  間に合わないので延期できますか？」│
+│                                │
+│ 📅 配信時間: [今すぐ ▼]         │
+│   - 今すぐ                     │
+│   - 1時間後                    │
+│   - 明日の朝9時                 │
+│   - カスタム設定               │
+│                                │
+│ [📨 送信]                      │
+└─────────────────────────────────┘
+```
+
 ## 技術スタック（開発者向け詳細）
 
 - **バックエンド**: Go 1.24+ + Gin + JWT認証 (Argon2) + MongoDB Atlas
@@ -148,19 +211,123 @@ npm run clean
 
 ## 主要なアーキテクチャパターン
 
+### コンポーネント化設計方針
+
+#### 再利用可能な独立コンポーネント設計
+- **機能別API分割**: 各機能は独立したAPIエンドポイント・データモデル・UIコンポーネントを持つ
+- **他アプリでの再利用性**: 他のアプリケーションでの再利用を前提とした疎結合設計
+- **最小依存関係**: 機能間の依存関係を最小限に抑制、プラグイン的な組み込み・取り外しが可能
+- **Go並行処理最適化**: goroutine・channelを活用した高性能な非同期処理
+
+#### API設計の独立性（再利用可能コンポーネント）
+```bash
+# 各機能が独立したAPIエンドポイントを持つ（他アプリでも再利用可能）
+/api/v1/auth/*              # 認証システム（完了済み）
+/api/v1/users/*             # ユーザー検索・連絡先管理
+/api/v1/messages/*          # メッセージ作成・管理
+/api/v1/transform/*         # AIトーン変換（3種並行処理）
+/api/v1/schedules/*         # 配信スケジュール管理
+/api/v1/notifications/*     # SSE通知・配信
+/api/v1/dashboard           # BFF統合エンドポイント（必要時）
+```
+
+#### API設計戦略（機能別独立アプローチ）
+- **初期**: 機能別独立API設計（再利用性・クリーンアーキテクチャ）
+- **成長期**: 各機能APIの最適化・拡張
+- **拡大期**: BFF/GraphQL追加（パフォーマンス最適化）
+
+#### パフォーマンス最適化戦略（段階的導入）
+- **MongoDB M0対応**: 適度な接続プール設定・クエリ最適化
+- **goroutine並行処理**: 複数データソースへの同時アクセス（成長期以降）
+- **channel活用**: SSE通知・リアルタイムデータストリーミング（必要時）
+- **非同期バックグラウンド処理**: 重い処理（AI変換・メール送信）の分離（成長期以降）
+
+#### データベース設計（やんわり伝言特化）
+```javascript
+// やんわり伝言アプリのコレクション設計
+collections: {
+  users: {
+    _id: ObjectId,
+    email: string,
+    passwordHash: string,
+    timezone: string
+  },
+  
+  messages: {
+    _id: ObjectId,
+    senderId: ObjectId,           // 送信者
+    recipientId: ObjectId,        // 受信者
+    originalText: string,         // 元のメッセージ
+    variations: {                 // AI変換結果
+      gentle: string,             // 優しめトーン
+      constructive: string,       // 建設的トーン
+      casual: string              // カジュアルトーン
+    },
+    selectedTone: string,         // 送信者が選択したトーン
+    finalText: string,            // 最終的に送信されるテキスト
+    scheduledAt: Date,            // 配信予定時刻
+    status: "draft|processing|scheduled|sent|delivered|read",
+    createdAt: Date,
+    sentAt: Date,
+    readAt: Date
+  },
+  
+  contacts: {
+    _id: ObjectId,
+    userId: ObjectId,            // 自分のID
+    contactUserId: ObjectId,     // 連絡先のユーザーID
+    nickname: string,            // 表示名
+    lastMessageAt: Date,         // 最後のメッセージ時刻
+    addedAt: Date
+  }
+}
+```
+
 ### バックエンド構造
 - `backend/main.go`: Gin ルーター と CORS セットアップを伴うサーバーエントリーポイント
-- `backend/handlers/`: 機能ベースのハンドラー構成
+- `backend/handlers/`: 機能ベースのハンドラー構成（並行処理最適化）
   - `auth.go`: Argon2 を使った完全な JWT 認証 (532行)
-  - `drafts.go`: 下書き管理 (F-02 用スタブ)
-  - `schedules.go`: 送信スケジュール (F-03 用スタブ)
+  - `users.go`: ユーザー検索・連絡先管理（並行検索処理）
+  - `messages.go`: メッセージ送受信（非同期送信処理）
+  - `notifications.go`: SSE通知（channel活用）
+  - `schedules.go`: 送信スケジュール（バックグラウンド処理）
+  - `transform.go`: AIトーン変換（並行AI API呼び出し）
 
-### フロントエンド構造
+### フロントエンド構造（コンポーネント化）
 - TypeScript を使った Vue 3 コンポーネントベースアーキテクチャ
-- `src/components/[feature]/` での機能別コンポーネント構成
-- 状態管理用の Pinia (`src/stores/` 内) - 認証ストア実装済み
-- ナビゲーション用の Vue Router (`src/router/` で設定) - 認証ガード実装済み
-- axios APIサービス層 (`src/services/api.ts`) - JWT自動リフレッシュ実装済み
+- **機能別独立コンポーネント設計**: 各機能が独立したコンポーネント・ストア・サービスを持つ
+
+#### コンポーネント設計の独立性
+```bash
+frontend/src/
+├── components/
+│   ├── auth/           # 認証コンポーネント（完了済み）
+│   ├── users/          # ユーザー検索・連絡先UI
+│   ├── messages/       # メッセージ送受信UI
+│   ├── notifications/  # 通知表示UI
+│   ├── scheduling/     # スケジュール管理UI
+│   └── transform/      # AIトーン変換UI
+├── stores/
+│   ├── auth.ts         # 認証ストア（完了済み）
+│   ├── users.ts        # ユーザー検索・連絡先ストア
+│   ├── messages.ts     # メッセージストア
+│   ├── notifications.ts # 通知ストア（SSE管理）
+│   ├── schedules.ts    # スケジュールストア
+│   └── transform.ts    # AI変換ストア
+└── services/
+    ├── api.ts          # 共通APIサービス（完了済み）
+    ├── userService.ts  # ユーザー検索API
+    ├── messageService.ts # メッセージAPI
+    ├── sseService.ts   # SSE通知API
+    ├── scheduleService.ts # スケジュールAPI
+    └── transformService.ts # AI変換API
+```
+
+#### フロントエンド最適化戦略
+- **独立ストア管理**: 各機能のPiniaストアが独立動作
+- **サービス層分離**: API呼び出しロジックの再利用可能性
+- **コンポーネント疎結合**: 他アプリでの個別コンポーネント利用
+- **型定義共有**: TypeScript型定義での安全性確保
 
 ### 認証フロー
 - ランダムソルトを使った Argon2 パスワードハッシュ化 (64MB メモリ、3回反復、2並列)
@@ -549,6 +716,82 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 - ✅ JWT_SECRET 設定済み
 - ✅ SETUP_GUIDE.md でセットアップ手順文書化済み
 
+## やんわり伝言アプリの実装設計
+
+### **フロー別ブランチ設計**
+
+#### **Core 実装ブランチ（必須機能）**
+```bash
+feature/message-compose         # 1. メッセージ作成・入力UI
+feature/ai-tone-transform       # 2. Anthropic API複数トーン変換（並行処理）
+feature/tone-selection         # 3. トーン選択UI・UX
+feature/message-scheduling     # 4. 配信時間設定・スケジューラー
+feature/message-delivery       # 5. 受信者への配信・通知
+```
+
+#### **Supporting 実装ブランチ（支援機能）**
+```bash
+feature/user-contacts          # ユーザー検索・連絡先管理
+feature/inbox-history          # 受信トレイ・送信履歴UI
+feature/sse-notifications      # リアルタイム通知（SSE）
+```
+
+#### **Integration ブランチ**
+```bash
+feature/message-system-integration  # 全機能統合・E2Eテスト
+```
+
+### **実装順序（UXフロー優先）**
+
+#### **Phase 1: コアUXフロー実装**
+```bash
+Week 1: feature/message-compose        # メッセージ入力画面
+Week 2: feature/ai-tone-transform      # AI変換バックエンド（3トーン並行処理）
+Week 3: feature/tone-selection        # トーン選択画面
+Week 4: feature/message-scheduling    # 配信時間設定
+```
+
+#### **Phase 2: 配信・通知システム**
+```bash
+Week 5: feature/message-delivery      # 配信システム・受信者通知
+Week 6: feature/user-contacts         # ユーザー検索・連絡先
+Week 7: feature/inbox-history         # 受信トレイ・履歴UI
+```
+
+#### **Phase 3: リアルタイム・統合**
+```bash
+Week 8: feature/sse-notifications     # SSEリアルタイム通知
+Week 9: feature/message-system-integration  # 全機能統合
+```
+
+### **技術実装アプローチ（確定方針）**
+
+#### **API設計**: 機能別API → BFF/GraphQL（必要時）
+- **理由**: やんわり伝言は要件明確 + 再利用性重視のため、最初から適切な設計で実装
+- **初期**: 機能別独立API設計（再利用可能なコンポーネント）
+- **成長期**: 各機能APIの最適化・拡張
+- **拡大期**: BFF/GraphQL追加（パフォーマンス最適化・統合クエリ）
+
+#### **機能別APIエンドポイント設計**
+```bash
+/api/v1/auth/*              # 認証システム（完了済み）
+/api/v1/users/*             # ユーザー検索・連絡先管理
+/api/v1/messages/*          # メッセージ作成・管理
+/api/v1/transform/*         # AIトーン変換（3種並行処理）
+/api/v1/schedules/*         # 配信スケジュール管理
+/api/v1/notifications/*     # SSE通知・配信
+/api/v1/dashboard           # BFF統合エンドポイント（必要時）
+```
+
+#### **非同期処理**: 必要最小限から段階的導入
+- **Phase 1**: AIトーン変換の並行処理（3トーン同時変換）
+- **Phase 2**: スケジュール送信のバックグラウンド処理
+- **Phase 3**: SSE通知のchannel活用
+
+#### **MongoDB M0対応**: 安定性重視
+- 接続プール最大10、goroutine最大3の控えめ設定
+- クエリ最適化・インデックス活用でパフォーマンス確保
+
 ## メモリ
 
 - プロジェクトファイル整理完了: README.md（公式）+ CLAUDE.md（AI用）+ API_TEST_COMMANDS.md（テスト用）
@@ -560,4 +803,4 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   - フロントエンド・バックエンド完全統合動作確認済み
   - JWTトークン期限チェック・自動リフレッシュ・リロード対応済み
   - 認証状態永続化・ルーティングガード・UI状態管理完了
-- 次回優先: F-02 下書き・トーン変換機能実装（Anthropic API連携）
+- 次回優先: メッセージシステム実装方針決定 → 実装開始
