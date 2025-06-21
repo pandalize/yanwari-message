@@ -43,14 +43,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-
-// TODO: F-01 認証機能実装
-// - API呼び出し処理
-// - JWT保存処理
-// - エラーハンドリング
-// - バリデーション
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const form = reactive({
   email: '',
@@ -65,12 +61,16 @@ const handleLogin = async () => {
   error.value = ''
   
   try {
-    // TODO: 認証API呼び出し
-    console.log('F-01: ログイン処理 - 実装予定', form)
+    const success = await authStore.login({
+      email: form.email,
+      password: form.password
+    })
     
-    // 仮の成功処理
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    router.push('/dashboard')
+    if (success) {
+      router.push('/')
+    } else {
+      error.value = authStore.error || 'ログインに失敗しました'
+    }
   } catch (err) {
     error.value = 'ログインに失敗しました'
   } finally {

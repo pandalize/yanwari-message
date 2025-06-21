@@ -108,12 +108,13 @@ npm run clean
 ## 現在の実装状況
 
 **完了済み機能:**
-- ✅ **F-01: JWT認証システム（MongoDB Atlas統合完全完了）**
+- ✅ **F-01: JWT認証システム（バックエンド・フロントエンド完全統合完了）**
   - Argon2 パスワードハッシュ化実装完了
   - JWT アクセストークン（15分）/ リフレッシュトークン（14日）
   - ユーザー登録・ログイン・トークンリフレッシュ・ログアウト機能
   - セキュリティ機能：定数時間比較、トークン検証、エラーハンドリング
   - **MongoDB Atlas 実データ保存・取得動作確認完了**
+  - **Vue.js認証フロントエンド完全実装・統合テスト完了**
 - ✅ **MongoDB Atlas 統合基盤完了**
   - database/connection.go: 接続管理・ヘルスチェック・プール設定
   - models/user.go: User モデル・UserService・CRUD操作・インデックス作成
@@ -130,11 +131,19 @@ npm run clean
 - ローカル開発用の CORS 設定完了
 - Go 1.24.4 インストール・依存関係解決完了
 
+- ✅ **Vue.js フロントエンド認証システム完全実装**
+  - frontend/src/services/api.ts: axios APIサービス層・JWT自動リフレッシュ
+  - frontend/src/stores/auth.ts: Pinia認証ストア・永続化・JWTトークン期限チェック
+  - frontend/src/components/auth/: LoginForm・RegisterForm コンポーネント
+  - frontend/src/views/: LoginView・RegisterView ページビュー  
+  - frontend/src/router/: 認証ルーティング・ナビゲーションガード
+  - App.vue: 認証状態対応ヘッダー・ログアウト機能
+  - **フロントエンド・バックエンド完全統合動作確認済み**
+
 **進行中/予定:**
 - F-02: AI トーン変換を伴う下書き作成機能 (ハンドラーはスタブ状態)
 - F-03: 送信スケジュールシステム (ハンドラーはスタブ状態)
 - F-04: 下書き/送信履歴と検索機能
-- フロントエンド-バックエンド API 連携
 - 認証システムのユニットテスト作成
 
 ## 主要なアーキテクチャパターン
@@ -149,8 +158,9 @@ npm run clean
 ### フロントエンド構造
 - TypeScript を使った Vue 3 コンポーネントベースアーキテクチャ
 - `src/components/[feature]/` での機能別コンポーネント構成
-- 状態管理用の Pinia (`src/stores/` 内)
-- ナビゲーション用の Vue Router (`src/router/` で設定)
+- 状態管理用の Pinia (`src/stores/` 内) - 認証ストア実装済み
+- ナビゲーション用の Vue Router (`src/router/` で設定) - 認証ガード実装済み
+- axios APIサービス層 (`src/services/api.ts`) - JWT自動リフレッシュ実装済み
 
 ### 認証フロー
 - ランダムソルトを使った Argon2 パスワードハッシュ化 (64MB メモリ、3回反復、2並列)
@@ -499,6 +509,14 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 - ✅ API_TEST_COMMANDS.md 作成（手動テスト用コマンド集）
 - ✅ README.md リニューアル（外部向け公式文書化）
 - ✅ CLAUDE.md の AI協働特化への整理
+- ✅ **Vue.js認証フロントエンド完全実装・統合テスト完了**
+  - frontend/src/services/api.ts: axios APIサービス・JWT自動リフレッシュ
+  - frontend/src/stores/auth.ts: Pinia認証ストア・JWTトークン期限チェック・永続化
+  - frontend/src/components/auth/: LoginForm・RegisterForm コンポーネント実装
+  - frontend/src/views/: LoginView・RegisterView ページ実装
+  - frontend/src/router/: 認証ルーティング・ナビゲーションガード実装
+  - App.vue: 認証状態対応UI・ログアウト機能実装
+  - **フロントエンド・バックエンド完全統合動作確認済み（リロード問題解決済み）**
 
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
@@ -508,18 +526,21 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
    - 必要: Anthropic API 連携、プロンプトテンプレート実装
    - ブランチ: feature/message-drafts
 
-2. **フロントエンド認証画面実装**
-   - 現状: frontend/src/components/auth/LoginForm.vue は未実装
-   - 必要: API連携、JWT保存、ルーティング
-
-3. **認証システムのユニットテスト作成**
+2. **認証システムのユニットテスト作成**
    - 対象: backend/handlers/auth.go の各関数
    - Go テスト実装
 
+3. **F-03: 送信スケジュールシステム実装**
+   - 現状: backend/handlers/schedules.go はスタブ状態
+   - 必要: 時間指定送信、タイムゾーン対応実装
+   - ブランチ: feature/schedule-system
+
 ### 開発環境状態
-- **サーバー**: `http://localhost:8080` で動作中
+- **バックエンドサーバー**: `http://localhost:8080` で動作中
+- **フロントエンドサーバー**: `http://localhost:5173` で動作中
 - **認証API**: 全エンドポイント動作確認済み
 - **MongoDB Atlas**: 実接続・データ永続化確認済み
+- **フロントエンド認証**: Vue.js認証画面・API統合・リロード対応済み
 - **テストユーザー**: test-user@example.com で実際にDB登録済み
 
 ### 環境設定
@@ -535,4 +556,8 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   - 実際のMongoDB AtlasにユーザーデータID `6856690091b5f3e54b80270d` で保存済み
   - 登録147ms/ログイン97ms/ヘルスチェック13msのパフォーマンス確認
 - F-01認証システム完全実装・MongoDB統合完了（fujinoyuki, 2025-06-21）
+- **Vue.js認証フロントエンド完全実装・統合完了**（fujinoyuki, 2025-06-21 18:10）
+  - フロントエンド・バックエンド完全統合動作確認済み
+  - JWTトークン期限チェック・自動リフレッシュ・リロード対応済み
+  - 認証状態永続化・ルーティングガード・UI状態管理完了
 - 次回優先: F-02 下書き・トーン変換機能実装（Anthropic API連携）

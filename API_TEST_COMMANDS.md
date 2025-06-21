@@ -287,6 +287,8 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 {"error":"パスワードは8文字以上である必要があります"}
 ```
 
+**注意:** バリデーションエラーメッセージが日本語で統一されています。
+
 **無効なメール形式:**
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/register \
