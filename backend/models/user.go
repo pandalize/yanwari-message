@@ -1,0 +1,176 @@
+package models
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// User データベースに保存するユーザー情報を表現
+type User struct {
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Email        string             `bson:"email" json:"email"`
+	PasswordHash string             `bson:"password_hash" json:"-"` // JSONには含めない（セキュリティ上重要）
+	Salt         string             `bson:"salt" json:"-"`
+	Timezone     string             `bson:"timezone" json:"timezone"`
+	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
+}
+
+// UserService ユーザー関連のデータベース操作を担当
+type UserService struct {
+	collection *mongo.Collection
+}
+
+// NewUserService UserServiceのコンストラクタ
+func NewUserService(db *mongo.Database) *UserService {
+	return &UserService{
+		collection: db.Collection("users"),
+	}
+}
+
+// CreateUser 新しいユーザーを作成
+func (s *UserService) CreateUser(ctx context.Context, user *User) error {
+	// 作成・更新時刻を設定
+	now := time.Now()
+	user.CreatedAt = now
+	user.UpdatedAt = now
+
+	// タイムゾーンのデフォルト設定
+	if user.Timezone == "" {
+		user.Timezone = "Asia/Tokyo"
+	}
+
+	// ユーザーをデータベースに挿入
+	result, err := s.collection.InsertOne(ctx, user)
+	if err != nil {
+		// 重複エラーの場合（email にユニークインデックスが設定されている場合）
+		if mongo.IsDuplicateKeyError(err) {
+			return fmt.Errorf("このメールアドレスは既に登録されています")
+		}
+		return fmt.Errorf("ユーザー作成エラー: %w", err)
+	}
+
+	// 作成されたユーザーのIDを設定
+	user.ID = result.InsertedID.(primitive.ObjectID)
+	return nil
+}
+
+// GetUserByEmail メールアドレスでユーザーを取得
+func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	
+	filter := bson.M{"email": email}
+	err := s.collection.FindOne(ctx, filter).Decode(&user)
+	
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("ユーザーが見つかりません")
+		}
+		return nil, fmt.Errorf("ユーザー取得エラー: %w", err)
+	}
+
+	return &user, nil
+}
+
+// GetUserByID ユーザーIDでユーザーを取得
+func (s *UserService) GetUserByID(ctx context.Context, id string) (*User, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("無効なユーザーID: %w", err)
+	}
+
+	var user User
+	filter := bson.M{"_id": objectID}
+	err = s.collection.FindOne(ctx, filter).Decode(&user)
+	
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("ユーザーが見つかりません")
+		}
+		return nil, fmt.Errorf("ユーザー取得エラー: %w", err)
+	}
+
+	return &user, nil
+}
+
+// EmailExists メールアドレスが既に登録されているかチェック
+func (s *UserService) EmailExists(ctx context.Context, email string) (bool, error) {
+	filter := bson.M{"email": email}
+	count, err := s.collection.CountDocuments(ctx, filter)
+	
+	if err != nil {
+		return false, fmt.Errorf("メールアドレス重複チェックエラー: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+// UpdateUser ユーザー情報を更新
+func (s *UserService) UpdateUser(ctx context.Context, user *User) error {
+	// 更新時刻を設定
+	user.UpdatedAt = time.Now()
+
+	filter := bson.M{"_id": user.ID}
+	update := bson.M{
+		"$set": bson.M{
+			"email":         user.Email,
+			"password_hash": user.PasswordHash,
+			"salt":          user.Salt,
+			"timezone":      user.Timezone,
+			"updated_at":    user.UpdatedAt,
+		},
+	}
+
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("ユーザー更新エラー: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("更新対象のユーザーが見つかりません")
+	}
+
+	return nil
+}
+
+// DeleteUser ユーザーを削除
+func (s *UserService) DeleteUser(ctx context.Context, id string) error {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("無効なユーザーID: %w", err)
+	}
+
+	filter := bson.M{"_id": objectID}
+	result, err := s.collection.DeleteOne(ctx, filter)
+	
+	if err != nil {
+		return fmt.Errorf("ユーザー削除エラー: %w", err)
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("削除対象のユーザーが見つかりません")
+	}
+
+	return nil
+}
+
+// CreateEmailIndex メールアドレスにユニークインデックスを作成
+func (s *UserService) CreateEmailIndex(ctx context.Context) error {
+	indexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "email", Value: 1}}, // 昇順インデックス
+		Options: options.Index().SetUnique(true),   // ユニーク制約
+	}
+
+	_, err := s.collection.Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		return fmt.Errorf("メールアドレスインデックス作成エラー: %w", err)
+	}
+
+	return nil
+}
