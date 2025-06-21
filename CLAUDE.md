@@ -155,7 +155,7 @@ npm run clean
 ### 認証フロー
 - ランダムソルトを使った Argon2 パスワードハッシュ化 (64MB メモリ、3回反復、2並列)
 - 15分のアクセストークンと14日のリフレッシュトークンを使った JWT
-- デモ認証情報: `demo@example.com` / `password123` (backend/handlers/auth.go:352)
+- **MongoDB Atlas実データベース認証**: 実際のユーザー登録・ログイン・重複チェック
 
 ### API動作確認済みエンドポイント
 ```bash
@@ -445,15 +445,15 @@ frontend/src/components/
 curl -X GET http://localhost:8080/health
 curl -X GET http://localhost:8080/api/status
 
-# 認証テスト（デモアカウント）
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"demo@example.com","password":"password123"}'
-
-# 新規ユーザー登録テスト
+# 新規ユーザー登録テスト（MongoDB Atlas実保存）
 curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"newuser@example.com","password":"password123"}'
+
+# 登録済みユーザーログインテスト（実データベース認証）
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test-user@example.com","password":"testpassword123"}'
 ```
 
 ### テストファイル構成

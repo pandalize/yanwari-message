@@ -80,10 +80,10 @@ npm run dev:frontend   # http://localhost:5173
 # サーバー動作確認
 curl -X GET http://localhost:8080/health
 
-# デモアカウントでログイン
-curl -X POST http://localhost:8080/api/v1/auth/login \
+# ユーザー登録
+curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"demo@example.com","password":"password123"}'
+  -d '{"email":"newuser@example.com","password":"password123"}'
 ```
 
 詳細なAPIテストコマンドは `API_TEST_COMMANDS.md` を参照してください。
