@@ -5,7 +5,7 @@
       <p class="subtitle">やんわり伝言で気持ちを優しく伝えましょう</p>
     </div>
 
-    <form @submit.prevent="handleCreateDraft" class="composer-form">
+    <form @submit.prevent class="composer-form">
       <!-- 送信先選択 -->
       <RecipientSelector 
         v-model="form.recipient"
@@ -33,6 +33,15 @@
       <!-- アクションボタン -->
       <div class="form-actions">
         <button
+          v-if="currentDraftId"
+          type="button"
+          @click="startNewMessage"
+          class="btn btn-outline"
+        >
+          ✨ 新しいメッセージ
+        </button>
+        
+        <button
           type="button"
           @click="saveDraft"
           :disabled="!canSave || messageStore.isLoading"
@@ -42,12 +51,23 @@
         </button>
         
         <button
-          type="submit"
+          type="button"
+          @click="handleCreateDraft"
           :disabled="!canProceed || messageStore.isLoading"
           class="btn btn-primary"
         >
           <span v-if="messageStore.isLoading">⏳ 処理中...</span>
           <span v-else>🎭 トーン変換へ</span>
+        </button>
+        
+        <button
+          v-if="currentDraftId"
+          type="button"
+          @click="proceedToToneSelection"
+          :disabled="!canProceed || messageStore.isLoading"
+          class="btn btn-accent"
+        >
+          ✨ 変換画面へ
         </button>
       </div>
     </form>
@@ -115,18 +135,48 @@ const recentDrafts = computed(() => {
   return messageStore.drafts.slice(0, 5)
 })
 
-// 下書き作成
-const handleCreateDraft = async () => {
-  if (!canProceed.value) return
+const currentDraftId = computed(() => {
+  return messageStore.currentDraft?.id
+})
 
-  const success = await messageStore.createDraft({
-    originalText: form.originalText.trim(),
-    recipientEmail: form.recipient?.email
+
+// 下書き作成またはトーン変換画面へ
+const handleCreateDraft = async () => {
+  console.log('handleCreateDraft called', { 
+    canProceed: canProceed.value, 
+    originalText: form.originalText,
+    currentDraft: messageStore.currentDraft 
   })
+  
+  if (!canProceed.value) {
+    console.log('Cannot proceed - validation failed')
+    return
+  }
+
+  // 既に下書きがある場合は更新、ない場合は新規作成
+  let success = false
+  if (messageStore.currentDraft?.id) {
+    console.log('Updating existing draft:', messageStore.currentDraft.id)
+    success = await messageStore.updateMessage(messageStore.currentDraft.id, {
+      originalText: form.originalText.trim(),
+      recipientEmail: form.recipient?.email
+    })
+  } else {
+    console.log('Creating new draft')
+    success = await messageStore.createDraft({
+      originalText: form.originalText.trim(),
+      recipientEmail: form.recipient?.email
+    })
+  }
+
+  console.log('Operation result:', { success, currentDraft: messageStore.currentDraft })
 
   if (success && messageStore.currentDraft) {
-    // AI変換画面に遷移（次のフェーズで実装）
-    router.push(`/messages/${messageStore.currentDraft.id}/transform`)
+    const route = `/messages/${messageStore.currentDraft.id}/transform`
+    console.log('Navigating to:', route)
+    router.push(route)
+  } else {
+    console.error('Failed to create/update draft or currentDraft is null')
   }
 }
 
@@ -142,7 +192,23 @@ const saveDraft = async () => {
   if (success) {
     form.originalText = ''
     form.recipient = null
+    messageStore.clearCurrentDraft()
     messageStore.clearError()
+  }
+}
+
+// 新しいメッセージ作成
+const startNewMessage = () => {
+  form.originalText = ''
+  form.recipient = null
+  messageStore.clearCurrentDraft()
+  messageStore.clearError()
+}
+
+// トーン選択画面へ遷移
+const proceedToToneSelection = () => {
+  if (messageStore.currentDraft?.id) {
+    router.push(`/messages/${messageStore.currentDraft.id}/transform`)
   }
 }
 
@@ -159,6 +225,8 @@ const loadDraft = (draft: any) => {
   } else {
     form.recipient = null
   }
+  // 現在の下書きとして設定
+  messageStore.setCurrentDraft(draft)
 }
 
 // 下書き削除
@@ -199,6 +267,8 @@ const formatDate = (dateString?: string): string => {
 // 初期化
 onMounted(() => {
   messageStore.loadDrafts()
+  // 新しいメッセージ作成時は現在の下書きをクリア
+  messageStore.clearCurrentDraft()
 })
 </script>
 
@@ -323,6 +393,26 @@ onMounted(() => {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #2563eb;
+  border: 1px solid #2563eb;
+}
+
+.btn-outline:hover {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-accent {
+  background-color: #7c3aed;
+  color: white;
+}
+
+.btn-accent:hover {
+  background-color: #6d28d9;
 }
 
 .btn-primary {

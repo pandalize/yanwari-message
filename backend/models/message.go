@@ -53,11 +53,12 @@ type CreateMessageRequest struct {
 
 // UpdateMessageRequest メッセージ更新リクエスト
 type UpdateMessageRequest struct {
-	RecipientEmail string            `json:"recipientEmail,omitempty"`
-	OriginalText   string            `json:"originalText,omitempty"`
-	Variations     MessageVariations `json:"variations,omitempty"`
-	SelectedTone   string            `json:"selectedTone,omitempty"`
-	ScheduledAt    *time.Time        `json:"scheduledAt,omitempty"`
+	RecipientEmail   string            `json:"recipientEmail,omitempty"`
+	OriginalText     string            `json:"originalText,omitempty"`
+	Variations       MessageVariations `json:"variations,omitempty"`
+	ToneVariations   map[string]string `json:"toneVariations,omitempty"` // トーン変換結果用
+	SelectedTone     string            `json:"selectedTone,omitempty"`
+	ScheduledAt      *time.Time        `json:"scheduledAt,omitempty"`
 }
 
 // MessageService メッセージサービス
@@ -119,6 +120,21 @@ func (s *MessageService) UpdateMessage(ctx context.Context, messageID, senderID 
 	
 	if req.Variations.Gentle != "" || req.Variations.Constructive != "" || req.Variations.Casual != "" {
 		updateData["variations"] = req.Variations
+	}
+	
+	// トーン変換結果を直接設定する場合（APIから呼び出される場合）
+	if req.ToneVariations != nil {
+		variations := MessageVariations{}
+		if gentle, ok := req.ToneVariations["gentle"]; ok {
+			variations.Gentle = gentle
+		}
+		if constructive, ok := req.ToneVariations["constructive"]; ok {
+			variations.Constructive = constructive
+		}
+		if casual, ok := req.ToneVariations["casual"]; ok {
+			variations.Casual = casual
+		}
+		updateData["variations"] = variations
 	}
 	
 	if req.SelectedTone != "" {

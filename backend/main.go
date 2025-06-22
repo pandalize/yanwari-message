@@ -157,6 +157,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userService)
 	userHandler := handlers.NewUserHandler(userService)
 	messageHandler := handlers.NewMessageHandler(messageService)
+	transformHandler := handlers.NewTransformHandler(messageService)
 
 	// JWTミドルウェア
 	jwtMiddleware := handlers.JWTMiddleware()
@@ -178,6 +179,9 @@ func main() {
 
 		// メッセージ関連エンドポイント
 		messageHandler.RegisterRoutes(v1, jwtMiddleware)
+
+		// AIトーン変換関連エンドポイント
+		transformHandler.RegisterRoutes(v1, jwtMiddleware)
 	}
 
 	// HTTPサーバーの設定

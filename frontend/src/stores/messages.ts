@@ -132,6 +132,10 @@ export const useMessageStore = defineStore('messages', () => {
     }
   }
 
+  const setCurrentDraft = (draft: MessageDraft) => {
+    currentDraft.value = draft
+  }
+
   const clearCurrentDraft = () => {
     currentDraft.value = null
   }
@@ -150,10 +154,13 @@ export const useMessageStore = defineStore('messages', () => {
 
     // Actions
     createDraft,
+    updateMessage: updateDraft,
     updateDraft,
     loadDrafts,
     loadMessage,
+    fetchMessage: loadMessage,
     deleteDraft,
+    setCurrentDraft,
     clearCurrentDraft,
     clearError
   }
