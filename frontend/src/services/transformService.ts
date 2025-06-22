@@ -1,4 +1,4 @@
-import apiClient from './api'
+import { apiService } from './api'
 
 // トーン変換リクエスト
 export interface ToneTransformRequest {
@@ -22,7 +22,7 @@ export interface ToneTransformResponse {
  * メッセージを3つのトーンに変換
  */
 export const transformToTones = async (request: ToneTransformRequest): Promise<ToneTransformResponse> => {
-  const response = await apiClient.post('/transform/tones', request)
+  const response = await apiService.post('/transform/tones', request)
   return response.data.data
 }
 

@@ -155,28 +155,38 @@ const handleCreateDraft = async () => {
 
   // 既に下書きがある場合は更新、ない場合は新規作成
   let success = false
+  let draftId = ''
+  
   if (messageStore.currentDraft?.id) {
     console.log('Updating existing draft:', messageStore.currentDraft.id)
-    success = await messageStore.updateMessage(messageStore.currentDraft.id, {
+    success = await messageStore.updateDraft(messageStore.currentDraft.id, {
       originalText: form.originalText.trim(),
       recipientEmail: form.recipient?.email
     })
+    draftId = messageStore.currentDraft.id
   } else {
     console.log('Creating new draft')
     success = await messageStore.createDraft({
       originalText: form.originalText.trim(),
       recipientEmail: form.recipient?.email
     })
+    // 作成成功後、currentDraftが設定されるまで少し待つ
+    await new Promise(resolve => setTimeout(resolve, 100))
+    draftId = messageStore.currentDraft?.id || ''
   }
 
-  console.log('Operation result:', { success, currentDraft: messageStore.currentDraft })
+  console.log('Operation result:', { success, draftId, currentDraft: messageStore.currentDraft })
 
-  if (success && messageStore.currentDraft) {
-    const route = `/messages/${messageStore.currentDraft.id}/transform`
+  if (success && draftId) {
+    const route = `/messages/${draftId}/transform`
     console.log('Navigating to:', route)
-    router.push(route)
+    await router.push(route)
   } else {
-    console.error('Failed to create/update draft or currentDraft is null')
+    console.error('Failed to create/update draft or draftId is empty', { success, draftId })
+    if (!messageStore.error) {
+      // エラーが設定されていない場合のみ手動でエラー表示
+      alert('ルーティングに失敗しました。もう一度お試しください。')
+    }
   }
 }
 

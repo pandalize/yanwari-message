@@ -122,6 +122,23 @@ class ApiService {
     const response = await axios.get('http://localhost:8080/health')
     return response.data
   }
+
+  // 汎用的なHTTPメソッド（他のサービスで使用）
+  async get(url: string): Promise<AxiosResponse> {
+    return this.api.get(url)
+  }
+
+  async post(url: string, data?: any): Promise<AxiosResponse> {
+    return this.api.post(url, data)
+  }
+
+  async put(url: string, data?: any): Promise<AxiosResponse> {
+    return this.api.put(url, data)
+  }
+
+  async delete(url: string): Promise<AxiosResponse> {
+    return this.api.delete(url)
+  }
 }
 
 export const apiService = new ApiService()

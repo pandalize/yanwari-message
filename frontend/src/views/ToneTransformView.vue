@@ -140,7 +140,8 @@ const saveAndProceed = async () => {
   
   try {
     // メッセージに選択したトーンを保存
-    const success = await messageStore.updateMessage(message.value.id!, {
+    const success = await messageStore.updateDraft(message.value.id!, {
+      originalText: message.value.originalText,
       selectedTone: selectedTone.value,
       variations: {
         [selectedTone.value]: selectedText.value

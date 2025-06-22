@@ -203,10 +203,33 @@ npm run clean
   - App.vue: 認証状態対応ヘッダー・ログアウト機能
   - **フロントエンド・バックエンド完全統合動作確認済み**
 
+- ✅ **F-04: メッセージ作成機能完全実装・統合完了**（fujinoyuki, 2025-06-22 09:30）
+  - Backend: メッセージCRUD API完全実装（/api/v1/messages/*）
+  - Backend: ユーザー検索API実装（/api/v1/users/search）
+  - Frontend: MessageComposer.vue + RecipientSelector.vue実装
+  - Frontend: リアルタイムユーザー検索（デバウンス300ms）
+  - Frontend: 下書き保存・管理・一覧表示機能
+  - Backend/Frontend完全統合・API連携動作確認済み
+  - Navigation: ヘッダー・ホームページからアクセス可能
+  - Test: curl API + ブラウザUI両方で動作確認完了
+
+- ✅ **F-02: AIトーン変換機能完全実装・統合完了**（fujinoyuki, 2025-06-22 21:10）
+  - Backend: Anthropic Claude API統合実装（/api/v1/transform/*）
+  - Backend: 3トーン並行変換機能（gentle/constructive/casual）
+  - Backend: YAML設定ファイル外部化・ライブリロード機能
+  - Backend: チューニング専門者向けガイド・テスト手法確立
+  - Frontend: ToneSelector.vue + ToneTransformView.vue実装
+  - Frontend: メッセージ作成→トーン変換→選択フロー完成
+  - **ボタンイベント・ルーティング問題解決完了**
+    - MessageComposer.vue: updateDraft メソッド統一・エラーハンドリング改善
+    - ToneTransformView.vue: API連携修正・必須パラメータ追加
+    - ApiService: 公開メソッド追加（get/post/put/delete）
+    - MessageService/TransformService: API連携統一
+  - **Backend/Frontend完全統合・E2Eフロー動作確認済み**
+  - Test: curl API + ブラウザUI完全動作確認完了
+
 **進行中/予定:**
-- F-02: AI トーン変換を伴う下書き作成機能 (ハンドラーはスタブ状態)
 - F-03: 送信スケジュールシステム (ハンドラーはスタブ状態)
-- F-04: 下書き/送信履歴と検索機能
 - 認証システムのユニットテスト作成
 
 ## 主要なアーキテクチャパターン

@@ -60,27 +60,27 @@ export interface DraftsResponse {
 
 class MessageService {
   async createDraft(request: CreateDraftRequest): Promise<MessageResponse> {
-    const response = await apiService.api.post('/messages/draft', request)
+    const response = await apiService.post('/messages/draft', request)
     return response.data
   }
 
   async updateDraft(messageId: string, request: UpdateDraftRequest): Promise<MessageResponse> {
-    const response = await apiService.api.put(`/messages/${messageId}`, request)
+    const response = await apiService.put(`/messages/${messageId}`, request)
     return response.data
   }
 
   async getDrafts(page = 1, limit = 20): Promise<DraftsResponse> {
-    const response = await apiService.api.get(`/messages/drafts?page=${page}&limit=${limit}`)
+    const response = await apiService.get(`/messages/drafts?page=${page}&limit=${limit}`)
     return response.data
   }
 
   async getMessage(messageId: string): Promise<MessageResponse> {
-    const response = await apiService.api.get(`/messages/${messageId}`)
+    const response = await apiService.get(`/messages/${messageId}`)
     return response.data
   }
 
   async deleteDraft(messageId: string): Promise<{ message: string }> {
-    const response = await apiService.api.delete(`/messages/${messageId}`)
+    const response = await apiService.delete(`/messages/${messageId}`)
     return response.data
   }
 }
