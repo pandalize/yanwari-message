@@ -831,6 +831,25 @@ Week 9: feature/message-system-integration  # 全機能統合
     - ボタンクリックイベントの動作確認中
     - デバッグログ追加済み、トラブルシューティング中
 
+- **F-02: AIトーン変換 設定分離・チューニングシステム完成**（fujinoyuki, 2025-06-22 20:47）
+  - ✅ **プロンプト設定完全分離**
+    - config/tone_prompts.yaml: チューニング担当者が編集可能な設定ファイル
+    - config/config.go: YAML読み込み・テンプレート処理機能
+    - Go text/template使用でプロンプト動的生成
+    - 環境変数TONE_CONFIG_PATHで設定ファイルパス指定可能
+  - ✅ **ライブリロード機能**
+    - POST /api/v1/transform/reload-config: サーバー再起動不要で設定更新
+    - リアルタイム設定反映機能完全動作確認済み
+    - フォールバック機能: 設定ファイル破損時も継続動作
+  - ✅ **チューニング担当者向けドキュメント完備**
+    - config/README.md: 設定ファイル編集ガイド
+    - config/TUNING_TEST_GUIDE.md: テスト方法・Before/After比較手順
+    - 実践的調整例・トラブルシューティング完備
+  - ✅ **動作テスト完了**
+    - 設定調整前後でトーン変換結果の変化を確認
+    - ライブリロード機能の完全動作確認済み
+    - Before/After比較で調整効果を実証
+
 ## **現在の完成状況**
 
 ### ✅ **完了済み機能**
@@ -848,6 +867,8 @@ Week 9: feature/message-system-integration  # 全機能統合
 - **F-02: AIトーン変換機能（Backend）** - 完全実装済み
   - Anthropic Claude API統合完了
   - 3トーン並行変換（gentle/constructive/casual）
+  - 設定ファイル分離・ライブリロード機能完成
+  - チューニングシステム・担当者向けドキュメント完備
   - curl APIテスト成功・実動作確認済み
 
 ### 🚧 **現在の実装状況**
@@ -866,6 +887,7 @@ Week 9: feature/message-system-integration  # 全機能統合
 
 ### 📝 **次回作業計画**
 1. **F-02 Frontend統合完了**: ボタンイベント・ルーティング問題解決
-2. **F-02 E2Eテスト**: ブラウザでの完全フロー動作確認
-3. **F-03 スケジュール機能実装開始**
-4. **feature/ai-tone-transform ブランチのmerge準備**
+2. **F-02 E2Eテスト**: ブラウザでの完全フロー動作確認  
+3. **F-02 チューニングシステム運用開始**: 担当者による実際のプロンプト調整
+4. **F-03 スケジュール機能実装開始**
+5. **feature/ai-tone-transform ブランチのmerge準備**
