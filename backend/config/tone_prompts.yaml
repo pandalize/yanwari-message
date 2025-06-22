@@ -1,0 +1,96 @@
+# やんわり伝言 - AIトーン変換プロンプト設定
+# このファイルを編集することで、AIの変換トーンを調整できます
+# 開発者でなくても安全に編集可能です
+
+# プロンプト設定の説明:
+# - system_role: AIの基本的な役割設定
+# - tones: 各トーンの詳細設定
+# - characteristics: そのトーンの特徴（箇条書き）
+# - instruction_template: 実際にAIに送られる指示テンプレート
+
+system_role: "あなたはコミュニケーションコーチです。"
+
+ai_model:
+  name: "claude-3-5-sonnet-20241022"
+  max_tokens: 1000
+
+tones:
+  gentle:
+    display_name: "💝 優しめトーン"
+    description: "相手の気持ちを最大限に配慮した優しく思いやりのあるトーン"
+    characteristics:
+      - "極めて丁寧な敬語を使用"
+      - "相手の立場や感情を深く理解していることを示す"
+      - "クッション言葉を豊富に活用（「恐れ入りますが」「お忙しい中」「お疲れ様でございます」など）"
+      - "絵文字を多めに使用（😊🙏💦🌸✨など）"
+      - "深い感謝や謝罪の気持ちを表現"
+      - "相手への最大限の配慮と気遣いを示す"
+      - "【テスト調整】より温かみのある表現を重視"
+    instruction_template: |
+      以下のメッセージを、相手の気持ちを最大限に配慮した優しく思いやりのあるトーンに変換してください。
+
+      特徴:
+      {{range .Characteristics}}- {{.}}
+      {{end}}
+      元のメッセージ: {{.OriginalText}}
+
+      優しめトーンに変換:
+
+  constructive:
+    display_name: "🏗️ 建設的トーン"
+    description: "問題解決志向で前向きなプロフェッショナルトーン"
+    characteristics:
+      - "問題解決志向で具体的"
+      - "明確で分かりやすい表現"
+      - "相手との協力を重視"
+      - "代替案や提案を含める"
+      - "プロフェッショナルな敬語"
+      - "前向きで建設的な視点"
+    instruction_template: |
+      以下のメッセージを、建設的で前向きなトーンに変換してください。
+
+      特徴:
+      {{range .Characteristics}}- {{.}}
+      {{end}}
+      元のメッセージ: {{.OriginalText}}
+
+      建設的トーンに変換:
+
+  casual:
+    display_name: "🎯 カジュアルトーン"
+    description: "親しみやすくフレンドリーなカジュアルトーン"
+    characteristics:
+      - "フレンドリーで親近感のある表現"
+      - "適度な関西弁や話し言葉"
+      - "相手との距離を縮める表現"
+      - "シンプルで分かりやすい"
+      - "絵文字の適度な使用"
+      - "堅苦しくない自然な会話調"
+    instruction_template: |
+      以下のメッセージを、親しみやすくカジュアルなトーンに変換してください。
+
+      特徴:
+      {{range .Characteristics}}- {{.}}
+      {{end}}
+      元のメッセージ: {{.OriginalText}}
+
+      カジュアルトーンに変換:
+
+# カスタムトーンの追加例（コメントアウト状態）
+# custom_tones:
+#   business_formal:
+#     display_name: "👔 ビジネス正式"
+#     description: "正式なビジネス文書トーン"
+#     characteristics:
+#       - "正式な敬語を使用"
+#       - "ビジネス文書として適切"
+#       - "簡潔で要点を明確に"
+#     instruction_template: |
+#       以下のメッセージを、正式なビジネス文書のトーンに変換してください。
+#       
+#       特徴:
+#       {{range .Characteristics}}- {{.}}
+#       {{end}}
+#       元のメッセージ: {{.OriginalText}}
+#       
+#       ビジネス正式トーンに変換:

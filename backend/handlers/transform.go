@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 
+	"yanwari-message-backend/config"
 	"yanwari-message-backend/models"
 
 	"github.com/gin-gonic/gin"
@@ -19,13 +20,22 @@ import (
 type TransformHandler struct {
 	messageService  *models.MessageService
 	anthropicAPIKey string
+	toneConfig      *config.ToneConfig
 }
 
 // NewTransformHandler トーン変換ハンドラーを作成
 func NewTransformHandler(messageService *models.MessageService) *TransformHandler {
+	// トーン設定を読み込み
+	toneConfig, err := config.LoadToneConfig()
+	if err != nil {
+		// ログ出力（実運用では適切なロガーを使用）
+		fmt.Printf("警告: トーン設定の読み込みに失敗しました: %v\n", err)
+	}
+
 	return &TransformHandler{
 		messageService:  messageService,
 		anthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
+		toneConfig:      toneConfig,
 	}
 }
 
@@ -112,14 +122,24 @@ func (h *TransformHandler) TransformToTones(c *gin.Context) {
 		return
 	}
 
-	// 3つのトーンで並行変換
-	tones := []string{"gentle", "constructive", "casual"}
-	variations := make([]ToneVariation, len(tones))
+	// 設定ファイルから利用可能なトーンを取得
+	var availableTones []string
+	if h.toneConfig != nil {
+		for toneName := range h.toneConfig.Tones {
+			availableTones = append(availableTones, toneName)
+		}
+	} else {
+		// フォールバック: デフォルトトーン
+		availableTones = []string{"gentle", "constructive", "casual"}
+	}
+
+	// 並行変換処理
+	variations := make([]ToneVariation, len(availableTones))
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errorChan := make(chan error, len(tones))
+	errorChan := make(chan error, len(availableTones))
 
-	for i, tone := range tones {
+	for i, tone := range availableTones {
 		wg.Add(1)
 		go func(index int, toneType string) {
 			defer wg.Done()
@@ -177,61 +197,30 @@ func (h *TransformHandler) TransformToTones(c *gin.Context) {
 
 // callAnthropicAPI Anthropic Claude APIを呼び出してトーン変換を実行
 func (h *TransformHandler) callAnthropicAPI(ctx context.Context, originalText, tone string) (string, error) {
-	// トーン別プロンプトテンプレート
-	prompts := map[string]string{
-		"gentle": `あなたはコミュニケーションコーチです。以下のメッセージを、相手の気持ちを最大限に配慮した優しく思いやりのあるトーンに変換してください。
+	var prompt string
+	var modelConfig config.AIModelConfig
 
-特徴:
-- 丁寧語・敬語を使用
-- 相手の立場や感情を理解していることを示す
-- クッション言葉を活用
-- 絵文字を適度に使用（😊など）
-- 感謝や謝罪の気持ちを表現
-
-元のメッセージ: %s
-
-優しめトーンに変換:`,
-
-		"constructive": `あなたはコミュニケーションコーチです。以下のメッセージを、建設的で前向きなトーンに変換してください。
-
-特徴:
-- 問題解決志向
-- 具体的で明確な表現
-- 相手との協力を重視
-- 代替案や提案を含む
-- プロフェッショナルな敬語
-
-元のメッセージ: %s
-
-建設的トーンに変換:`,
-
-		"casual": `あなたはコミュニケーションコーチです。以下のメッセージを、親しみやすくカジュアルなトーンに変換してください。
-
-特徴:
-- フレンドリーで親近感のある表現
-- 適度な関西弁や話し言葉
-- 相手との距離を縮める表現
-- シンプルで分かりやすい
-- 絵文字の適度な使用
-
-元のメッセージ: %s
-
-カジュアルトーンに変換:`,
-	}
-
-	prompt, exists := prompts[tone]
-	if !exists {
-		return "", fmt.Errorf("サポートされていないトーンです: %s", tone)
+	// 設定ファイルからプロンプトを生成
+	if h.toneConfig != nil {
+		var err error
+		prompt, err = h.toneConfig.GetPrompt(tone, originalText)
+		if err != nil {
+			return "", fmt.Errorf("プロンプト生成エラー: %w", err)
+		}
+		modelConfig = h.toneConfig.GetAIModelConfig()
+	} else {
+		// フォールバック: デフォルトプロンプト
+		prompt, modelConfig = h.getDefaultPrompt(originalText, tone)
 	}
 
 	// リクエストボディを作成
 	requestBody := AnthropicRequest{
-		Model:     "claude-3-5-sonnet-20241022",
-		MaxTokens: 1000,
+		Model:     modelConfig.Name,
+		MaxTokens: modelConfig.MaxTokens,
 		Messages: []Message{
 			{
 				Role:    "user",
-				Content: fmt.Sprintf(prompt, originalText),
+				Content: prompt,
 			},
 		},
 	}
@@ -276,11 +265,57 @@ func (h *TransformHandler) callAnthropicAPI(ctx context.Context, originalText, t
 	return apiResponse.Content[0].Text, nil
 }
 
+// getDefaultPrompt フォールバック用デフォルトプロンプト
+func (h *TransformHandler) getDefaultPrompt(originalText, tone string) (string, config.AIModelConfig) {
+	prompts := map[string]string{
+		"gentle": "あなたはコミュニケーションコーチです。以下のメッセージを、相手の気持ちを最大限に配慮した優しく思いやりのあるトーンに変換してください。\n\n元のメッセージ: " + originalText + "\n\n優しめトーンに変換:",
+		"constructive": "あなたはコミュニケーションコーチです。以下のメッセージを、建設的で前向きなトーンに変換してください。\n\n元のメッセージ: " + originalText + "\n\n建設的トーンに変換:",
+		"casual": "あなたはコミュニケーションコーチです。以下のメッセージを、親しみやすくカジュアルなトーンに変換してください。\n\n元のメッセージ: " + originalText + "\n\nカジュアルトーンに変換:",
+	}
+
+	prompt := prompts[tone]
+	if prompt == "" {
+		prompt = "以下のメッセージを変換してください: " + originalText
+	}
+
+	defaultConfig := config.AIModelConfig{
+		Name:      "claude-3-5-sonnet-20241022",
+		MaxTokens: 1000,
+	}
+
+	return prompt, defaultConfig
+}
+
+// ReloadConfig 設定ファイルを再読み込み（開発・チューニング用）
+// POST /api/v1/transform/reload-config
+func (h *TransformHandler) ReloadConfig(c *gin.Context) {
+	if err := config.ReloadConfig(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "設定の再読み込みに失敗しました"})
+		return
+	}
+
+	// ハンドラーの設定も更新
+	newConfig, err := config.LoadToneConfig()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "新しい設定の読み込みに失敗しました"})
+		return
+	}
+
+	h.toneConfig = newConfig
+
+	availableTones := h.toneConfig.GetAvailableTones()
+	c.JSON(http.StatusOK, gin.H{
+		"message": "設定を再読み込みしました",
+		"available_tones": availableTones,
+	})
+}
+
 // RegisterRoutes トーン変換関連のルートを登録
 func (h *TransformHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	transform := router.Group("/transform")
 	transform.Use(authMiddleware)
 	{
 		transform.POST("/tones", h.TransformToTones)
+		transform.POST("/reload-config", h.ReloadConfig) // チューニング用
 	}
 }
