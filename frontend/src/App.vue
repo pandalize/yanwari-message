@@ -20,6 +20,7 @@ const handleLogout = async () => {
         
         <div v-if="authStore.isAuthenticated" class="auth-nav">
           <RouterLink to="/compose" class="compose-link">✏️ メッセージ作成</RouterLink>
+          <RouterLink to="/schedules" class="schedule-link">📅 スケジュール一覧</RouterLink>
           <span class="user-info">{{ authStore.user?.name || authStore.user?.email }}</span>
           <button @click="handleLogout" class="logout-btn">ログアウト</button>
         </div>

@@ -149,8 +149,17 @@ const saveAndProceed = async () => {
     })
     
     if (success) {
-      // 配信設定画面に遷移（次のフェーズで実装）
-      router.push(`/messages/${message.value.id}/schedule`)
+      // スケジュール設定画面に遷移（メッセージ情報を渡す）
+      router.push({
+        path: '/schedule',
+        query: {
+          messageId: message.value.id,
+          messageText: message.value.originalText,
+          selectedTone: selectedTone.value,
+          finalText: selectedText.value,
+          recipientEmail: recipientEmail.value
+        }
+      })
     }
   } catch (err: any) {
     error.value = 'トーンの保存に失敗しました'

@@ -20,12 +20,12 @@ export interface UserSearchResponse {
 
 class UserService {
   async searchUsers(query: string, limit = 10): Promise<UserSearchResponse> {
-    const response = await apiService.api.get(`/users/search?q=${encodeURIComponent(query)}&limit=${limit}`)
+    const response = await apiService.get(`/users/search?q=${encodeURIComponent(query)}&limit=${limit}`)
     return response.data
   }
 
   async getUserByEmail(email: string): Promise<{ data: User }> {
-    const response = await apiService.api.get(`/users/by-email?email=${encodeURIComponent(email)}`)
+    const response = await apiService.get(`/users/by-email?email=${encodeURIComponent(email)}`)
     return response.data
   }
 }
