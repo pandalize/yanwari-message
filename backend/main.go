@@ -153,11 +153,15 @@ func main() {
 		})
 	})
 
+	// サービスの初期化
+	scheduleService := models.NewScheduleService(db.Database)
+
 	// ハンドラーの初期化
 	authHandler := handlers.NewAuthHandler(userService)
 	userHandler := handlers.NewUserHandler(userService)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	transformHandler := handlers.NewTransformHandler(messageService)
+	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService)
 
 	// JWTミドルウェア
 	jwtMiddleware := handlers.JWTMiddleware()
@@ -182,6 +186,9 @@ func main() {
 
 		// AIトーン変換関連エンドポイント
 		transformHandler.RegisterRoutes(v1, jwtMiddleware)
+
+		// スケジュール関連エンドポイント
+		scheduleHandler.RegisterRoutes(v1, jwtMiddleware)
 	}
 
 	// HTTPサーバーの設定

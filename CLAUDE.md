@@ -639,21 +639,40 @@ frontend/src/components/
 ### 手動テスト
 詳細なAPIテストコマンドは `API_TEST_COMMANDS.md` を参照してください。
 
+**⚠️ 重要なテスト注意事項:**
+- **JWTトークン**: 15分で期限切れのため、テスト時は必ず新しいトークンを取得
+- **テスト用受信者アドレス**: `hnn-a@gmail.com` を使用（実際にDB登録済み）
+- **テスト用送信者**: `test-user@example.com` / `testpassword123`
+
 **主要テストコマンド:**
 ```bash
-# サーバー動作確認
+# 1. サーバー動作確認
 curl -X GET http://localhost:8080/health
 curl -X GET http://localhost:8080/api/status
 
-# 新規ユーザー登録テスト（MongoDB Atlas実保存）
-curl -X POST http://localhost:8080/api/v1/auth/register \
+# 2. 新しいJWTトークン取得（必須）
+JWT_TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"newuser@example.com","password":"password123"}'
+  -d '{"email":"test-user@example.com","password":"testpassword123"}' \
+  | python3 -c "import sys, json; print(json.load(sys.stdin)['data']['access_token'])")
 
-# 登録済みユーザーログインテスト（実データベース認証）
-curl -X POST http://localhost:8080/api/v1/auth/login \
+# 3. メッセージ作成テスト（hnn-a@gmail.com宛）
+curl -X POST http://localhost:8080/api/v1/messages/draft \
   -H "Content-Type: application/json" \
-  -d '{"email":"test-user@example.com","password":"testpassword123"}'
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -d '{"originalText":"テストメッセージです","recipientEmail":"hnn-a@gmail.com"}'
+
+# 4. トーン変換テスト
+curl -X POST http://localhost:8080/api/v1/transform/tones \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -d '{"messageId":"[メッセージID]","originalText":"テストメッセージです"}'
+
+# 5. スケジュール提案テスト
+curl -X POST http://localhost:8080/api/v1/schedule/suggest \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
+  -d '{"messageId":"[メッセージID]","messageText":"テストメッセージです","selectedTone":"gentle"}'
 ```
 
 ### テストファイル構成
@@ -681,9 +700,9 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 ### 現在のセッション状況
 - **開発者**: fujinoyuki
-- **現在のブランチ**: feature/auth-system  
-- **最終更新**: 2025年6月21日 13:30
-- **セッション状態**: F-01認証システム完全実装・テスト完了
+- **現在のブランチ**: feature/message-compose  
+- **最終更新**: 2025年6月23日 05:10
+- **セッション状態**: F-03スケジュール機能バックエンド完全実装・テスト完了
 
 ### 完了したタスク（本セッション）
 - ✅ Go 1.24.4 のインストール
@@ -707,31 +726,44 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
   - frontend/src/router/: 認証ルーティング・ナビゲーションガード実装
   - App.vue: 認証状態対応UI・ログアウト機能実装
   - **フロントエンド・バックエンド完全統合動作確認済み（リロード問題解決済み）**
+- ✅ **F-03: スケジュール機能完全実装・テスト完了**（2025年6月23日 05:10）
+  - backend/models/schedule.go: Schedule モデル・ScheduleService・CRUD操作完全実装
+  - backend/handlers/schedules.go: スケジュールAPI完全実装（432行）
+  - backend/config/schedule_prompts.yaml: AI分析用プロンプト設定
+  - **Anthropic Claude API統合成功**: メッセージ分析による最適時間提案
+  - **AI提案機能動作確認**: 謝罪・依頼メッセージの緊急度判定・時間提案
+  - **CRUD API動作確認**: スケジュール作成・一覧・更新・削除全機能
+  - **MongoDB統合**: スケジュールデータ永続化・インデックス作成完了
+  - **受信者連携**: hnn-a@gmail.com での実際のメッセージ・スケジュール連携テスト成功
 
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
 
-1. **F-02: 下書き・トーン変換機能実装**
-   - 現状: backend/handlers/drafts.go はスタブ状態
-   - 必要: Anthropic API 連携、プロンプトテンプレート実装
-   - ブランチ: feature/message-drafts
+1. **フロントエンド: スケジュール設定UI実装**
+   - Vue.js スケジュール設定コンポーネント作成
+   - AI時間提案UI・UX実装
+   - メッセージ作成フローとの統合
+   - ブランチ: feature/schedule-frontend
 
-2. **認証システムのユニットテスト作成**
+2. **バックグラウンド送信処理実装**
+   - スケジュール実行エンジン開発
+   - 定期実行・バックグラウンドプロセス
+   - メール送信・通知連携
+   - ブランチ: feature/schedule-execution
+
+3. **認証システムのユニットテスト作成**
    - 対象: backend/handlers/auth.go の各関数
    - Go テスト実装
-
-3. **F-03: 送信スケジュールシステム実装**
-   - 現状: backend/handlers/schedules.go はスタブ状態
-   - 必要: 時間指定送信、タイムゾーン対応実装
-   - ブランチ: feature/schedule-system
 
 ### 開発環境状態
 - **バックエンドサーバー**: `http://localhost:8080` で動作中
 - **フロントエンドサーバー**: `http://localhost:5173` で動作中
 - **認証API**: 全エンドポイント動作確認済み
+- **スケジュールAPI**: 全エンドポイント動作確認済み（AI提案・CRUD操作）
 - **MongoDB Atlas**: 実接続・データ永続化確認済み
 - **フロントエンド認証**: Vue.js認証画面・API統合・リロード対応済み
 - **テストユーザー**: test-user@example.com で実際にDB登録済み
+- **受信者テストアカウント**: hnn-a@gmail.com で動作確認済み
 
 ### 環境設定
 - ✅ .env.example ファイル作成済み
@@ -835,6 +867,13 @@ Week 9: feature/message-system-integration  # 全機能統合
   - Backend/Frontend完全統合・API連携動作確認済み
   - Navigation: ヘッダー・ホームページからアクセス可能
   - Test: curl API + ブラウザUI両方で動作確認完了
+- **F-03: スケジュール機能バックエンド完全実装・テスト完了**（fujinoyuki, 2025-06-23 05:10）
+  - **AI時間提案機能**: Anthropic Claude API統合成功・メッセージ分析による最適時間提案動作確認
+  - **スケジュールCRUD API**: 作成・一覧・更新・削除全機能実装・動作確認完了
+  - **MongoDB統合**: スケジュールデータ永続化・インデックス作成・性能最適化完了
+  - **受信者連携**: hnn-a@gmail.com での実際のメッセージ・スケジュール連携テスト成功
+  - **API実行時間**: AI提案6.5秒・CRUD操作30ms台の高性能動作確認
+  - **404エラー解決**: サーバー再起動により全エンドポイント正常動作確認
 
 - **F-02: AIトーン変換機能バックエンド実装完了**（fujinoyuki, 2025-06-22 14:45）
   - ✅ **Backend完全実装・動作確認済み**
@@ -887,30 +926,33 @@ Week 9: feature/message-system-integration  # 全機能統合
   - 文字数カウント・エラーハンドリング
   - フロントエンドUI・バックエンドAPI統合
 
-- **F-02: AIトーン変換機能（Backend）** - 完全実装済み
+- **F-02: AIトーン変換機能** - 完全実装済み
   - Anthropic Claude API統合完了
   - 3トーン並行変換（gentle/constructive/casual）
   - 設定ファイル分離・ライブリロード機能完成
   - チューニングシステム・担当者向けドキュメント完備
-  - curl APIテスト成功・実動作確認済み
+  - フロントエンド・バックエンド統合完了
 
-### 🚧 **現在の実装状況**
-- **F-02: AIトーン変換機能（Frontend統合）** - 実装済み・動作確認中
-  - UI実装完了、フロントエンド・バックエンド連携のトラブルシューティング中
-  
+- **F-03: スケジュール機能（Backend）** - 完全実装済み
+  - **AI時間提案機能**: Anthropic Claude API統合・メッセージ分析完了
+  - **スケジュールCRUD**: 作成・一覧・更新・削除API完全実装
+  - **MongoDB統合**: データ永続化・インデックス最適化完了
+  - **メッセージ連携**: 受信者指定・認証連携完了
+  - **APIテスト**: 全エンドポイント動作確認完了
+
 ### 🎯 **次の実装目標**
-- **F-02: Frontend統合完了** - 優先度: 最高
-  - ボタンクリックイベント動作確認・修正
-  - エンドツーエンドフロー動作確認
-  - ブラウザUIでのトーン変換テスト完了
+- **F-03: スケジュール設定UI** - 優先度: 最高
+  - AI時間提案結果表示・選択UI
+  - スケジュール設定フォーム実装
+  - メッセージ作成フローとの統合
   
-- **F-03: スケジュール送信機能** - 優先度: 中
-  - 配信時間設定・スケジューラ
-  - バックグラウンド送信処理
+- **バックグラウンド送信処理** - 優先度: 中
+  - スケジュール実行エンジン開発
+  - 定期実行・メール送信連携
 
 ### 📝 **次回作業計画**
-1. **F-02 Frontend統合完了**: ボタンイベント・ルーティング問題解決
-2. **F-02 E2Eテスト**: ブラウザでの完全フロー動作確認  
-3. **F-02 チューニングシステム運用開始**: 担当者による実際のプロンプト調整
-4. **F-03 スケジュール機能実装開始**
-5. **feature/ai-tone-transform ブランチのmerge準備**
+1. **feature/schedule-frontend ブランチ作成**
+2. **AI時間提案UI実装**: 提案結果表示・選択インターフェース
+3. **スケジュール設定フォーム作成**: 日時指定・カスタム設定
+4. **メッセージ作成 → AI提案 → スケジュール設定フロー統合**
+5. **バックグラウンド送信処理実装開始**
