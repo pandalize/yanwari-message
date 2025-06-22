@@ -3,6 +3,17 @@
     <h2>新規登録</h2>
     <form @submit.prevent="handleRegister">
       <div class="form-group">
+        <label for="name">お名前</label>
+        <input
+          id="name"
+          v-model="form.name"
+          type="text"
+          required
+          placeholder="山田太郎"
+        />
+      </div>
+      
+      <div class="form-group">
         <label for="email">メールアドレス</label>
         <input
           id="email"
@@ -61,6 +72,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({
+  name: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -70,7 +82,8 @@ const isLoading = ref(false)
 const error = ref('')
 
 const isFormValid = computed(() => {
-  return form.email && 
+  return form.name &&
+         form.email && 
          form.password && 
          form.confirmPassword && 
          form.password === form.confirmPassword &&
@@ -95,6 +108,7 @@ const handleRegister = async () => {
   
   try {
     const success = await authStore.register({
+      name: form.name,
       email: form.email,
       password: form.password
     })

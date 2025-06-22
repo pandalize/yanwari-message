@@ -405,6 +405,311 @@ curl -s -X GET http://localhost:8080/health && echo
 
 ---
 
-**最終更新:** 2025年6月21日  
-**対応バージョン:** MongoDB Atlas統合完了版（F-01認証システム）  
-**動作確認済み:** 実際のMongoDB Atlasでのデータ保存・取得・認証
+## メッセージ作成機能テスト
+
+### 前提条件
+1. 事前にユーザー登録とログインを完了し、アクセストークンを取得してください
+2. 複数ユーザーが登録されていると検索テストがより効果的です
+
+### 13. ユーザー検索テスト
+
+**ユーザー検索（名前で検索）:**
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/search?q=Demo" \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**ユーザー検索（メールで検索）:**
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/search?q=example.com" \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**期待される結果:**
+```json
+{
+  "data": {
+    "users": [
+      {
+        "id": "68574d282b7f67bacc835270",
+        "name": "Demo User",
+        "email": "demo@example.com",
+        "timezone": "Asia/Tokyo",
+        "created_at": "2025-06-22T00:24:08.529Z",
+        "updated_at": "2025-06-22T00:24:08.529Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 1
+    }
+  }
+}
+```
+
+### 14. メッセージ下書き作成テスト
+
+**下書き作成（受信者なし）:**
+```bash
+curl -X POST http://localhost:8080/api/v1/messages/draft \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "originalText": "明日の会議の件でご相談があります。お時間のある時にお話しできればと思います。"
+  }'
+```
+
+**下書き作成（受信者指定）:**
+```bash
+curl -X POST http://localhost:8080/api/v1/messages/draft \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "originalText": "プロジェクトの進捗について報告いたします。",
+    "recipientEmail": "demo@example.com"
+  }'
+```
+
+**期待される結果:**
+```json
+{
+  "data": {
+    "id": "68574d3e2b7f67bacc835271",
+    "senderId": "68574d282b7f67bacc835270",
+    "recipientId": "68574d282b7f67bacc835270",
+    "originalText": "明日の会議の件でご相談があります。お時間のある時にお話しできればと思います。",
+    "variations": {},
+    "status": "draft",
+    "createdAt": "2025-06-22T09:24:30.375578+09:00",
+    "updatedAt": "2025-06-22T09:24:30.375578+09:00"
+  },
+  "message": "下書きを作成しました"
+}
+```
+
+### 15. 下書き一覧取得テスト
+
+**下書き一覧取得:**
+```bash
+curl -X GET http://localhost:8080/api/v1/messages/drafts \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**ページネーション付き取得:**
+```bash
+curl -X GET "http://localhost:8080/api/v1/messages/drafts?page=1&limit=5" \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**期待される結果:**
+```json
+{
+  "data": {
+    "messages": [
+      {
+        "id": "68574d3e2b7f67bacc835271",
+        "senderId": "68574d282b7f67bacc835270",
+        "recipientId": "000000000000000000000000",
+        "originalText": "明日の会議の件でご相談があります。",
+        "variations": {},
+        "status": "draft",
+        "createdAt": "2025-06-22T00:24:30.375Z",
+        "updatedAt": "2025-06-22T00:24:30.375Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1
+    }
+  }
+}
+```
+
+### 16. 特定メッセージ取得テスト
+
+**メッセージID指定で取得:**
+```bash
+curl -X GET http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+### 17. メッセージ更新テスト
+
+**下書き内容更新:**
+```bash
+curl -X PUT http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "originalText": "更新されたメッセージ内容です。やんわりと伝えたいことがあります。",
+    "recipientEmail": "updated-recipient@example.com"
+  }'
+```
+
+### 18. メッセージ削除テスト
+
+**下書き削除:**
+```bash
+curl -X DELETE http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**期待される結果:**
+```json
+{
+  "message": "メッセージを削除しました"
+}
+```
+
+### 19. 現在のユーザー情報取得テスト
+
+**自分のユーザー情報取得:**
+```bash
+curl -X GET http://localhost:8080/api/v1/users/me \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**期待される結果:**
+```json
+{
+  "data": {
+    "id": "68574d282b7f67bacc835270",
+    "name": "Demo User",
+    "email": "demo@example.com",
+    "timezone": "Asia/Tokyo",
+    "created_at": "2025-06-22T00:24:08.529Z",
+    "updated_at": "2025-06-22T00:24:08.529Z"
+  }
+}
+```
+
+### 20. メールアドレスでユーザー取得テスト
+
+**メールアドレス指定でユーザー検索:**
+```bash
+curl -X GET "http://localhost:8080/api/v1/users/by-email?email=demo@example.com" \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+## メッセージ作成機能 完全テストシーケンス
+
+以下の順序で全機能をテストできます：
+
+```bash
+# 1. 事前準備：ユーザー登録とログイン
+curl -X POST http://localhost:8080/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"テストユーザー","email":"test-message-'$(date +%s)'@example.com","password":"testpass123"}'
+
+# 上記のレスポンスからアクセストークンをコピーして以下で使用
+
+# 2. ユーザー検索テスト
+curl -X GET "http://localhost:8080/api/v1/users/search?q=テスト" \
+  -H "Authorization: Bearer <アクセストークン>"
+
+# 3. 下書き作成テスト
+curl -X POST http://localhost:8080/api/v1/messages/draft \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{"originalText":"やんわりテストメッセージです。お疲れ様でした。"}'
+
+# 4. 下書き一覧確認
+curl -X GET http://localhost:8080/api/v1/messages/drafts \
+  -H "Authorization: Bearer <アクセストークン>"
+
+# 5. 特定メッセージ取得（上記レスポンスのIDを使用）
+curl -X GET http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>"
+
+# 6. メッセージ更新
+curl -X PUT http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{"originalText":"更新されたやんわりメッセージです。"}'
+
+# 7. メッセージ削除
+curl -X DELETE http://localhost:8080/api/v1/messages/<メッセージID> \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+## エラーハンドリングテスト（メッセージ機能）
+
+### 21. 認証なしでアクセス
+
+**コマンド:**
+```bash
+curl -X GET http://localhost:8080/api/v1/messages/drafts
+```
+
+**期待される結果:**
+```json
+{"error":"認証ヘッダーが必要です"}
+```
+
+### 22. 無効なトークンでアクセス
+
+**コマンド:**
+```bash
+curl -X GET http://localhost:8080/api/v1/messages/drafts \
+  -H "Authorization: Bearer invalid-token"
+```
+
+**期待される結果:**
+```json
+{"error":"無効なトークンです"}
+```
+
+### 23. 存在しないメッセージID
+
+**コマンド:**
+```bash
+curl -X GET http://localhost:8080/api/v1/messages/000000000000000000000000 \
+  -H "Authorization: Bearer <アクセストークン>"
+```
+
+**期待される結果:**
+```json
+{"error":"メッセージが見つかりません"}
+```
+
+### 24. 他人のメッセージへのアクセス
+
+異なるユーザーが作成したメッセージIDでアクセスした場合、適切にアクセス制御されることを確認できます。
+
+### 25. 無効な受信者メールアドレス
+
+**コマンド:**
+```bash
+curl -X POST http://localhost:8080/api/v1/messages/draft \
+  -H "Authorization: Bearer <アクセストークン>" \
+  -H "Content-Type: application/json" \
+  -d '{"originalText":"テストメッセージ","recipientEmail":"nonexistent@example.com"}'
+```
+
+**期待される結果:**
+```json
+{"error":"指定された受信者が見つかりません"}
+```
+
+## フロントエンド連携テスト
+
+フロントエンドが起動している場合（http://localhost:5173）、以下でブラウザテストが可能：
+
+1. **ユーザー登録**: http://localhost:5173/register
+2. **ログイン**: http://localhost:5173/login  
+3. **メッセージ作成**: http://localhost:5173/compose
+
+**フロントエンドテスト項目:**
+- ユーザー検索（リアルタイム検索）
+- 受信者選択と表示
+- メッセージ入力と文字数カウント
+- 下書き保存と一覧表示
+- エラーハンドリング表示
+
+---
+
+**最終更新:** 2025年6月22日  
+**対応バージョン:** メッセージ作成機能統合完了版（F-01認証システム + message-compose機能）  
+**動作確認済み:** ユーザー検索、メッセージCRUD、リアルタイム検索、フロントエンド連携

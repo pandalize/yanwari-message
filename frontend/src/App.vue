@@ -19,7 +19,8 @@ const handleLogout = async () => {
         <RouterLink to="/about">概要</RouterLink>
         
         <div v-if="authStore.isAuthenticated" class="auth-nav">
-          <span class="user-info">{{ authStore.user?.email }}</span>
+          <RouterLink to="/compose" class="compose-link">✏️ メッセージ作成</RouterLink>
+          <span class="user-info">{{ authStore.user?.name || authStore.user?.email }}</span>
           <button @click="handleLogout" class="logout-btn">ログアウト</button>
         </div>
         
@@ -103,5 +104,15 @@ nav a.router-link-exact-active {
 
 .logout-btn:hover {
   background-color: #c82333;
+}
+
+.compose-link {
+  background-color: #28a745 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.compose-link:hover {
+  background-color: #218838 !important;
 }
 </style>

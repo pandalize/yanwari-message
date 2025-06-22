@@ -13,6 +13,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"yanwari-message-backend/models"
 )
@@ -20,6 +21,7 @@ import (
 
 // RegisterRequest ユーザー登録リクエスト
 type RegisterRequest struct {
+	Name     string `json:"name" binding:"required"`           // 必須、ユーザー名
 	Email    string `json:"email" binding:"required,email"`    // 必須、メール形式
 	Password string `json:"password" binding:"required"`       // 必須（長さは別途チェック）
 }
@@ -294,6 +296,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	
 	// 5. ユーザーデータ作成
 	user := &models.User{
+		Name:         req.Name,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		Salt:         salt,
@@ -511,4 +514,49 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 			"logged_out": true,
 		},
 	})
+}
+
+// JWTMiddleware JWT認証ミドルウェア
+func JWTMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "認証ヘッダーが必要です"})
+			c.Abort()
+			return
+		}
+
+		// Bearer トークンの形式をチェック
+		const bearerPrefix = "Bearer "
+		if len(authHeader) < len(bearerPrefix) || authHeader[:len(bearerPrefix)] != bearerPrefix {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "無効な認証形式です"})
+			c.Abort()
+			return
+		}
+
+		tokenString := authHeader[len(bearerPrefix):]
+		
+		// JWTサービスを初期化
+		jwtService := NewJWTService()
+		
+		// トークンを検証
+		claims, err := jwtService.ValidateToken(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "無効なトークンです"})
+			c.Abort()
+			return
+		}
+
+		// ユーザーIDをコンテキストに設定
+		userID, err := primitive.ObjectIDFromHex(claims.UserID)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "無効なユーザーIDです"})
+			c.Abort()
+			return
+		}
+
+		c.Set("userID", userID)
+		c.Set("email", claims.Email)
+		c.Next()
+	}
 }

@@ -6,6 +6,7 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
+  name: string
   email: string
   password: string
 }
@@ -17,6 +18,7 @@ export interface AuthResponse {
     expires_in: number
     user: {
       id: string
+      name: string
       email: string
       timezone: string
       created_at: string

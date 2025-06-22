@@ -14,6 +14,7 @@ import (
 // User データベースに保存するユーザー情報を表現
 type User struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name         string             `bson:"name" json:"name"`
 	Email        string             `bson:"email" json:"email"`
 	PasswordHash string             `bson:"password_hash" json:"-"` // JSONには含めない（セキュリティ上重要）
 	Salt         string             `bson:"salt" json:"-"`
@@ -119,6 +120,7 @@ func (s *UserService) UpdateUser(ctx context.Context, user *User) error {
 	filter := bson.M{"_id": user.ID}
 	update := bson.M{
 		"$set": bson.M{
+			"name":          user.Name,
 			"email":         user.Email,
 			"password_hash": user.PasswordHash,
 			"salt":          user.Salt,
@@ -160,6 +162,47 @@ func (s *UserService) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
+// SearchUsers ユーザーを検索（名前またはメールアドレス）
+func (s *UserService) SearchUsers(ctx context.Context, query string, limit int) ([]*User, error) {
+	if query == "" {
+		return []*User{}, nil
+	}
+
+	// 大文字小文字を無視した部分一致検索
+	filter := bson.M{
+		"$or": []bson.M{
+			{"name": bson.M{"$regex": query, "$options": "i"}},
+			{"email": bson.M{"$regex": query, "$options": "i"}},
+		},
+	}
+
+	// 検索オプション設定
+	findOptions := options.Find()
+	findOptions.SetLimit(int64(limit))
+	findOptions.SetSort(bson.D{{Key: "name", Value: 1}}) // 名前順でソート
+
+	cursor, err := s.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー検索エラー: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var users []*User
+	for cursor.Next(ctx) {
+		var user User
+		if err := cursor.Decode(&user); err != nil {
+			continue // エラーが発生したドキュメントはスキップ
+		}
+		users = append(users, &user)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, fmt.Errorf("ユーザー検索カーソルエラー: %w", err)
+	}
+
+	return users, nil
+}
+
 // CreateEmailIndex メールアドレスにユニークインデックスを作成
 func (s *UserService) CreateEmailIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
@@ -170,6 +213,20 @@ func (s *UserService) CreateEmailIndex(ctx context.Context) error {
 	_, err := s.collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
 		return fmt.Errorf("メールアドレスインデックス作成エラー: %w", err)
+	}
+
+	return nil
+}
+
+// CreateNameIndex 名前にインデックスを作成（検索パフォーマンス向上）
+func (s *UserService) CreateNameIndex(ctx context.Context) error {
+	indexModel := mongo.IndexModel{
+		Keys: bson.D{{Key: "name", Value: 1}}, // 昇順インデックス
+	}
+
+	_, err := s.collection.Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		return fmt.Errorf("名前インデックス作成エラー: %w", err)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import { apiService, type LoginRequest, type RegisterRequest, type AuthResponse 
 
 export interface User {
   id: string
+  name: string
   email: string
   timezone: string
   created_at: string
@@ -30,27 +31,40 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const initializeAuth = async () => {
+    console.log('Initializing auth...')
     const storedAccessToken = localStorage.getItem('access_token')
     const storedRefreshToken = localStorage.getItem('refresh_token')
     const storedUser = localStorage.getItem('user')
+
+    console.log('Stored tokens:', {
+      hasAccessToken: !!storedAccessToken,
+      hasRefreshToken: !!storedRefreshToken,
+      hasUser: !!storedUser
+    })
 
     if (storedAccessToken && storedRefreshToken && storedUser) {
       accessToken.value = storedAccessToken
       refreshToken.value = storedRefreshToken
       try {
         user.value = JSON.parse(storedUser)
+        console.log('Auth restored:', { user: user.value, isAuthenticated: isAuthenticated.value })
         
         // トークンの有効性をチェック（JWTの期限切れを確認）
         if (isTokenExpired(storedAccessToken)) {
+          console.log('Token expired, attempting refresh...')
           // トークンが期限切れの場合、リフレッシュを試行
           const refreshSuccess = await refreshAuthToken()
           if (!refreshSuccess) {
+            console.log('Token refresh failed, clearing auth')
             clearAuth()
           }
         }
       } catch (err) {
+        console.error('認証情報の復元に失敗:', err)
         clearAuth()
       }
+    } else {
+      console.log('No stored auth found')
     }
   }
 

@@ -49,10 +49,19 @@ func main() {
 	// ユーザーサービスの初期化
 	userService := models.NewUserService(db.Database)
 	
-	// メールアドレスのユニークインデックスを作成
+	// メッセージサービスの初期化
+	messageService := models.NewMessageService(db.Database, userService)
+	
+	// インデックス作成
 	ctx := context.Background()
 	if err := userService.CreateEmailIndex(ctx); err != nil {
 		log.Printf("警告: メールインデックス作成エラー: %v", err)
+	}
+	if err := userService.CreateNameIndex(ctx); err != nil {
+		log.Printf("警告: 名前インデックス作成エラー: %v", err)
+	}
+	if err := messageService.CreateIndexes(ctx); err != nil {
+		log.Printf("警告: メッセージインデックス作成エラー: %v", err)
 	}
 
 	// Ginルーターの初期化
@@ -144,8 +153,13 @@ func main() {
 		})
 	})
 
-	// 認証ハンドラーの初期化
+	// ハンドラーの初期化
 	authHandler := handlers.NewAuthHandler(userService)
+	userHandler := handlers.NewUserHandler(userService)
+	messageHandler := handlers.NewMessageHandler(messageService)
+
+	// JWTミドルウェア
+	jwtMiddleware := handlers.JWTMiddleware()
 
 	// API v1 ルートグループ
 	v1 := r.Group("/api/v1")
@@ -158,6 +172,12 @@ func main() {
 			auth.POST("/refresh", authHandler.RefreshToken) // トークンリフレッシュ
 			auth.POST("/logout", authHandler.Logout)       // ログアウト
 		}
+
+		// ユーザー関連エンドポイント
+		userHandler.RegisterRoutes(v1, jwtMiddleware)
+
+		// メッセージ関連エンドポイント
+		messageHandler.RegisterRoutes(v1, jwtMiddleware)
 	}
 
 	// HTTPサーバーの設定

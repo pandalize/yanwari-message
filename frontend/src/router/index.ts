@@ -24,6 +24,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/compose',
+      name: 'message-compose',
+      component: () => import('../views/MessageComposeView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue'),
@@ -35,11 +41,21 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
+  console.log('Router navigation:', {
+    to: to.path,
+    authenticated: authStore.isAuthenticated,
+    requiresAuth: to.meta.requiresAuth,
+    user: authStore.user
+  })
+  
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    console.log('Redirecting to login - authentication required')
     next('/login')
   } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
+    console.log('Redirecting to home - already authenticated')
     next('/')
   } else {
+    console.log('Navigation allowed')
     next()
   }
 })
