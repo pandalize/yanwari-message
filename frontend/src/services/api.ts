@@ -43,7 +43,7 @@ class ApiService {
   constructor() {
     this.api = axios.create({
       baseURL: 'http://localhost:8080/api/v1',
-      timeout: 10000,
+      timeout: 15000, // AI処理のため15秒に延長
       headers: {
         'Content-Type': 'application/json'
       }

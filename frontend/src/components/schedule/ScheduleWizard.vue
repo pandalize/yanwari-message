@@ -187,6 +187,7 @@ const customSchedule = reactive({
   time: ''
 })
 
+
 // その他の状態
 const isScheduling = ref(false)
 const error = ref('')
@@ -235,6 +236,18 @@ const formatOptionTime = (option: any) => {
     return '今すぐ送信'
   }
   
+  // delay_minutesが文字列の場合は直接表示
+  if (typeof option.delay_minutes === 'string') {
+    if (option.delay_minutes === 'next_business_day_8:30am') {
+      return '明日の朝 8:30'
+    } else if (option.delay_minutes === 'next_business_day_9am') {
+      return '明日の朝 9:00'
+    } else {
+      return option.delay_minutes
+    }
+  }
+  
+  // 数値の場合は既存の計算を使用
   const scheduledTime = scheduleService.calculateScheduleTime(option.delay_minutes)
   return scheduleService.formatScheduleTime(scheduledTime)
 }
@@ -268,6 +281,12 @@ const loadAISuggestion = async () => {
   suggestionError.value = ''
   
   try {
+    console.log('AI提案リクエスト開始:', {
+      messageId: messageId.value,
+      messageText: messageText.value,
+      selectedTone: selectedTone.value
+    })
+    
     const request: ScheduleSuggestionRequest = {
       messageId: messageId.value,
       messageText: messageText.value,
@@ -275,8 +294,26 @@ const loadAISuggestion = async () => {
     }
     
     suggestion.value = await scheduleService.getSuggestion(request)
+    console.log('AI提案レスポンス成功:', suggestion.value)
+    console.log('提案オプション:', suggestion.value.suggested_options)
   } catch (err: any) {
-    suggestionError.value = err.response?.data?.error || 'AI提案の取得に失敗しました'
+    console.error('AI提案エラー:', err)
+    console.error('エラー詳細:', {
+      status: err.response?.status,
+      data: err.response?.data,
+      message: err.message
+    })
+    
+    let errorMessage = 'AI提案の取得に失敗しました'
+    if (err.code === 'ECONNABORTED') {
+      errorMessage = 'AI提案の処理に時間がかかりすぎています。もう一度お試しください。'
+    } else if (err.response?.status === 500) {
+      errorMessage = 'サーバーエラーが発生しました。しばらく待ってからお試しください。'
+    } else if (err.response?.data?.error) {
+      errorMessage = err.response.data.error
+    }
+    
+    suggestionError.value = errorMessage
   } finally {
     isLoadingSuggestion.value = false
   }
@@ -297,7 +334,25 @@ const scheduleMessage = async () => {
     let scheduledAt: string
     
     if (selectedOption.value) {
-      scheduledAt = scheduleService.calculateScheduleTime(selectedOption.value.delay_minutes)
+      // delay_minutesが文字列の場合の処理
+      if (typeof selectedOption.value.delay_minutes === 'string') {
+        const now = new Date()
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        
+        if (selectedOption.value.delay_minutes === 'next_business_day_8:30am') {
+          tomorrow.setHours(8, 30, 0, 0)
+          scheduledAt = tomorrow.toISOString()
+        } else if (selectedOption.value.delay_minutes === 'next_business_day_9am') {
+          tomorrow.setHours(9, 0, 0, 0)
+          scheduledAt = tomorrow.toISOString()
+        } else {
+          throw new Error(`未対応の時間形式: ${selectedOption.value.delay_minutes}`)
+        }
+      } else {
+        // 数値の場合は既存の計算を使用
+        scheduledAt = scheduleService.calculateScheduleTime(selectedOption.value.delay_minutes)
+      }
     } else if (customSchedule.date && customSchedule.time) {
       scheduledAt = new Date(`${customSchedule.date}T${customSchedule.time}`).toISOString()
     } else {
@@ -332,8 +387,17 @@ onMounted(() => {
   const oneHourLater = new Date()
   oneHourLater.setHours(oneHourLater.getHours() + 1)
   
-  customSchedule.date = oneHourLater.toISOString().split('T')[0]
-  customSchedule.time = oneHourLater.toTimeString().slice(0, 5)
+  // 日付と時刻を正しく設定
+  const year = oneHourLater.getFullYear()
+  const month = String(oneHourLater.getMonth() + 1).padStart(2, '0')
+  const day = String(oneHourLater.getDate()).padStart(2, '0')
+  const hours = String(oneHourLater.getHours()).padStart(2, '0')
+  const minutes = String(oneHourLater.getMinutes()).padStart(2, '0')
+  
+  customSchedule.date = `${year}-${month}-${day}`
+  customSchedule.time = `${hours}:${minutes}`
+  
+  console.log('カスタム時刻デフォルト設定:', customSchedule.date, customSchedule.time)
   
   // メッセージ情報があればAI提案を自動取得
   if (messageId.value && messageText.value) {

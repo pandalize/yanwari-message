@@ -347,8 +347,10 @@ func (h *ScheduleHandler) callAnthropicScheduleAPI(ctx context.Context, messageT
 	req.Header.Set("x-api-key", h.anthropicAPIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	// HTTPクライアントでリクエストを送信
-	client := &http.Client{}
+	// HTTPクライアントでリクエストを送信（30秒タイムアウト）
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("API呼び出しに失敗: %w", err)
