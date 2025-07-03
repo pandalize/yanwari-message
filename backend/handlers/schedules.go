@@ -99,8 +99,36 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 	}
 
 	// 送信時刻が現在より未来であることを確認
-	if req.ScheduledAt.Before(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "送信時刻は現在より未来である必要があります"})
+	// UTC時刻で統一して比較
+	now := time.Now().UTC()
+	scheduledTime := req.ScheduledAt.UTC()
+	
+	// デバッグログ追加
+	fmt.Printf("=== スケジュール時刻検証 ===\n")
+	fmt.Printf("受信した時刻（元）: %s\n", req.ScheduledAt.Format(time.RFC3339))
+	fmt.Printf("受信した時刻（UTC）: %s\n", scheduledTime.Format(time.RFC3339))
+	fmt.Printf("現在時刻（UTC）: %s\n", now.Format(time.RFC3339))
+	
+	// 日本時間でも表示
+	jst, _ := time.LoadLocation("Asia/Tokyo")
+	fmt.Printf("受信した時刻（JST）: %s\n", scheduledTime.In(jst).Format(time.RFC3339))
+	fmt.Printf("現在時刻（JST）: %s\n", now.In(jst).Format(time.RFC3339))
+	
+	timeDiff := scheduledTime.Sub(now)
+	fmt.Printf("時刻差分: %v\n", timeDiff)
+	fmt.Printf("========================\n")
+	
+	if scheduledTime.Before(now) || scheduledTime.Equal(now) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "送信時刻は現在より未来である必要があります",
+			"details": map[string]interface{}{
+				"provided_time": scheduledTime.Format(time.RFC3339),
+				"current_time":  now.Format(time.RFC3339),
+				"provided_time_jst": scheduledTime.In(jst).Format(time.RFC3339),
+				"current_time_jst":  now.In(jst).Format(time.RFC3339),
+				"time_diff_minutes": timeDiff.Minutes(),
+			},
+		})
 		return
 	}
 
@@ -196,9 +224,26 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 	}
 
 	// 送信時刻が現在より未来であることを確認
-	if req.ScheduledAt != nil && req.ScheduledAt.Before(time.Now()) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "送信時刻は現在より未来である必要があります"})
-		return
+	if req.ScheduledAt != nil {
+		now := time.Now().UTC()
+		scheduledTime := req.ScheduledAt.UTC()
+		
+		if scheduledTime.Before(now) || scheduledTime.Equal(now) {
+			jst, _ := time.LoadLocation("Asia/Tokyo")
+			timeDiff := scheduledTime.Sub(now)
+			
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "送信時刻は現在より未来である必要があります",
+				"details": map[string]interface{}{
+					"provided_time": scheduledTime.Format(time.RFC3339),
+					"current_time":  now.Format(time.RFC3339),
+					"provided_time_jst": scheduledTime.In(jst).Format(time.RFC3339),
+					"current_time_jst":  now.In(jst).Format(time.RFC3339),
+					"time_diff_minutes": timeDiff.Minutes(),
+				},
+			})
+			return
+		}
 	}
 
 	// スケジュール更新

@@ -48,6 +48,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/inbox',
+      name: 'inbox',
+      component: () => import('../views/InboxView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/schedules/:id/edit',
       name: 'schedule-edit',
       component: () => import('../views/ScheduleEditView.vue'),

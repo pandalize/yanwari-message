@@ -17,6 +17,7 @@ import (
 	"yanwari-message-backend/database"
 	"yanwari-message-backend/handlers"
 	"yanwari-message-backend/models"
+	"yanwari-message-backend/services"
 )
 
 // サーバー起動時間を記録
@@ -63,6 +64,11 @@ func main() {
 	if err := messageService.CreateIndexes(ctx); err != nil {
 		log.Printf("警告: メッセージインデックス作成エラー: %v", err)
 	}
+
+	// 配信サービスの初期化
+	deliveryService := services.NewDeliveryService(messageService)
+	// 1分間隔でスケジュール配信をチェック
+	deliveryService.Start(1 * time.Minute)
 
 	// Ginルーターの初期化
 	r := gin.Default()
@@ -154,7 +160,7 @@ func main() {
 	})
 
 	// サービスの初期化
-	scheduleService := models.NewScheduleService(db.Database)
+	scheduleService := models.NewScheduleService(db.Database, messageService)
 
 	// ハンドラーの初期化
 	authHandler := handlers.NewAuthHandler(userService)
@@ -219,6 +225,10 @@ func main() {
 	// シャットダウンタイムアウト設定（30秒）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// 配信サービスの停止
+	log.Println("Stopping delivery service...")
+	deliveryService.Stop()
 
 	// HTTPサーバーのグレースフルシャットダウン
 	if err := srv.Shutdown(ctx); err != nil {

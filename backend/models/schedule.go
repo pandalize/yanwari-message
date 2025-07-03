@@ -51,9 +51,11 @@ type ScheduleSuggestionResponse struct {
 
 // CreateScheduleRequest スケジュール作成リクエスト
 type CreateScheduleRequest struct {
-	MessageID   string    `json:"messageId" binding:"required"`
-	ScheduledAt time.Time `json:"scheduledAt" binding:"required"`
-	Timezone    string    `json:"timezone"`
+	MessageID    string    `json:"messageId" binding:"required"`
+	ScheduledAt  time.Time `json:"scheduledAt" binding:"required"`
+	Timezone     string    `json:"timezone"`
+	FinalText    string    `json:"finalText"`
+	SelectedTone string    `json:"selectedTone"`
 }
 
 // UpdateScheduleRequest スケジュール更新リクエスト
@@ -64,11 +66,12 @@ type UpdateScheduleRequest struct {
 
 // ScheduleService スケジュール関連サービス
 type ScheduleService struct {
-	collection *mongo.Collection
+	collection     *mongo.Collection
+	messageService *MessageService
 }
 
 // NewScheduleService スケジュールサービスのコンストラクタ
-func NewScheduleService(db *mongo.Database) *ScheduleService {
+func NewScheduleService(db *mongo.Database, messageService *MessageService) *ScheduleService {
 	collection := db.Collection("schedules")
 
 	// インデックス作成
@@ -93,7 +96,8 @@ func NewScheduleService(db *mongo.Database) *ScheduleService {
 	collection.Indexes().CreateMany(context.Background(), indexModel)
 
 	return &ScheduleService{
-		collection: collection,
+		collection:     collection,
+		messageService: messageService,
 	}
 }
 
@@ -118,6 +122,33 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 
 	if schedule.Timezone == "" {
 		schedule.Timezone = "Asia/Tokyo"
+	}
+
+	// スケジュール作成と同時にメッセージのステータスを scheduled に更新
+	messageUpdateData := bson.M{
+		"status":      MessageStatusScheduled,
+		"scheduledAt": request.ScheduledAt,
+		"updatedAt":   now,
+	}
+
+	// finalText と selectedTone が提供されている場合は更新
+	if request.FinalText != "" {
+		messageUpdateData["finalText"] = request.FinalText
+	}
+	if request.SelectedTone != "" {
+		messageUpdateData["selectedTone"] = request.SelectedTone
+	}
+
+	// メッセージを更新
+	messageFilter := bson.M{
+		"_id":      messageID,
+		"senderId": userID,
+		"status":   MessageStatusDraft, // draft状態のメッセージのみ更新可能
+	}
+
+	_, err = s.messageService.collection.UpdateOne(ctx, messageFilter, bson.M{"$set": messageUpdateData})
+	if err != nil {
+		return nil, err
 	}
 
 	result, err := s.collection.InsertOne(ctx, schedule)

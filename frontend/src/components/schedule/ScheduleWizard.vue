@@ -354,7 +354,27 @@ const scheduleMessage = async () => {
         scheduledAt = scheduleService.calculateScheduleTime(selectedOption.value.delay_minutes)
       }
     } else if (customSchedule.date && customSchedule.time) {
-      scheduledAt = new Date(`${customSchedule.date}T${customSchedule.time}`).toISOString()
+      // JST時間として正しく処理（UTC+9の時差を考慮）
+      const inputDateTime = `${customSchedule.date}T${customSchedule.time}:00`
+      console.log('カスタム時間入力:', inputDateTime)
+      
+      // 日本時間として明示的に作成（ブラウザのローカルタイムゾーン使用）
+      const localDateTime = new Date(inputDateTime)
+      console.log('ローカル時間として解釈:', localDateTime.toString())
+      
+      // 現在時刻より未来かチェック（ローカル時刻で比較）
+      const now = new Date()
+      console.log('現在時刻:', now.toString())
+      
+      if (localDateTime <= now) {
+        const diffMinutes = Math.round((localDateTime.getTime() - now.getTime()) / (1000 * 60))
+        console.log('時刻差分（分）:', diffMinutes)
+        throw new Error(`送信時刻は現在より未来である必要があります（現在から${diffMinutes}分後の設定です）`)
+      }
+      
+      // ISOString変換（自動的にUTCに変換される）
+      scheduledAt = localDateTime.toISOString()
+      console.log('サーバー送信用UTC時刻:', scheduledAt)
     } else {
       throw new Error('送信時間が選択されていません')
     }
@@ -383,21 +403,21 @@ const goBack = () => {
 
 // 初期化
 onMounted(() => {
-  // デフォルトの時間設定（1時間後）
-  const oneHourLater = new Date()
-  oneHourLater.setHours(oneHourLater.getHours() + 1)
+  // デフォルトの時間設定（5分後に変更）
+  const fiveMinutesLater = new Date()
+  fiveMinutesLater.setMinutes(fiveMinutesLater.getMinutes() + 5)
   
   // 日付と時刻を正しく設定
-  const year = oneHourLater.getFullYear()
-  const month = String(oneHourLater.getMonth() + 1).padStart(2, '0')
-  const day = String(oneHourLater.getDate()).padStart(2, '0')
-  const hours = String(oneHourLater.getHours()).padStart(2, '0')
-  const minutes = String(oneHourLater.getMinutes()).padStart(2, '0')
+  const year = fiveMinutesLater.getFullYear()
+  const month = String(fiveMinutesLater.getMonth() + 1).padStart(2, '0')
+  const day = String(fiveMinutesLater.getDate()).padStart(2, '0')
+  const hours = String(fiveMinutesLater.getHours()).padStart(2, '0')
+  const minutes = String(fiveMinutesLater.getMinutes()).padStart(2, '0')
   
   customSchedule.date = `${year}-${month}-${day}`
   customSchedule.time = `${hours}:${minutes}`
   
-  console.log('カスタム時刻デフォルト設定:', customSchedule.date, customSchedule.time)
+  console.log('カスタム時刻デフォルト設定（5分後）:', customSchedule.date, customSchedule.time)
   
   // メッセージ情報があればAI提案を自動取得
   if (messageId.value && messageText.value) {

@@ -238,15 +238,127 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 	})
 }
 
+// GetReceivedMessages 受信メッセージ一覧を取得
+// GET /api/v1/messages/received
+func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	recipientID, ok := userID.(primitive.ObjectID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+		return
+	}
+
+	// ページネーション
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	messages, total, err := h.messageService.GetReceivedMessages(c.Request.Context(), recipientID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "受信メッセージの取得に失敗しました"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"messages": messages,
+			"pagination": gin.H{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+			},
+		},
+		"message": "受信メッセージを取得しました",
+	})
+}
+
+// MarkMessageAsRead メッセージを既読にする
+// POST /api/v1/messages/:id/read
+func (h *MessageHandler) MarkMessageAsRead(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	recipientID, ok := userID.(primitive.ObjectID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+		return
+	}
+
+	messageIDStr := c.Param("id")
+	messageID, err := primitive.ObjectIDFromHex(messageIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "無効なメッセージIDです"})
+		return
+	}
+
+	err = h.messageService.MarkMessageAsRead(c.Request.Context(), messageID, recipientID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "メッセージが見つかりません"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "既読更新に失敗しました"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "メッセージを既読にしました",
+	})
+}
+
+// DeliverScheduledMessages スケジュール配信を実行（内部API）
+// POST /api/v1/messages/deliver-scheduled
+func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
+	messages, err := h.messageService.DeliverScheduledMessages(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュール配信に失敗しました"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"delivered_count": len(messages),
+			"messages":        messages,
+		},
+		"message": "スケジュール配信を実行しました",
+	})
+}
+
 // RegisterRoutes メッセージ関連のルートを登録
 func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	messages := router.Group("/messages")
 	messages.Use(authMiddleware)
 	{
+		// 送信者向け
 		messages.POST("/draft", h.CreateDraft)
 		messages.PUT("/:id", h.UpdateMessage)
 		messages.GET("/drafts", h.GetDrafts)
 		messages.GET("/:id", h.GetMessage)
 		messages.DELETE("/:id", h.DeleteMessage)
+		
+		// 受信者向け
+		messages.GET("/received", h.GetReceivedMessages)
+		messages.POST("/:id/read", h.MarkMessageAsRead)
+		
+		// システム内部用（配信エンジン）
+		messages.POST("/deliver-scheduled", h.DeliverScheduledMessages)
 	}
 }

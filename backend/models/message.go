@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Message やんわり伝言のメッセージモデル
@@ -251,6 +252,140 @@ func (s *MessageService) DeleteMessage(ctx context.Context, messageID, senderID 
 	return nil
 }
 
+// DeliverScheduledMessages スケジュール配信: scheduled → sent
+func (s *MessageService) DeliverScheduledMessages(ctx context.Context) ([]Message, error) {
+	now := time.Now()
+	
+	// 配信時刻が過ぎたスケジュールメッセージを取得
+	filter := bson.M{
+		"status":      MessageStatusScheduled,
+		"scheduledAt": bson.M{"$lte": now},
+	}
+
+	var messages []Message
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &messages); err != nil {
+		return nil, err
+	}
+
+	// バッチで配信済みに更新
+	if len(messages) > 0 {
+		messageIDs := make([]primitive.ObjectID, len(messages))
+		for i, msg := range messages {
+			messageIDs[i] = msg.ID
+		}
+
+		updateFilter := bson.M{
+			"_id": bson.M{"$in": messageIDs},
+		}
+
+		updateData := bson.M{
+			"$set": bson.M{
+				"status":    MessageStatusSent,
+				"sentAt":    now,
+				"updatedAt": now,
+			},
+		}
+
+		_, err = s.collection.UpdateMany(ctx, updateFilter, updateData)
+		if err != nil {
+			return nil, err
+		}
+
+		// 更新後のメッセージを取得
+		for i := range messages {
+			messages[i].Status = MessageStatusSent
+			messages[i].SentAt = &now
+			messages[i].UpdatedAt = now
+		}
+	}
+
+	return messages, nil
+}
+
+// GetReceivedMessages 受信メッセージ一覧を取得（受信者向け）
+func (s *MessageService) GetReceivedMessages(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
+	var messages []Message
+	
+	// 受信者宛てで、送信済み以上の状態のメッセージを取得
+	filter := bson.M{
+		"recipientId": recipientID,
+		"status": bson.M{"$in": []MessageStatus{
+			MessageStatusSent,
+			MessageStatusDelivered,
+			MessageStatusRead,
+		}},
+	}
+
+	// 総数を取得
+	total, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ページネーション設定
+	skip := int64((page - 1) * limit)
+	limitInt64 := int64(limit)
+	
+	cursor, err := s.collection.Find(ctx, filter, &options.FindOptions{
+		Sort:  bson.D{{Key: "sentAt", Value: -1}}, // 送信日時の降順
+		Skip:  &skip,
+		Limit: &limitInt64,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &messages); err != nil {
+		return nil, 0, err
+	}
+
+	if messages == nil {
+		messages = []Message{}
+	}
+
+	return messages, total, nil
+}
+
+// MarkMessageAsRead メッセージを既読にする
+func (s *MessageService) MarkMessageAsRead(ctx context.Context, messageID, recipientID primitive.ObjectID) error {
+	now := time.Now()
+	
+	filter := bson.M{
+		"_id":         messageID,
+		"recipientId": recipientID,
+		"status": bson.M{"$in": []MessageStatus{
+			MessageStatusSent,
+			MessageStatusDelivered,
+		}},
+	}
+
+	updateData := bson.M{
+		"$set": bson.M{
+			"status":    MessageStatusRead,
+			"readAt":    now,
+			"updatedAt": now,
+		},
+	}
+
+	result, err := s.collection.UpdateOne(ctx, filter, updateData)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+
+	return nil
+}
+
 // CreateIndexes メッセージコレクションのインデックスを作成
 func (s *MessageService) CreateIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
@@ -270,6 +405,11 @@ func (s *MessageService) CreateIndexes(ctx context.Context) error {
 			Keys: bson.D{
 				{Key: "scheduledAt", Value: 1},
 				{Key: "status", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "sentAt", Value: -1}, // 受信メッセージのソート用
 			},
 		},
 		{

@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"yanwari-message-backend/config"
 	"yanwari-message-backend/models"
@@ -133,49 +135,60 @@ func (h *TransformHandler) TransformToTones(c *gin.Context) {
 		availableTones = []string{"gentle", "constructive", "casual"}
 	}
 
-	// 並行変換処理
+	// 並行変換処理（詳細ログ付き）
 	variations := make([]ToneVariation, len(availableTones))
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	errorChan := make(chan error, len(availableTones))
+	errors := make([]error, 0)
+	
+	fmt.Printf("=== トーン変換開始: %d個のトーンを並行処理 ===\n", len(availableTones))
 
 	for i, tone := range availableTones {
 		wg.Add(1)
 		go func(index int, toneType string) {
 			defer wg.Done()
+			
+			fmt.Printf("[%s] API呼び出し開始\n", toneType)
+			startTime := time.Now()
 
 			transformedText, err := h.callAnthropicAPI(c.Request.Context(), req.OriginalText, toneType)
-			if err != nil {
-				errorChan <- fmt.Errorf("%sトーンの変換に失敗: %w", toneType, err)
-				return
-			}
-
+			
+			duration := time.Since(startTime)
+			fmt.Printf("[%s] API呼び出し完了 (所要時間: %v)\n", toneType, duration)
+			
 			mu.Lock()
-			variations[index] = ToneVariation{
-				Tone: toneType,
-				Text: transformedText,
+			if err != nil {
+				fmt.Printf("[%s] エラー: %v\n", toneType, err)
+				errors = append(errors, fmt.Errorf("%sトーンの変換に失敗: %w", toneType, err))
+			} else {
+				fmt.Printf("[%s] 成功: %d文字の変換結果\n", toneType, len(transformedText))
+				variations[index] = ToneVariation{
+					Tone: toneType,
+					Text: transformedText,
+				}
 			}
 			mu.Unlock()
 		}(i, tone)
 	}
 
 	wg.Wait()
-	close(errorChan)
+	fmt.Printf("=== 並行処理完了: %d個のエラー ===\n", len(errors))
 
 	// エラーチェック
-	if len(errorChan) > 0 {
-		err := <-errorChan
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if len(errors) > 0 {
+		// 最初のエラーを返す
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors[0].Error()})
 		return
 	}
 
 	// データベースにトーン変換結果を保存
+	toneMap := make(map[string]string)
+	for _, variation := range variations {
+		toneMap[variation.Tone] = variation.Text
+	}
+	
 	updateReq := &models.UpdateMessageRequest{
-		ToneVariations: map[string]string{
-			"gentle":       variations[0].Text,
-			"constructive": variations[1].Text,
-			"casual":       variations[2].Text,
-		},
+		ToneVariations: toneMap,
 	}
 
 	_, err = h.messageService.UpdateMessage(c.Request.Context(), messageID, currentUserID, updateReq)
@@ -240,16 +253,63 @@ func (h *TransformHandler) callAnthropicAPI(ctx context.Context, originalText, t
 	req.Header.Set("x-api-key", h.anthropicAPIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	// HTTPクライアントでリクエストを送信
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("API呼び出しに失敗: %w", err)
+	// HTTPクライアントでリクエストを送信（詳細ログ付きリトライ機能）
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	
+	fmt.Printf("[%s] リクエスト詳細 - URL: %s, Model: %s, MaxTokens: %d\n", tone, "https://api.anthropic.com/v1/messages", requestBody.Model, requestBody.MaxTokens)
+	fmt.Printf("[%s] リクエストサイズ: %d bytes\n", tone, len(jsonData))
+	
+	var resp *http.Response
+	var lastErr error
+	maxRetries := 3
+	
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		fmt.Printf("[%s] 試行 %d/%d - リクエスト送信中...\n", tone, attempt, maxRetries)
+		
+		resp, err = client.Do(req)
+		if err != nil {
+			lastErr = err
+			fmt.Printf("[%s] 試行 %d/%d - 接続エラー: %v\n", tone, attempt, maxRetries, err)
+			if attempt < maxRetries {
+				// 指数バックオフでリトライ
+				waitTime := time.Duration(attempt*attempt) * time.Second
+				fmt.Printf("[%s] %d秒後にリトライします\n", tone, int(waitTime.Seconds()))
+				time.Sleep(waitTime)
+				continue
+			}
+			return "", fmt.Errorf("API呼び出しに失敗（%d回試行後）: %w", maxRetries, err)
+		}
+		
+		fmt.Printf("[%s] 試行 %d/%d - レスポンス受信: ステータス %d\n", tone, attempt, maxRetries, resp.StatusCode)
+		
+		// 529, 502, 503エラーの場合はリトライ
+		if resp.StatusCode == 529 || resp.StatusCode == 502 || resp.StatusCode == 503 {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			fmt.Printf("[%s] 試行 %d/%d - 一時的エラー（%d）: %s\n", tone, attempt, maxRetries, resp.StatusCode, string(bodyBytes))
+			lastErr = fmt.Errorf("Anthropic API 一時的エラー: status %d", resp.StatusCode)
+			if attempt < maxRetries {
+				waitTime := time.Duration(attempt*2) * time.Second
+				fmt.Printf("[%s] %d秒後にリトライします\n", tone, int(waitTime.Seconds()))
+				time.Sleep(waitTime)
+				continue
+			}
+		}
+		
+		break
+	}
+	
+	if resp == nil {
+		return "", fmt.Errorf("API呼び出しが失敗しました: %v", lastErr)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Anthropic API エラー: status %d", resp.StatusCode)
+		// エラーレスポンスの詳細を取得
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Anthropic API エラー: status %d, response: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	// レスポンスをパース
