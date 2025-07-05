@@ -776,7 +776,12 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
    - プライバシー保護の徹底確認
    - Vue Router認証ガードの強化
 
-6. **バックグラウンド送信処理実装** - 優先度: 中
+6. **AI時間提案システム改善** - 優先度: 中
+   - **ブランチ**: feature/ai-schedule-improvements（作成済み・リモートpush完了）
+   - 500エラーの解決・プロンプト最適化・エラーハンドリング強化
+   - 修正対象: backend/handlers/schedules.go, config/schedule_prompts.yaml
+   
+7. **バックグラウンド送信処理実装** - 優先度: 中
    - スケジュール実行エンジン開発
    - 定期実行・バックグラウンドプロセス
    - メール送信・通知連携
