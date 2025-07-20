@@ -1,90 +1,81 @@
 <template>
   <div class="tone-transform-view">
-    <!-- ローディング中 -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>メッセージを読み込み中...</p>
-    </div>
-
     <!-- エラー状態 -->
-    <div v-else-if="error" class="error-container">
-      <h2>❌ エラーが発生しました</h2>
+    <div v-if="error" class="error-container">
+      <h2>エラーが発生しました</h2>
       <p>{{ error }}</p>
-      <button @click="$router.go(-1)" class="btn btn-secondary">
-        ← 戻る
+      <button @click="$router.go(-1)" class="error-back-btn">
+        戻る
       </button>
     </div>
 
     <!-- メイン画面 -->
-    <div v-else-if="message" class="transform-container">
-      <!-- ヘッダー -->
-      <div class="transform-header">
-        <button @click="$router.go(-1)" class="back-btn">
-          ← 戻る
-        </button>
-        <div class="header-content">
-          <h1>🎭 トーン変換</h1>
-          <p>メッセージを3つのトーンで変換します</p>
-        </div>
-      </div>
+    <div v-else class="main-content">
+      <!-- ページタイトル -->
+      <h1 class="page-title">トーン変換</h1>
 
       <!-- 元のメッセージ表示 -->
-      <div class="original-message">
-        <h3>📝 元のメッセージ</h3>
-        <div class="message-text">
-          "{{ message.originalText }}"
-        </div>
-        <div v-if="message.recipientId" class="recipient-info">
-          <span class="recipient-label">送信先:</span>
-          <span class="recipient-email">{{ recipientEmail }}</span>
-        </div>
-      </div>
-
-      <!-- トーン選択コンポーネント -->
-      <ToneSelector
-        :message-id="message.id"
-        :original-text="message.originalText"
-        @tone-selected="handleToneSelected"
-      />
-
-      <!-- 次へボタン -->
-      <div v-if="selectedTone && selectedText" class="action-section">
-        <div class="selected-summary">
-          <h4>✅ 選択したトーン</h4>
-          <div class="summary-content">
-            <div class="tone-badge">{{ transformStore.toneLabels[selectedTone] }}</div>
-            <div class="final-message">"{{ selectedText }}"</div>
+      <section class="original-section">
+        <h2 class="section-title">元のメッセージ</h2>
+        <div class="message-container">
+          <div v-if="isMessageLoading" class="message-loading">
+            メッセージを読み込み中...
           </div>
+          <div v-else class="message-text">{{ originalMessage }}</div>
+        </div>
+      </section>
+
+      <!-- 変換結果表示 -->
+      <section class="transform-results-section">
+        <h2 class="section-title">変換結果</h2>
+        
+        <!-- ローディング中の表示 -->
+        <div v-if="isLoading" class="transform-loading">
+          <div class="loading-spinner"></div>
+          <p>トーン変換中...</p>
         </div>
         
-        <div class="action-buttons">
-          <button 
-            @click="saveAndProceed" 
-            class="btn btn-primary"
-            :disabled="isSaving"
+        <!-- 3つのトーン選択肢 -->
+        <div v-else class="tone-options">
+          <div 
+            v-for="option in toneOptions" 
+            :key="option.tone"
+            class="tone-option"
+            :class="{ selected: selectedTone === option.tone }"
+            @click="selectTone(option.tone, option.text)"
           >
-            <span v-if="isSaving">⏳ 保存中...</span>
-            <span v-else>📅 配信設定へ</span>
-          </button>
-          
-          <button 
-            @click="backToSelection" 
-            class="btn btn-secondary"
-          >
-            🔄 トーンを変更
-          </button>
+            <div class="tone-header">
+              <h3 class="tone-title">{{ option.title }}</h3>
+            </div>
+            <div class="tone-content">
+              <p class="tone-text">{{ option.text }}</p>
+            </div>
+          </div>
         </div>
+      </section>
+
+      <!-- 次へボタンセクション -->
+      <div v-if="!isLoading" class="action-section">
+        <!-- 次へボタン -->
+        <button 
+          class="proceed-btn"
+          @click="proceedToSchedule"
+          :disabled="!selectedTone || isSaving"
+        >
+          <span v-if="isSaving">保存中...</span>
+          <span v-else-if="!selectedTone">トーンを選択してください</span>
+          <span v-else>送信日時の選択に進む</span>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessageStore } from '@/stores/messages'
 import { useTransformStore } from '@/stores/transform'
-import ToneSelector from '@/components/transform/ToneSelector.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,18 +83,18 @@ const messageStore = useMessageStore()
 const transformStore = useTransformStore()
 
 // State
-const isLoading = ref(true)
+const isLoading = ref(false)
+const isMessageLoading = ref(true)
 const isSaving = ref(false)
 const error = ref<string | null>(null)
 const selectedTone = ref('')
 const selectedText = ref('')
-
-// Computed
-const message = computed(() => messageStore.currentDraft)
-const recipientEmail = computed(() => {
-  // 受信者情報の取得（実装は後で）
-  return 'recipient@example.com'
-})
+const originalMessage = ref('')
+const toneOptions = ref([
+  { tone: 'gentle', title: '💝 優しめトーン', text: '' },
+  { tone: 'constructive', title: '🏗️ 建設的トーン', text: '' },
+  { tone: 'casual', title: '🎯 カジュアルトーン', text: '' }
+])
 
 // Methods
 const loadMessage = async () => {
@@ -111,55 +102,90 @@ const loadMessage = async () => {
   
   if (!messageId) {
     error.value = 'メッセージIDが指定されていません'
-    isLoading.value = false
+    isMessageLoading.value = false
     return
   }
 
   try {
+    // メッセージを取得
     await messageStore.fetchMessage(messageId)
     
     if (!messageStore.currentDraft) {
       error.value = 'メッセージが見つかりません'
+      isMessageLoading.value = false
+      return
     }
+
+    originalMessage.value = messageStore.currentDraft.originalText
+    isMessageLoading.value = false
+
+    // メッセージ表示後にトーン変換を開始
+    startToneTransform(messageId)
   } catch (err: any) {
     error.value = err.message || 'メッセージの読み込みに失敗しました'
+    isMessageLoading.value = false
+  }
+}
+
+const startToneTransform = async (messageId: string) => {
+  isLoading.value = true
+  
+  try {
+    // 自動的にトーン変換を開始
+    await transformStore.transformMessage(messageId, originalMessage.value)
+    
+    // 変換結果をtoneOptionsに設定
+    if (transformStore.variations.length > 0) {
+      transformStore.variations.forEach(variation => {
+        const optionIndex = toneOptions.value.findIndex(opt => opt.tone === variation.tone)
+        if (optionIndex !== -1) {
+          toneOptions.value[optionIndex].text = variation.text
+        }
+      })
+    }
+  } catch (err: any) {
+    error.value = err.message || 'トーン変換に失敗しました'
   } finally {
     isLoading.value = false
   }
 }
 
-const handleToneSelected = (tone: string, text: string) => {
+const selectTone = (tone: string, text: string) => {
   selectedTone.value = tone
   selectedText.value = text
 }
 
-const saveAndProceed = async () => {
-  if (!message.value || !selectedTone.value || !selectedText.value) return
+const proceedToSchedule = async () => {
+  if (!selectedTone.value || !selectedText.value) return
   
   isSaving.value = true
   
   try {
-    // メッセージに選択したトーンを保存
-    const success = await messageStore.updateDraft(message.value.id!, {
-      originalText: message.value.originalText,
+    const messageId = route.params.id as string
+    
+    // 選択したトーンを保存
+    const success = await messageStore.updateDraft(messageId, {
+      originalText: originalMessage.value,
       selectedTone: selectedTone.value,
       variations: {
         [selectedTone.value]: selectedText.value
       }
     })
-    
+
     if (success) {
-      // スケジュール設定画面に遷移（メッセージ情報を渡す）
-      router.push({
-        path: '/schedule',
-        query: {
-          messageId: message.value.id,
-          messageText: message.value.originalText,
+      // 予約配信画面に遷移（必要な情報をすべてクエリパラメータで渡す）
+      await router.push({
+        name: 'schedule-wizard',
+        query: { 
+          messageId,
+          messageText: originalMessage.value,
           selectedTone: selectedTone.value,
           finalText: selectedText.value,
-          recipientEmail: recipientEmail.value
+          recipientEmail: messageStore.currentDraft?.recipientEmail || ''
         }
       })
+    } else {
+      throw new Error('保存に失敗しました')
     }
   } catch (err: any) {
     error.value = 'トーンの保存に失敗しました'
@@ -168,49 +194,59 @@ const saveAndProceed = async () => {
   }
 }
 
-const backToSelection = () => {
-  selectedTone.value = ''
-  selectedText.value = ''
-  transformStore.reset()
-}
-
 // Lifecycle
 onMounted(() => {
   loadMessage()
-  
-  // コンポーネント離脱時にトーン変換状態をリセット
-  return () => {
-    transformStore.reset()
-  }
 })
 </script>
 
 <style scoped>
 .tone-transform-view {
-  min-height: 100vh;
-  background-color: #f9fafb;
-  padding: 20px;
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--background-primary);
+  font-family: var(--font-family-main);
 }
 
 /* ローディング・エラー */
-.loading-container,
-.error-container {
+.loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  min-height: 400px;
+  text-align: center;
+}
+
+.transform-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  text-align: center;
+  width: 700px;
+  border: 3px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--neutral-color);
+}
+
+.message-loading {
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-main);
   text-align: center;
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #2563eb;
+  border: 4px solid var(--gray-color-light);
+  border-top: 4px solid var(--secondary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-md);
 }
 
 @keyframes spin {
@@ -218,203 +254,168 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-.error-container h2 {
-  color: #dc2626;
-  margin-bottom: 10px;
-}
-
-.error-container p {
-  color: #7f1d1d;
-  margin-bottom: 20px;
-}
-
-/* メインコンテナ */
-.transform-container {
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-/* ヘッダー */
-.transform-header {
+.error-container {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 30px;
-  padding: 20px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
 }
 
-.back-btn {
-  background: none;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 10px 16px;
+.error-back-btn {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--primary-color);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
   cursor: pointer;
-  color: #6b7280;
-  font-size: 14px;
-  transition: all 0.2s ease;
 }
 
-.back-btn:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
+/* メインコンテンツ */
+.main-content {
+  width: 100%;
 }
 
-.header-content h1 {
-  margin: 0 0 5px 0;
-  color: #1f2937;
-  font-size: 24px;
+.page-title {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  margin: 0 0 var(--spacing-lg) 0;
 }
 
-.header-content p {
-  margin: 0;
-  color: #6b7280;
-  font-size: 14px;
+/* セクション */
+.original-section,
+.transform-results-section {
+  margin-bottom: var(--spacing-3xl);
 }
 
-/* 元のメッセージ */
-.original-message {
-  background-color: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.section-title {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  margin: 0 0 var(--spacing-lg) 0;
 }
 
-.original-message h3 {
-  margin: 0 0 16px 0;
-  color: #1f2937;
-  font-size: 18px;
+/* メッセージコンテナ */
+.message-container {
+  width: 700px;
+  min-height: 100px;
+  border: 3px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--neutral-color);
+  padding: var(--spacing-xl);
 }
 
 .message-text {
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #374151;
-  margin-bottom: 16px;
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-main);
+  line-height: var(--line-height-normal);
 }
 
-.recipient-info {
+/* トーン選択肢 */
+.tone-options {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 700px;
 }
 
-.recipient-label {
-  color: #6b7280;
+.tone-option {
+  border: 3px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--neutral-color);
+  padding: var(--spacing-xl);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.recipient-email {
-  color: #2563eb;
-  font-weight: 500;
+.tone-option:hover {
+  border-color: var(--border-color-hover);
+}
+
+.tone-option.selected {
+  border-color: var(--success-color);
+  background: var(--success-color);
+}
+
+.tone-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.tone-title {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  margin: 0;
+}
+
+.tone-content {
+  margin: 0;
+}
+
+.tone-text {
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-main);
+  line-height: var(--line-height-normal);
+  margin: 0;
 }
 
 /* アクションセクション */
 .action-section {
-  background-color: white;
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 30px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.selected-summary h4 {
-  margin: 0 0 16px 0;
-  color: #1f2937;
-  font-size: 18px;
-}
-
-.summary-content {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-}
-
-.tone-badge {
-  display: inline-block;
-  background-color: #16a34a;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.final-message {
-  font-size: 16px;
-  line-height: 1.6;
-  color: #166534;
-}
-
-.action-buttons {
+  margin-top: var(--spacing-3xl);
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
-/* ボタンスタイル */
-.btn {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.proceed-btn {
+  width: 280px;
+  height: 60px;
+  border-radius: 30px;
   border: none;
+  background: var(--primary-color);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
-.btn-primary {
-  background-color: #2563eb;
-  color: white;
+.proceed-btn:hover:not(:disabled) {
+  background: var(--primary-color-dark);
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #1d4ed8;
-}
-
-.btn-primary:disabled {
-  background-color: #9ca3af;
+.proceed-btn:disabled {
+  background: var(--gray-color-light);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
-.btn-secondary {
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.btn-secondary:hover {
-  background-color: #e5e7eb;
-  border-color: #9ca3af;
-}
-
-/* レスポンシブ */
+/* レスポンシブ対応 */
 @media (max-width: 768px) {
   .tone-transform-view {
-    padding: 15px;
+    padding: var(--spacing-lg);
   }
   
-  .transform-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+  .message-container,
+  .tone-options {
+    width: 100%;
+    max-width: 700px;
   }
   
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  .btn {
+  .proceed-btn {
     width: 100%;
   }
 }

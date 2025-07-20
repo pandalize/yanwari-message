@@ -1,149 +1,106 @@
 <template>
   <div class="schedule-wizard">
-    <h2>📅 送信スケジュール設定</h2>
-    
-    <!-- メッセージプレビュー -->
-    <div class="message-preview-section">
-      <h3>📝 送信予定メッセージ</h3>
-      <div class="message-card">
-        <div class="message-header">
-          <span class="recipient-badge">📧 {{ recipientEmail }}</span>
-          <span class="tone-badge" :class="`tone-${selectedTone}`">
-            🎭 {{ getToneLabel(selectedTone) }}
+    <!-- ページタイトル -->
+    <h1 class="page-title">送信予約</h1>
+
+    <!-- 時間選択グリッド（2x2レイアウト） -->
+    <div class="time-selection-grid">
+      <!-- 今すぐ送信 -->
+      <div 
+        class="time-option"
+        :class="{ selected: selectedOption === 'immediate' }"
+        @click="selectOption('immediate')"
+      >
+        <h3 class="option-title">今すぐ送信</h3>
+        <div class="option-content">
+          <p class="time-text">今日　{{ currentTime }}</p>
+          <p class="recommendation-text">おすすめ度：　50</p>
+        </div>
+      </div>
+
+      <!-- AIおすすめ1 -->
+      <div 
+        class="time-option"
+        :class="{ selected: selectedOption?.option === 'AIおすすめ1' }"
+        @click="selectTimeOption(suggestion?.suggested_options?.[0] || getDefaultOption(0))"
+      >
+        <h3 class="option-title">AIおすすめ1</h3>
+        <div class="option-content">
+          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[0] || getDefaultOption(0)) }}</p>
+          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[0]?.priority || getDefaultOption(0).priority) }}</p>
+        </div>
+      </div>
+
+      <!-- AIおすすめ2 -->
+      <div 
+        class="time-option default-selected"
+        :class="{ selected: selectedOption?.option === 'AIおすすめ2' }"
+        @click="selectTimeOption(suggestion?.suggested_options?.[1] || getDefaultOption(1))"
+      >
+        <h3 class="option-title">AIおすすめ2</h3>
+        <div class="option-content">
+          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[1] || getDefaultOption(1)) }}</p>
+          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[1]?.priority || getDefaultOption(1).priority) }}</p>
+        </div>
+      </div>
+
+      <!-- AIおすすめ3 -->
+      <div 
+        class="time-option"
+        :class="{ selected: selectedOption?.option === 'AIおすすめ3' }"
+        @click="selectTimeOption(suggestion?.suggested_options?.[2] || getDefaultOption(2))"
+      >
+        <h3 class="option-title">AIおすすめ3</h3>
+        <div class="option-content">
+          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[2] || getDefaultOption(2)) }}</p>
+          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[2]?.priority || getDefaultOption(2).priority) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自分で設定する -->
+    <div class="custom-section">
+      <h3 class="custom-title">自分で設定する</h3>
+      
+      <!-- カレンダー -->
+      <div class="calendar-grid">
+        <div class="calendar-header">
+          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+        </div>
+        <div class="calendar-dates">
+          <span v-for="date in calendarDates" :key="date" 
+                :class="{ selected: date === selectedDate }"
+                @click="selectDate(date)">
+            {{ date }}
           </span>
         </div>
-        <div class="message-content">
-          <p class="original-text">{{ messageText }}</p>
-          <p v-if="finalText" class="final-text">{{ finalText }}</p>
-        </div>
       </div>
-    </div>
 
-    <!-- AI時間提案セクション -->
-    <div class="ai-suggestion-section">
-      <h3>🤖 AI時間提案</h3>
-      
-      <div v-if="isLoadingSuggestion" class="loading-state">
-        <div class="spinner"></div>
-        <p>メッセージを分析中...</p>
-      </div>
-      
-      <div v-else-if="suggestion" class="suggestion-result">
-        <div class="analysis-summary">
-          <div class="analysis-item">
-            <span class="label">📋 メッセージ種別:</span>
-            <span class="value">{{ suggestion.message_type }}</span>
-          </div>
-          <div class="analysis-item">
-            <span class="label">⚡ 緊急度:</span>
-            <span class="value urgency" :class="`urgency-${getUrgencyLevel(suggestion.urgency_level)}`">
-              {{ suggestion.urgency_level }}
-            </span>
-          </div>
-          <div class="analysis-item">
-            <span class="label">💡 推奨タイミング:</span>
-            <span class="value recommended">{{ suggestion.recommended_timing }}</span>
-          </div>
+      <!-- 時間選択 -->
+      <div class="time-inputs">
+        <div class="time-input">
+          <input type="number" v-model="customHour" min="0" max="23" class="time-field">
+          <span class="time-label">時</span>
         </div>
-        
-        <div class="reasoning">
-          <p><strong>📖 理由:</strong> {{ suggestion.reasoning }}</p>
-        </div>
-        
-        <div class="time-options">
-          <h4>⏰ 送信時間の選択肢</h4>
-          <div class="options-grid">
-            <div 
-              v-for="(option, index) in suggestion.suggested_options" 
-              :key="index"
-              @click="selectTimeOption(option)"
-              class="time-option"
-              :class="{ 
-                'selected': selectedOption?.option === option.option,
-                'primary': option.priority === '最推奨',
-                'recommended': option.priority === '推奨'
-              }"
-            >
-              <div class="option-header">
-                <span class="option-title">{{ option.option }}</span>
-                <span class="priority-badge" :class="`priority-${getPriorityClass(option.priority)}`">
-                  {{ option.priority }}
-                </span>
-              </div>
-              <div class="option-details">
-                <p class="schedule-time">{{ formatOptionTime(option) }}</p>
-                <p class="option-reason">{{ option.reason }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div v-else-if="suggestionError" class="error-state">
-        <p>❌ AI提案の取得に失敗しました: {{ suggestionError }}</p>
-        <button @click="loadAISuggestion" class="retry-btn">🔄 再試行</button>
-      </div>
-      
-      <div v-else class="suggestion-prompt">
-        <button @click="loadAISuggestion" class="get-suggestion-btn">
-          🤖 AI時間提案を取得
-        </button>
-      </div>
-    </div>
-
-    <!-- カスタム時間設定 -->
-    <div class="custom-schedule-section">
-      <h3>🕒 カスタム時間設定</h3>
-      
-      <div class="schedule-form">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="customDate">📅 送信日</label>
-            <input
-              id="customDate"
-              v-model="customSchedule.date"
-              type="date"
-              :min="minDate"
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="customTime">🕐 送信時刻</label>
-            <input
-              id="customTime"
-              v-model="customSchedule.time"
-              type="time"
-            />
-          </div>
-        </div>
-        
-        <div class="custom-preview" v-if="customSchedule.date && customSchedule.time">
-          <p><strong>📋 カスタム送信予定:</strong></p>
-          <p class="custom-time">{{ formatCustomTime() }}</p>
+        <div class="time-input">
+          <input type="number" v-model="customMinute" min="0" max="59" class="time-field">
+          <span class="time-label">分</span>
         </div>
       </div>
     </div>
 
     <!-- アクションボタン -->
-    <div class="action-section">
-      <div class="selected-schedule" v-if="getSelectedScheduleTime()">
-        <p><strong>🎯 選択された送信時間:</strong></p>
-        <p class="selected-time">{{ getSelectedScheduleTime() }}</p>
-      </div>
-      
-      <div class="action-buttons">
-        <button 
-          @click="scheduleMessage"
-          :disabled="!canSchedule || isScheduling"
-          class="schedule-btn primary"
-        >
-          {{ isScheduling ? '⏳ 設定中...' : '📨 スケジュール設定' }}
-        </button>
-        
-        <button @click="goBack" class="back-btn">
-          ↩️ 戻る
-        </button>
-      </div>
+    <div class="action-buttons">
+      <button class="action-btn back-btn" @click="goBack">
+        文章を編集
+      </button>
+      <button 
+        class="action-btn schedule-btn" 
+        @click="scheduleMessage"
+        :disabled="!canSchedule || isScheduling"
+      >
+        {{ isScheduling ? '設定中...' : 'この時刻に送信する' }}
+      </button>
     </div>
     
     <!-- メッセージ表示 -->
@@ -169,11 +126,28 @@ const router = useRouter()
 const route = useRoute()
 
 // Props（ルートパラメータまたはクエリから取得）
-const messageId = ref(route.params.messageId as string || route.query.messageId as string)
-const messageText = ref(route.query.messageText as string || '')
-const selectedTone = ref(route.query.selectedTone as string || 'gentle')
-const finalText = ref(route.query.finalText as string || '')
-const recipientEmail = ref(route.query.recipientEmail as string || '')
+const messageId = ref('')
+const messageText = ref('')
+const selectedTone = ref('gentle')
+const finalText = ref('')
+const recipientEmail = ref('')
+
+// ルートパラメータからの値を設定
+const initializeFromRoute = () => {
+  messageId.value = (route.params.messageId as string) || (route.query.messageId as string) || ''
+  messageText.value = (route.query.messageText as string) || ''
+  selectedTone.value = (route.query.selectedTone as string) || 'gentle'
+  finalText.value = (route.query.finalText as string) || ''
+  recipientEmail.value = (route.query.recipientEmail as string) || ''
+  
+  console.log('ルートから初期化された値:', {
+    messageId: messageId.value,
+    messageText: messageText.value,
+    selectedTone: selectedTone.value,
+    finalText: finalText.value,
+    recipientEmail: recipientEmail.value
+  })
+}
 
 // AI提案関連の状態
 const suggestion = ref<ScheduleSuggestionResponse | null>(null)
@@ -187,9 +161,12 @@ const customSchedule = reactive({
   time: ''
 })
 
-
 // その他の状態
+const customHour = ref(9)
+const customMinute = ref(0)
+const selectedDate = ref(new Date().getDate())
 const isScheduling = ref(false)
+const isSending = ref(false)
 const error = ref('')
 const successMessage = ref('')
 
@@ -200,28 +177,62 @@ const minDate = computed(() => {
 })
 
 const canSchedule = computed(() => {
-  return selectedOption.value || (customSchedule.date && customSchedule.time)
+  return selectedOption.value || (customHour.value !== null && customMinute.value !== null && selectedDate.value)
 })
 
+const currentTime = computed(() => {
+  const now = new Date()
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+})
+
+const calendarDates = computed(() => {
+  // 簡易カレンダー用の日付配列（1-31）
+  return Array.from({ length: 31 }, (_, i) => i + 1)
+})
+
+// デフォルトオプションを取得
+const getDefaultOption = (index: number) => {
+  const options = [
+    {
+      option: 'AIおすすめ1',
+      priority: '推奨',
+      reason: '明日の朝の時間帯',
+      delay_minutes: 'next_business_day_10am'
+    },
+    {
+      option: 'AIおすすめ2',
+      priority: '最推奨',
+      reason: '月曜日の朝の時間帯',
+      delay_minutes: 'next_business_day_10am'
+    },
+    {
+      option: 'AIおすすめ3',
+      priority: '選択肢',
+      reason: '明後日の夜の時間帯',
+      delay_minutes: 1080
+    }
+  ]
+  return options[index] || options[0]
+}
+
+// オプション表示用のフォーマット
+const formatOptionDisplay = (option: any) => {
+  if (!option) return ''
+  
+  if (option.delay_minutes === 'next_business_day_10am') {
+    return option.option === 'AIおすすめ1' ? '明日の朝☀️　10:00' : '月曜日の朝☀️　10:00'
+  }
+  
+  if (option.delay_minutes === 1080) {
+    return '明後日の夜🌙️　18:00'
+  }
+  
+  return formatOptionTime(option)
+}
+
 // メソッド
-const getToneLabel = (tone: string) => {
-  const labels: Record<string, string> = {
-    gentle: 'やんわり',
-    constructive: '建設的',
-    casual: 'カジュアル'
-  }
-  return labels[tone] || tone
-}
-
-const getUrgencyLevel = (urgency: string) => {
-  const mapping: Record<string, string> = {
-    '高': 'high',
-    '中': 'medium', 
-    '低': 'low'
-  }
-  return mapping[urgency] || 'medium'
-}
-
 const getPriorityClass = (priority: string) => {
   const mapping: Record<string, string> = {
     '最推奨': 'primary',
@@ -230,6 +241,7 @@ const getPriorityClass = (priority: string) => {
   }
   return mapping[priority] || 'option'
 }
+
 
 const formatOptionTime = (option: any) => {
   if (option.delay_minutes === 0) {
@@ -272,8 +284,54 @@ const getSelectedScheduleTime = () => {
 }
 
 const loadAISuggestion = async () => {
+  console.log('loadAISuggestion 開始 - データチェック:', {
+    messageId: messageId.value,
+    messageText: messageText.value,
+    selectedTone: selectedTone.value,
+    hasMessageId: !!messageId.value,
+    hasMessageText: !!messageText.value
+  })
+  
   if (!messageId.value || !messageText.value) {
-    suggestionError.value = 'メッセージ情報が不足しています'
+    const missingFields = []
+    if (!messageId.value) missingFields.push('messageId')
+    if (!messageText.value) missingFields.push('messageText')
+    
+    console.error('AI提案エラー - 必要情報不足:', { 
+      missingFields,
+      messageId: messageId.value,
+      messageText: messageText.value,
+      routeQuery: route.query,
+      routeParams: route.params
+    })
+    
+    // メッセージ情報が不足している場合は、代替のサンプル提案を表示
+    suggestion.value = {
+      message_type: 'sample',
+      urgency_level: '中',
+      recommended_timing: 'サンプル提案',
+      reasoning: 'メッセージ情報が不足しているため、サンプル時間を表示しています',
+      suggested_options: [
+        {
+          option: '明日の朝',
+          priority: '推奨',
+          reason: '業務開始時間に配慮',
+          delay_minutes: 'next_business_day_9am'
+        },
+        {
+          option: '今日の夕方',
+          priority: '選択肢',
+          reason: '業務終了前の確認',
+          delay_minutes: 480
+        },
+        {
+          option: '来週月曜日',
+          priority: '選択肢', 
+          reason: '週の始まりでの対応',
+          delay_minutes: 'next_business_day_9am'
+        }
+      ]
+    }
     return
   }
   
@@ -295,18 +353,24 @@ const loadAISuggestion = async () => {
     
     suggestion.value = await scheduleService.getSuggestion(request)
     console.log('AI提案レスポンス成功:', suggestion.value)
-    console.log('提案オプション:', suggestion.value.suggested_options)
+    console.log('提案オプション数:', suggestion.value?.suggested_options?.length)
   } catch (err: any) {
     console.error('AI提案エラー:', err)
     console.error('エラー詳細:', {
       status: err.response?.status,
+      statusText: err.response?.statusText,
       data: err.response?.data,
-      message: err.message
+      message: err.message,
+      code: err.code
     })
     
     let errorMessage = 'AI提案の取得に失敗しました'
     if (err.code === 'ECONNABORTED') {
       errorMessage = 'AI提案の処理に時間がかかりすぎています。もう一度お試しください。'
+    } else if (err.response?.status === 400) {
+      errorMessage = `リクエストエラー: ${err.response.data?.error || 'パラメータが正しくありません'}`
+    } else if (err.response?.status === 404) {
+      errorMessage = `メッセージが見つかりません: ${err.response.data?.error || 'メッセージIDが無効です'}`
     } else if (err.response?.status === 500) {
       errorMessage = 'サーバーエラーが発生しました。しばらく待ってからお試しください。'
     } else if (err.response?.data?.error) {
@@ -324,6 +388,66 @@ const selectTimeOption = (option: any) => {
   // カスタム設定をクリア
   customSchedule.date = ''
   customSchedule.time = ''
+}
+
+const selectDate = (date: number) => {
+  selectedDate.value = date
+  console.log('選択された日付:', date)
+}
+
+const selectOption = (option: string) => {
+  if (option === 'immediate') {
+    sendImmediately()
+  } else {
+    selectedOption.value = option
+    console.log('選択されたオプション:', option)
+  }
+}
+
+const sendImmediately = async () => {
+  isSending.value = true
+  error.value = ''
+  
+  try {
+    // 現在時刻で即座に送信スケジュールを作成
+    const now = new Date()
+    const scheduledAt = now.toISOString()
+    
+    console.log('即座送信:', {
+      messageId: messageId.value,
+      scheduledAt
+    })
+    
+    await scheduleService.createSchedule({
+      messageId: messageId.value,
+      scheduledAt
+    })
+    
+    successMessage.value = 'メッセージを送信しました！'
+    
+    // 送信完了後、受信トレイ画面に遷移
+    setTimeout(() => {
+      router.push('/inbox')
+    }, 2000)
+    
+  } catch (err: any) {
+    console.error('即座送信エラー:', err)
+    error.value = err.response?.data?.error || 'メッセージの送信に失敗しました'
+  } finally {
+    isSending.value = false
+  }
+}
+
+const goBack = () => {
+  // トーン変換画面に戻る
+  if (messageId.value) {
+    router.push({
+      name: 'tone-transform',
+      params: { id: messageId.value }
+    })
+  } else {
+    router.back()
+  }
 }
 
 const scheduleMessage = async () => {
@@ -397,12 +521,11 @@ const scheduleMessage = async () => {
   }
 }
 
-const goBack = () => {
-  router.back()
-}
-
 // 初期化
 onMounted(() => {
+  // ルートから値を初期化
+  initializeFromRoute()
+  
   // デフォルトの時間設定（5分後に変更）
   const fiveMinutesLater = new Date()
   fiveMinutesLater.setMinutes(fiveMinutesLater.getMinutes() + 5)
@@ -419,131 +542,51 @@ onMounted(() => {
   
   console.log('カスタム時刻デフォルト設定（5分後）:', customSchedule.date, customSchedule.time)
   
-  // メッセージ情報があればAI提案を自動取得
-  if (messageId.value && messageText.value) {
-    loadAISuggestion()
-  }
+  // AI提案を自動取得（サンプルデータを表示）
+  console.log('AI提案を自動実行')
+  loadAISuggestion()
 })
 </script>
 
 <style scoped>
 .schedule-wizard {
-  max-width: 900px;
+  padding: 2rem;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-.message-preview-section,
-.ai-suggestion-section,
-.custom-schedule-section,
-.action-section {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  background: white;
-}
-
-.message-card {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.message-header {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.recipient-badge,
-.tone-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.recipient-badge {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.tone-badge {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.original-text {
-  color: #666;
-  margin-bottom: 0.5rem;
-}
-
-.final-text {
-  color: #2e7d32;
-  font-weight: 500;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 2rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.analysis-summary {
-  display: grid;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.analysis-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.label {
-  font-weight: 500;
-  min-width: 120px;
-}
-
-.urgency-high { color: #d32f2f; }
-.urgency-medium { color: #f57c00; }
-.urgency-low { color: #388e3c; }
-
-.reasoning {
   background: #f5f5f5;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.options-grid {
+/* ページタイトル */
+.page-title {
+  font-size: 1.5rem;
+  color: #333;
+  font-weight: 500;
+  margin: 0 0 2rem 0;
+  text-align: left;
+}
+
+/* 時間選択グリッド（2x2） */
+.time-selection-grid {
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 2rem;
 }
 
+/* 時間選択オプション */
 .time-option {
+  background: white;
   border: 2px solid #e0e0e0;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 1.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  text-align: center;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .time-option:hover {
@@ -553,137 +596,173 @@ onMounted(() => {
 
 .time-option.selected {
   border-color: #007bff;
-  background: #f8f9ff;
+  background: #f0f8ff;
 }
 
-.time-option.primary {
+.time-option.selected-default {
+  background: #b5fcb0;
   border-color: #28a745;
 }
 
-.time-option.primary.selected {
-  border-color: #28a745;
-  background: #f8fff9;
-}
-
-.option-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+.time-option.selected-default.selected {
+  background: #a0f0a0;
+  border-color: #1e7e34;
 }
 
 .option-title {
+  font-size: 1rem;
   font-weight: 600;
   color: #333;
+  margin: 0 0 0.5rem 0;
 }
 
-.priority-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.priority-primary {
-  background: #d4edda;
-  color: #155724;
-}
-
-.priority-recommended {
-  background: #cce7ff;
-  color: #004085;
-}
-
-.priority-option {
-  background: #f8f9fa;
-  color: #6c757d;
-}
-
-.schedule-time {
-  font-weight: 500;
-  color: #007bff;
-  margin-bottom: 0.25rem;
-}
-
-.option-reason {
-  font-size: 0.875rem;
-  color: #666;
+.option-content {
   margin: 0;
 }
 
-.form-row {
+.time-text {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* カスタム設定セクション */
+.custom-section {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.custom-title {
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+  margin: 0 0 1.5rem 0;
+}
+
+/* カレンダー */
+.calendar-grid {
+  margin-bottom: 1.5rem;
+}
+
+.calendar-header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.calendar-header span {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.calendar-dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.calendar-dates span {
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  color: #333;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-dates span:hover {
+  background: #f0f0f0;
+}
+
+.calendar-dates span.selected {
+  background: #007bff;
+  color: white;
+}
+
+/* 時間入力 */
+.time-inputs {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.time-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-field {
+  width: 60px;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1rem;
   font-weight: 500;
 }
 
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.time-field:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.time-label {
   font-size: 1rem;
+  color: #333;
+  font-weight: 500;
 }
 
-.custom-preview {
-  background: #f0f8ff;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-}
-
-.custom-time {
-  font-weight: 600;
-  color: #007bff;
-  margin: 0.5rem 0 0 0;
-}
-
-.selected-schedule {
-  background: #e8f5e8;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.selected-time {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #2e7d32;
-  margin: 0.5rem 0 0 0;
-}
-
+/* アクションボタン */
 .action-buttons {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2rem;
 }
 
-.schedule-btn,
-.back-btn,
-.get-suggestion-btn,
-.retry-btn {
-  padding: 0.75rem 1.5rem;
+.action-btn {
+  padding: 0.875rem 2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 25px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
 }
 
-.schedule-btn.primary {
-  background: #28a745;
+.back-btn {
+  background: #f0f0f0;
+  color: #333;
+  border: 2px solid #e0e0e0;
+}
+
+.back-btn:hover {
+  background: #e0e0e0;
+}
+
+.schedule-btn {
+  background: #007bff;
   color: white;
+}
+
+.schedule-btn:hover:not(:disabled) {
+  background: #0056b3;
 }
 
 .schedule-btn:disabled {
@@ -691,17 +770,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-.back-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.get-suggestion-btn,
-.retry-btn {
-  background: #007bff;
-  color: white;
-}
-
+/* メッセージ */
 .message {
   padding: 1rem;
   border-radius: 8px;
@@ -715,39 +784,33 @@ onMounted(() => {
   border: 1px solid #f5c6cb;
 }
 
-.success-message {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.error-state {
-  text-align: center;
-  padding: 2rem;
-  color: #d32f2f;
-}
-
-.suggestion-prompt {
-  text-align: center;
-  padding: 2rem;
-}
-
+/* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .form-row {
-    grid-template-columns: 1fr;
+  .schedule-wizard {
+    padding: 1rem;
   }
   
-  .message-header {
-    flex-direction: column;
-    gap: 0.5rem;
+  .time-selection-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
   
-  .options-grid {
-    grid-template-columns: 1fr;
+  .time-option {
+    min-height: 100px;
+    padding: 1rem;
+  }
+  
+  .calendar-dates {
+    max-width: 280px;
   }
   
   .action-buttons {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .action-btn {
+    max-width: none;
   }
 }
 </style>

@@ -1,105 +1,83 @@
 <template>
   <div class="message-composer">
-    <div class="composer-header">
-      <h2>📝 メッセージを作成</h2>
-      <p class="subtitle">やんわり伝言で気持ちを優しく伝えましょう</p>
+    <!-- ページタイトル -->
+    <div class="page-header">
+      <h1 class="page-title">送信</h1>
     </div>
 
-    <form @submit.prevent class="composer-form">
-      <!-- 送信先選択 -->
-      <RecipientSelector 
-        v-model="form.recipient"
-        :disabled="messageStore.isLoading"
-      />
-
-      <!-- メッセージ入力 -->
-      <div class="form-group">
-        <label for="message">💬 伝えたいメッセージ</label>
+    <!-- 新規作成セクション -->
+    <div class="compose-section">
+      <h2 class="section-title">新規作成</h2>
+      
+      <!-- メッセージ入力エリア -->
+      <div class="message-input-area">
         <textarea
-          id="message"
           v-model="form.originalText"
-          placeholder="例: 明日の会議、準備が間に合わないので延期してもらえませんか？"
-          required
-          maxlength="1000"
-          class="form-textarea"
+          placeholder="メッセージを入力 / 変換前のメッセージ&#10;送りたい理由も教えてね"
+          class="message-textarea"
           :class="{ 'error': hasError }"
+          maxlength="1000"
         ></textarea>
-        <div class="textarea-footer">
-          <small class="char-count">{{ form.originalText.length }}/1000文字</small>
-          <small v-if="hasError" class="error-text">{{ messageStore.error }}</small>
-        </div>
       </div>
 
       <!-- アクションボタン -->
-      <div class="form-actions">
-        <button
-          v-if="currentDraftId"
-          type="button"
-          @click="startNewMessage"
-          class="btn btn-outline"
-        >
-          ✨ 新しいメッセージ
-        </button>
-        
+      <div class="action-buttons">
         <button
           type="button"
           @click="saveDraft"
           :disabled="!canSave || messageStore.isLoading"
-          class="btn btn-secondary"
+          class="action-btn draft-btn"
         >
-          💾 下書き保存
+          下書きに入れる
         </button>
         
         <button
           type="button"
           @click="handleCreateDraft"
           :disabled="!canProceed || messageStore.isLoading"
-          class="btn btn-primary"
+          class="action-btn transform-btn"
         >
-          <span v-if="messageStore.isLoading">⏳ 処理中...</span>
-          <span v-else>🎭 トーン変換へ</span>
-        </button>
-        
-        <button
-          v-if="currentDraftId"
-          type="button"
-          @click="proceedToToneSelection"
-          :disabled="!canProceed || messageStore.isLoading"
-          class="btn btn-accent"
-        >
-          ✨ 変換画面へ
+          <span v-if="messageStore.isLoading">処理中...</span>
+          <span v-else>トーン変換を行う</span>
         </button>
       </div>
-    </form>
+    </div>
+
+    <!-- 下書きセクション -->
+    <div class="drafts-section">
+      <h2 class="section-title">下書き</h2>
+      
+      <div class="drafts-container">
+        <div v-if="!messageStore.hasDrafts" class="no-drafts">
+          下書きはありません
+        </div>
+        
+        <div v-else class="drafts-list">
+          <div
+            v-for="draft in recentDrafts"
+            :key="draft.id"
+            class="draft-item"
+            @click="loadDraft(draft)"
+          >
+            <div class="draft-content">
+              <p class="draft-text">{{ truncateText(draft.originalText, 100) }}</p>
+              <small class="draft-date">{{ formatDate(draft.updatedAt) }}</small>
+            </div>
+            <button
+              @click.stop="deleteDraft(draft.id!)"
+              class="draft-delete"
+              title="削除"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- エラー表示 -->
     <div v-if="messageStore.error && !hasError" class="error-message">
       {{ messageStore.error }}
-    </div>
-
-    <!-- 下書き一覧 -->
-    <div v-if="messageStore.hasDrafts" class="drafts-section">
-      <h3>📄 最近の下書き</h3>
-      <div class="drafts-list">
-        <div
-          v-for="draft in recentDrafts"
-          :key="draft.id"
-          class="draft-item"
-          @click="loadDraft(draft)"
-        >
-          <div class="draft-content">
-            <p class="draft-text">{{ truncateText(draft.originalText, 60) }}</p>
-            <small class="draft-date">{{ formatDate(draft.updatedAt) }}</small>
-          </div>
-          <button
-            @click.stop="deleteDraft(draft.id!)"
-            class="draft-delete"
-            title="削除"
-          >
-            🗑️
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -284,234 +262,269 @@ onMounted(() => {
 
 <style scoped>
 .message-composer {
-  max-width: 800px;
+  padding: var(--spacing-3xl) var(--spacing-lg);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  background: var(--background-primary);
+  min-height: 100vh;
 }
 
-.composer-header {
-  text-align: center;
-  margin-bottom: 2rem;
+/* ===== ページヘッダー ===== */
+.page-header {
+  margin-bottom: var(--spacing-3xl);
 }
 
-.composer-header h2 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-  font-size: 1.8rem;
-}
-
-.subtitle {
-  color: #666;
-  margin: 0;
-  font-size: 1rem;
-}
-
-.composer-form {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.form-group {
-  margin-bottom: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
+.page-title {
+  font-size: var(--font-size-4xl);
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+  margin: 0;
+  font-family: var(--font-family-main);
 }
 
-.form-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.form-textarea {
-  width: 100%;
-  min-height: 120px;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-family: inherit;
-  resize: vertical;
-  transition: border-color 0.2s;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.form-textarea.error {
-  border-color: #dc3545;
-}
-
-.textarea-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.char-count {
-  color: #666;
-}
-
-.error-text {
-  color: #dc3545;
-}
-
-.form-hint {
-  display: block;
-  margin-top: 0.25rem;
-  color: #666;
-  font-size: 0.875rem;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
+/* ===== セクションタイトル ===== */
+.section-title {
+  font-size: var(--font-size-2xl);
   font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-family: var(--font-family-main);
 }
 
-.btn:disabled {
+/* ===== 新規作成セクション ===== */
+.compose-section {
+  margin-bottom: var(--spacing-3xl);
+}
+
+.message-input-area {
+  margin-bottom: var(--spacing-2xl);
+}
+
+.message-textarea {
+  width: 100%;
+  min-height: 280px;
+  padding: var(--spacing-xl);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-lg);
+  font-family: var(--font-family-main);
+  background: var(--neutral-color);
+  color: var(--text-primary);
+  resize: vertical;
+  transition: all 0.3s ease;
+  line-height: var(--line-height-relaxed);
+}
+
+.message-textarea::placeholder {
+  color: var(--text-muted);
+  line-height: var(--line-height-relaxed);
+}
+
+.message-textarea:focus {
+  outline: none;
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 3px rgba(146, 201, 255, 0.2);
+}
+
+.message-textarea.error {
+  border-color: var(--error-color);
+}
+
+/* ===== アクションボタン ===== */
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-2xl);
+  justify-content: center;
+}
+
+.action-btn {
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  font-family: var(--font-family-main);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  box-shadow: var(--shadow-sm);
+}
+
+.action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
 }
 
-.btn-outline {
-  background-color: transparent;
-  color: #2563eb;
-  border: 1px solid #2563eb;
+.draft-btn {
+  background: var(--secondary-color);
+  color: var(--text-primary);
+  border: 2px solid var(--secondary-color);
 }
 
-.btn-outline:hover {
-  background-color: #2563eb;
-  color: white;
+.draft-btn:hover:not(:disabled) {
+  background: var(--secondary-color-dark);
+  border-color: var(--secondary-color-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.btn-accent {
-  background-color: #7c3aed;
-  color: white;
+.transform-btn {
+  background: var(--primary-color);
+  color: var(--text-primary);
+  border: 2px solid var(--primary-color);
 }
 
-.btn-accent:hover {
-  background-color: #6d28d9;
+.transform-btn:hover:not(:disabled) {
+  background: var(--primary-color-dark);
+  border-color: var(--primary-color-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: #545b62;
-}
-
-.error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border: 1px solid #f5c6cb;
-}
-
+/* ===== 下書きセクション ===== */
 .drafts-section {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1.5rem;
+  margin-top: var(--spacing-3xl);
 }
 
-.drafts-section h3 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1.2rem;
+.drafts-container {
+  background: var(--neutral-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  min-height: 250px;
+  padding: var(--spacing-xl);
+}
+
+.no-drafts {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 150px;
+  color: var(--text-muted);
+  font-size: var(--font-size-lg);
+  font-family: var(--font-family-main);
 }
 
 .drafts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacing-md);
 }
 
 .draft-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 1rem;
+  align-items: flex-start;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .draft-item:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-color-focus);
+  background: var(--primary-color-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .draft-content {
   flex: 1;
+  margin-right: var(--spacing-md);
 }
 
 .draft-text {
-  margin: 0 0 0.25rem 0;
-  color: #333;
-  line-height: 1.4;
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+  font-family: var(--font-family-main);
 }
 
 .draft-date {
-  color: #666;
-  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-main);
 }
 
 .draft-delete {
   background: none;
   border: none;
+  color: var(--text-muted);
+  font-size: var(--font-size-xl);
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: all 0.3s ease;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .draft-delete:hover {
-  background-color: #f8f9fa;
+  background: var(--error-color);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* ===== エラーメッセージ ===== */
+.error-message {
+  background: var(--error-color);
+  color: var(--text-primary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-lg);
+  font-family: var(--font-family-main);
+  border: 1px solid rgba(255, 155, 155, 0.5);
+}
+
+/* ===== レスポンシブ対応 ===== */
+@media (max-width: 768px) {
+  .message-composer {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-3xl);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .message-textarea {
+    min-height: 150px;
+    font-size: var(--font-size-md);
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .action-btn {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-composer {
+    padding: var(--spacing-md);
+  }
+  
+  .message-textarea {
+    padding: var(--spacing-md);
+    min-height: 120px;
+  }
+  
+  .draft-item {
+    padding: var(--spacing-md);
+  }
 }
 </style>
