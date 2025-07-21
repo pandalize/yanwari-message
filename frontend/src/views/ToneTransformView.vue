@@ -37,18 +37,32 @@
         
         <!-- 3つのトーン選択肢 -->
         <div v-else class="tone-options">
+          <!-- デバッグ情報 -->
+          <div v-if="true" class="debug-info" style="background: #f0f0f0; padding: 1rem; margin-bottom: 1rem; font-size: 0.8rem;">
+            <details>
+              <summary>デバッグ情報</summary>
+              <pre>{{ JSON.stringify({ 
+                toneOptionsLength: toneOptions.length,
+                storeVariations: transformStore.variations,
+                storeError: transformStore.error,
+                toneOptions: toneOptions.map(opt => ({ tone: opt.tone, hasText: !!opt.text, textLength: opt.text.length }))
+              }, null, 2) }}</pre>
+            </details>
+          </div>
+          
           <div 
             v-for="option in toneOptions" 
             :key="option.tone"
             class="tone-option"
-            :class="{ selected: selectedTone === option.tone }"
-            @click="selectTone(option.tone, option.text)"
+            :class="{ selected: selectedTone === option.tone, 'no-text': !option.text }"
+            @click="option.text && selectTone(option.tone, option.text)"
           >
             <div class="tone-header">
               <h3 class="tone-title">{{ option.title }}</h3>
             </div>
             <div class="tone-content">
-              <p class="tone-text">{{ option.text }}</p>
+              <p v-if="option.text" class="tone-text">{{ option.text }}</p>
+              <p v-else class="tone-text placeholder">変換中...</p>
             </div>
           </div>
         </div>
@@ -129,24 +143,46 @@ const loadMessage = async () => {
 
 const startToneTransform = async (messageId: string) => {
   isLoading.value = true
+  console.log('[ToneTransform] トーン変換開始:', { messageId, originalMessage: originalMessage.value })
   
   try {
     // 自動的にトーン変換を開始
     await transformStore.transformMessage(messageId, originalMessage.value)
     
+    console.log('[ToneTransform] Store変換結果:', {
+      variations: transformStore.variations,
+      storeError: transformStore.error,
+      variationsLength: transformStore.variations.length
+    })
+    
+    // Storeのエラーをチェック
+    if (transformStore.error) {
+      throw new Error(transformStore.error)
+    }
+    
     // 変換結果をtoneOptionsに設定
     if (transformStore.variations.length > 0) {
+      console.log('[ToneTransform] 変換結果をUIに設定中...')
       transformStore.variations.forEach(variation => {
         const optionIndex = toneOptions.value.findIndex(opt => opt.tone === variation.tone)
         if (optionIndex !== -1) {
           toneOptions.value[optionIndex].text = variation.text
+          console.log(`[ToneTransform] ${variation.tone}トーン設定完了:`, variation.text.substring(0, 50))
+        } else {
+          console.warn(`[ToneTransform] 未知のトーン: ${variation.tone}`)
         }
       })
+      console.log('[ToneTransform] 最終toneOptions:', toneOptions.value)
+    } else {
+      console.warn('[ToneTransform] 変換結果が空です')
+      error.value = 'トーン変換結果が取得できませんでした'
     }
   } catch (err: any) {
+    console.error('[ToneTransform] エラー:', err)
     error.value = err.message || 'トーン変換に失敗しました'
   } finally {
     isLoading.value = false
+    console.log('[ToneTransform] ローディング終了')
   }
 }
 
@@ -342,6 +378,22 @@ onMounted(() => {
 .tone-option.selected {
   border-color: var(--success-color);
   background: var(--success-color);
+}
+
+.tone-option.no-text {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tone-text.placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.debug-info {
+  font-family: monospace;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .tone-header {

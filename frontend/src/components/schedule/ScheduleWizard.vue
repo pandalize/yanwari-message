@@ -3,57 +3,53 @@
     <!-- ページタイトル -->
     <h1 class="page-title">送信予約</h1>
 
-    <!-- 時間選択グリッド（2x2レイアウト） -->
-    <div class="time-selection-grid">
-      <!-- 今すぐ送信 -->
+    <!-- 時間選択オプション -->
+    <div class="schedule-options">
+      <!-- 今すぐ送信（左上） -->
       <div 
-        class="time-option"
-        :class="{ selected: selectedOption === 'immediate' }"
-        @click="selectOption('immediate')"
+        class="schedule-card immediate-card"
+        :class="{ selected: selectedOption?.id === 'immediate' }"
+        @click="selectScheduleOption('immediate')"
       >
-        <h3 class="option-title">今すぐ送信</h3>
-        <div class="option-content">
-          <p class="time-text">今日　{{ currentTime }}</p>
-          <p class="recommendation-text">おすすめ度：　50</p>
+        <h3 class="card-title">今すぐ送信</h3>
+        <div class="card-content">
+          <!-- 日時表示なし -->
         </div>
       </div>
 
       <!-- AIおすすめ1 -->
       <div 
-        class="time-option"
-        :class="{ selected: selectedOption?.option === 'AIおすすめ1' }"
-        @click="selectTimeOption(suggestion?.suggested_options?.[0] || getDefaultOption(0))"
+        class="schedule-card ai-card"
+        :class="{ selected: selectedOption?.id === 'ai-1' }"
+        @click="selectScheduleOption('ai-1', 0)"
       >
-        <h3 class="option-title">AIおすすめ1</h3>
-        <div class="option-content">
-          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[0] || getDefaultOption(0)) }}</p>
-          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[0]?.priority || getDefaultOption(0).priority) }}</p>
+        <h3 class="card-title">AIおすすめ1</h3>
+        <div class="card-content">
+          <p class="time-display">{{ formatAIOption(0) }}</p>
         </div>
       </div>
 
       <!-- AIおすすめ2 -->
       <div 
-        class="time-option default-selected"
-        :class="{ selected: selectedOption?.option === 'AIおすすめ2' }"
-        @click="selectTimeOption(suggestion?.suggested_options?.[1] || getDefaultOption(1))"
+        class="schedule-card ai-card"
+        :class="{ selected: selectedOption?.id === 'ai-2' }"
+        @click="selectScheduleOption('ai-2', 1)"
       >
-        <h3 class="option-title">AIおすすめ2</h3>
-        <div class="option-content">
-          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[1] || getDefaultOption(1)) }}</p>
-          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[1]?.priority || getDefaultOption(1).priority) }}</p>
+        <h3 class="card-title">AIおすすめ2</h3>
+        <div class="card-content">
+          <p class="time-display">{{ formatAIOption(1) }}</p>
         </div>
       </div>
 
       <!-- AIおすすめ3 -->
       <div 
-        class="time-option"
-        :class="{ selected: selectedOption?.option === 'AIおすすめ3' }"
-        @click="selectTimeOption(suggestion?.suggested_options?.[2] || getDefaultOption(2))"
+        class="schedule-card ai-card"
+        :class="{ selected: selectedOption?.id === 'ai-3' }"
+        @click="selectScheduleOption('ai-3', 2)"
       >
-        <h3 class="option-title">AIおすすめ3</h3>
-        <div class="option-content">
-          <p class="time-text">{{ formatOptionDisplay(suggestion?.suggested_options?.[2] || getDefaultOption(2)) }}</p>
-          <p class="recommendation-text">おすすめ度：　{{ getRecommendationScore(suggestion?.suggested_options?.[2]?.priority || getDefaultOption(2).priority) }}</p>
+        <h3 class="card-title">AIおすすめ3</h3>
+        <div class="card-content">
+          <p class="time-display">{{ formatAIOption(2) }}</p>
         </div>
       </div>
     </div>
@@ -62,40 +58,83 @@
     <div class="custom-section">
       <h3 class="custom-title">自分で設定する</h3>
       
+      
       <!-- カレンダー -->
-      <div class="calendar-grid">
+      <div class="calendar-container">
         <div class="calendar-header">
           <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
         </div>
-        <div class="calendar-dates">
-          <span v-for="date in calendarDates" :key="date" 
-                :class="{ selected: date === selectedDate }"
-                @click="selectDate(date)">
-            {{ date }}
-          </span>
+        <div class="calendar-grid">
+          <div v-for="date in calendarDates" :key="date.value" 
+               :class="['calendar-date', { 
+                 selected: date.value === selectedDate, 
+                 disabled: date.disabled 
+               }]"
+               @click="!date.disabled && selectDate(date.value)">
+            {{ date.display }}
+          </div>
         </div>
       </div>
 
       <!-- 時間選択 -->
-      <div class="time-inputs">
-        <div class="time-input">
-          <input type="number" v-model="customHour" min="0" max="23" class="time-field">
-          <span class="time-label">時</span>
+      <div class="time-selection-container" :class="{ disabled: !selectedDate }">
+        <div v-if="!selectedDate" class="time-placeholder">
+          <p>まず日付を選択してください</p>
         </div>
-        <div class="time-input">
-          <input type="number" v-model="customMinute" min="0" max="59" class="time-field">
-          <span class="time-label">分</span>
+        <div v-else class="time-selector">
+          <div class="time-inputs">
+            <div class="time-input-group">
+              <select 
+                v-model="customHour" 
+                class="time-select" 
+                @change="onTimeInput"
+                :disabled="!selectedDate"
+              >
+                <option v-for="hour in 24" :key="hour-1" :value="hour-1">
+                  {{ String(hour-1).padStart(2, '0') }}
+                </option>
+              </select>
+              <span class="time-unit">時</span>
+            </div>
+            <div class="time-input-group">
+              <select 
+                v-model="customMinute" 
+                class="time-select" 
+                @change="onTimeInput"
+                :disabled="!selectedDate"
+              >
+                <option value="0">00</option>
+                <option value="5">05</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="25">25</option>
+                <option value="30">30</option>
+                <option value="35">35</option>
+                <option value="40">40</option>
+                <option value="45">45</option>
+                <option value="50">50</option>
+                <option value="55">55</option>
+              </select>
+              <span class="time-unit">分</span>
+            </div>
+          </div>
+          
+          <!-- 過去の時間エラー表示 -->
+          <div v-if="isPastTime" class="time-error">
+            ⚠️ 選択できません（現在より前の時間です）
+          </div>
         </div>
       </div>
     </div>
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <button class="action-btn back-btn" @click="goBack">
+      <button class="btn btn-secondary" @click="goBack">
         文章を編集
       </button>
       <button 
-        class="action-btn schedule-btn" 
+        class="btn btn-primary" 
         @click="scheduleMessage"
         :disabled="!canSchedule || isScheduling"
       >
@@ -104,18 +143,24 @@
     </div>
     
     <!-- メッセージ表示 -->
-    <div v-if="error" class="message error-message">
+    <div v-if="error" class="alert alert-error">
       ❌ {{ error }}
     </div>
     
-    <div v-if="successMessage" class="message success-message">
+    <div v-if="successMessage" class="alert alert-success">
       ✅ {{ successMessage }}
+    </div>
+    
+    <!-- ローディング表示 -->
+    <div v-if="isLoadingSuggestion" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p>AI提案を生成中...</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import scheduleService, { 
   type ScheduleSuggestionResponse,
@@ -125,61 +170,53 @@ import scheduleService, {
 const router = useRouter()
 const route = useRoute()
 
-// Props（ルートパラメータまたはクエリから取得）
+// ルートパラメータから取得
 const messageId = ref('')
 const messageText = ref('')
 const selectedTone = ref('gentle')
 const finalText = ref('')
 const recipientEmail = ref('')
 
-// ルートパラメータからの値を設定
-const initializeFromRoute = () => {
-  messageId.value = (route.params.messageId as string) || (route.query.messageId as string) || ''
-  messageText.value = (route.query.messageText as string) || ''
-  selectedTone.value = (route.query.selectedTone as string) || 'gentle'
-  finalText.value = (route.query.finalText as string) || ''
-  recipientEmail.value = (route.query.recipientEmail as string) || ''
-  
-  console.log('ルートから初期化された値:', {
-    messageId: messageId.value,
-    messageText: messageText.value,
-    selectedTone: selectedTone.value,
-    finalText: finalText.value,
-    recipientEmail: recipientEmail.value
-  })
-}
-
-// AI提案関連の状態
+// AI提案データ
 const suggestion = ref<ScheduleSuggestionResponse | null>(null)
 const isLoadingSuggestion = ref(false)
 const suggestionError = ref('')
+
+// 選択状態
 const selectedOption = ref<any>(null)
-
-// カスタムスケジュール
-const customSchedule = reactive({
-  date: '',
-  time: ''
-})
-
-// その他の状態
+const selectedDate = ref<number | null>(null)
 const customHour = ref(9)
 const customMinute = ref(0)
-const selectedDate = ref(new Date().getDate())
+
+// UI状態
 const isScheduling = ref(false)
-const isSending = ref(false)
 const error = ref('')
 const successMessage = ref('')
 
+// カスタム選択状態
+const isTimeSelected = computed(() => {
+  return selectedDate.value && customHour.value !== null && customMinute.value !== null
+})
+
+// 過去の時間チェック
+const isPastTime = computed(() => {
+  if (!selectedDate.value || customHour.value === null || customMinute.value === null) {
+    return false
+  }
+  
+  const now = new Date()
+  const selectedDateTime = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    selectedDate.value,
+    customHour.value,
+    customMinute.value
+  )
+  
+  return selectedDateTime <= now
+})
+
 // 計算プロパティ
-const minDate = computed(() => {
-  const today = new Date()
-  return today.toISOString().split('T')[0]
-})
-
-const canSchedule = computed(() => {
-  return selectedOption.value || (customHour.value !== null && customMinute.value !== null && selectedDate.value)
-})
-
 const currentTime = computed(() => {
   const now = new Date()
   const hours = String(now.getHours()).padStart(2, '0')
@@ -188,150 +225,177 @@ const currentTime = computed(() => {
 })
 
 const calendarDates = computed(() => {
-  // 簡易カレンダー用の日付配列（1-31）
-  return Array.from({ length: 31 }, (_, i) => i + 1)
+  const today = new Date()
+  const currentMonth = today.getMonth()
+  const currentYear = today.getFullYear()
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay()
+  
+  const dates = []
+  
+  // 前月の日付で埋める
+  const prevMonth = new Date(currentYear, currentMonth, 0)
+  const daysInPrevMonth = prevMonth.getDate()
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    dates.push({
+      value: null,
+      display: daysInPrevMonth - i,
+      disabled: true
+    })
+  }
+  
+  // 今月の日付（今日も選択可能）
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = new Date(currentYear, currentMonth, i)
+    // 今日より前の日付を無効化（今日は含まない）
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const isPast = date < startOfToday
+    dates.push({
+      value: i,
+      display: i,
+      disabled: isPast
+    })
+  }
+  
+  // 次月の日付で埋める（6週間分）
+  const remainingCells = 42 - dates.length
+  for (let i = 1; i <= remainingCells; i++) {
+    dates.push({
+      value: null,
+      display: i,
+      disabled: true
+    })
+  }
+  
+  return dates
 })
 
-// デフォルトオプションを取得
-const getDefaultOption = (index: number) => {
-  const options = [
-    {
-      option: 'AIおすすめ1',
-      priority: '推奨',
-      reason: '明日の朝の時間帯',
-      delay_minutes: 'next_business_day_10am'
-    },
-    {
-      option: 'AIおすすめ2',
-      priority: '最推奨',
-      reason: '月曜日の朝の時間帯',
-      delay_minutes: 'next_business_day_10am'
-    },
-    {
-      option: 'AIおすすめ3',
-      priority: '選択肢',
-      reason: '明後日の夜の時間帯',
-      delay_minutes: 1080
+const canSchedule = computed(() => {
+  if (selectedOption.value) {
+    if (selectedOption.value.type === 'custom') {
+      return selectedDate.value && 
+             customHour.value !== null && 
+             customMinute.value !== null && 
+             !isPastTime.value // 過去の時間ではない
     }
-  ]
-  return options[index] || options[0]
-}
-
-// オプション表示用のフォーマット
-const formatOptionDisplay = (option: any) => {
-  if (!option) return ''
-  
-  if (option.delay_minutes === 'next_business_day_10am') {
-    return option.option === 'AIおすすめ1' ? '明日の朝☀️　10:00' : '月曜日の朝☀️　10:00'
+    return true
   }
-  
-  if (option.delay_minutes === 1080) {
-    return '明後日の夜🌙️　18:00'
-  }
-  
-  return formatOptionTime(option)
-}
+  return false
+})
 
-// メソッド
-const getPriorityClass = (priority: string) => {
-  const mapping: Record<string, string> = {
-    '最推奨': 'primary',
-    '推奨': 'recommended',
-    '選択肢': 'option'
+// デフォルトオプション
+const defaultOptions = [
+  {
+    id: 'ai-1',
+    title: 'AIおすすめ1',
+    display: '明日の朝☀️　10:00',
+    scheduledAt: null as string | null
+  },
+  {
+    id: 'ai-2', 
+    title: 'AIおすすめ2',
+    display: '月曜日の朝☀️　10:00',
+    scheduledAt: null as string | null
+  },
+  {
+    id: 'ai-3',
+    title: 'AIおすすめ3', 
+    display: '明後日の夜🌙　18:00',
+    scheduledAt: null as string | null
   }
-  return mapping[priority] || 'option'
-}
+]
 
+// AI提案のフォーマット
+const formatAIOption = (index: number) => {
+  if (suggestion.value?.suggested_options?.[index]) {
+    const option = suggestion.value.suggested_options[index]
+    return formatOptionTime(option)
+  }
+  return defaultOptions[index]?.display || ''
+}
 
 const formatOptionTime = (option: any) => {
-  if (option.delay_minutes === 0) {
-    return '今すぐ送信'
-  }
+  if (!option) return ''
   
-  // delay_minutesが文字列の場合は直接表示
   if (typeof option.delay_minutes === 'string') {
-    if (option.delay_minutes === 'next_business_day_8:30am') {
-      return '明日の朝 8:30'
-    } else if (option.delay_minutes === 'next_business_day_9am') {
-      return '明日の朝 9:00'
-    } else {
-      return option.delay_minutes
+    if (option.delay_minutes.includes('next_business_day')) {
+      return '明日の朝☀️　10:00'
     }
+    return option.delay_minutes
   }
   
-  // 数値の場合は既存の計算を使用
-  const scheduledTime = scheduleService.calculateScheduleTime(option.delay_minutes)
-  return scheduleService.formatScheduleTime(scheduledTime)
-}
-
-const formatCustomTime = () => {
-  if (!customSchedule.date || !customSchedule.time) return ''
-  
-  const dateTime = new Date(`${customSchedule.date}T${customSchedule.time}`)
-  return scheduleService.formatScheduleTime(dateTime.toISOString())
-}
-
-const getSelectedScheduleTime = () => {
-  if (selectedOption.value) {
-    return formatOptionTime(selectedOption.value)
-  }
-  
-  if (customSchedule.date && customSchedule.time) {
-    return formatCustomTime()
-  }
-  
-  return null
-}
-
-const loadAISuggestion = async () => {
-  console.log('loadAISuggestion 開始 - データチェック:', {
-    messageId: messageId.value,
-    messageText: messageText.value,
-    selectedTone: selectedTone.value,
-    hasMessageId: !!messageId.value,
-    hasMessageText: !!messageText.value
+  const now = new Date()
+  const scheduledTime = new Date(now.getTime() + option.delay_minutes * 60000)
+  const hours = String(scheduledTime.getHours()).padStart(2, '0')
+  const minutes = String(scheduledTime.getMinutes()).padStart(2, '0')
+  const dateStr = scheduledTime.toLocaleDateString('ja-JP', { 
+    month: 'numeric', 
+    day: 'numeric' 
   })
   
-  if (!messageId.value || !messageText.value) {
-    const missingFields = []
-    if (!messageId.value) missingFields.push('messageId')
-    if (!messageText.value) missingFields.push('messageText')
-    
-    console.error('AI提案エラー - 必要情報不足:', { 
-      missingFields,
-      messageId: messageId.value,
-      messageText: messageText.value,
-      routeQuery: route.query,
-      routeParams: route.params
-    })
-    
-    // メッセージ情報が不足している場合は、代替のサンプル提案を表示
-    suggestion.value = {
-      message_type: 'sample',
-      urgency_level: '中',
-      recommended_timing: 'サンプル提案',
-      reasoning: 'メッセージ情報が不足しているため、サンプル時間を表示しています',
-      suggested_options: [
-        {
-          option: '明日の朝',
-          priority: '推奨',
-          reason: '業務開始時間に配慮',
-          delay_minutes: 'next_business_day_9am'
-        },
-        {
-          option: '今日の夕方',
-          priority: '選択肢',
-          reason: '業務終了前の確認',
-          delay_minutes: 480
-        },
-        {
-          option: '来週月曜日',
-          priority: '選択肢', 
-          reason: '週の始まりでの対応',
-          delay_minutes: 'next_business_day_9am'
-        }
-      ]
+  const timeIcon = scheduledTime.getHours() < 12 ? '☀️' : '🌙'
+  return `${dateStr}　${hours}:${minutes}${timeIcon}`
+}
+
+// ルートから値を初期化
+const initializeFromRoute = () => {
+  messageId.value = (route.params.messageId as string) || (route.query.messageId as string) || ''
+  messageText.value = (route.query.messageText as string) || ''
+  selectedTone.value = (route.query.selectedTone as string) || 'gentle'
+  finalText.value = (route.query.finalText as string) || ''
+  recipientEmail.value = (route.query.recipientEmail as string) || ''
+}
+
+// 統一された選択メソッド
+const selectScheduleOption = (optionId: string, aiIndex?: number) => {
+  // 他の選択をクリア
+  selectedDate.value = null
+  
+  if (optionId === 'immediate') {
+    selectedOption.value = { id: 'immediate', type: 'immediate' }
+    sendImmediately()
+  } else if (optionId.startsWith('ai-') && aiIndex !== undefined) {
+    const aiOption = suggestion.value?.suggested_options?.[aiIndex]
+    selectedOption.value = {
+      id: optionId,
+      type: 'ai',
+      data: aiOption || defaultOptions[aiIndex]
     }
+  }
+}
+
+const selectDate = (date: number) => {
+  selectedDate.value = date
+  // AI/即座選択をクリア
+  selectedOption.value = {
+    id: 'custom',
+    type: 'custom'
+  }
+  
+  // 日付選択後にデフォルト時間を設定（1時間後、5分単位）
+  const oneHourLater = new Date()
+  oneHourLater.setHours(oneHourLater.getHours() + 1)
+  customHour.value = oneHourLater.getHours()
+  customMinute.value = 0 // 0分に設定（5分単位の最初）
+}
+
+// 時間入力時にもカスタム選択をアクティブに
+const onTimeInput = () => {
+  if (selectedDate.value) {
+    // AI/即座選択をクリア
+    selectedOption.value = {
+      id: 'custom',
+      type: 'custom'
+    }
+  }
+}
+
+
+
+// AI提案を取得
+const loadAISuggestion = async () => {
+  if (!messageId.value || !messageText.value) {
+    console.log('AI提案スキップ - 必要情報不足')
     return
   }
   
@@ -339,12 +403,6 @@ const loadAISuggestion = async () => {
   suggestionError.value = ''
   
   try {
-    console.log('AI提案リクエスト開始:', {
-      messageId: messageId.value,
-      messageText: messageText.value,
-      selectedTone: selectedTone.value
-    })
-    
     const request: ScheduleSuggestionRequest = {
       messageId: messageId.value,
       messageText: messageText.value,
@@ -352,94 +410,42 @@ const loadAISuggestion = async () => {
     }
     
     suggestion.value = await scheduleService.getSuggestion(request)
-    console.log('AI提案レスポンス成功:', suggestion.value)
-    console.log('提案オプション数:', suggestion.value?.suggested_options?.length)
+    console.log('AI提案取得成功:', suggestion.value)
   } catch (err: any) {
     console.error('AI提案エラー:', err)
-    console.error('エラー詳細:', {
-      status: err.response?.status,
-      statusText: err.response?.statusText,
-      data: err.response?.data,
-      message: err.message,
-      code: err.code
-    })
-    
-    let errorMessage = 'AI提案の取得に失敗しました'
-    if (err.code === 'ECONNABORTED') {
-      errorMessage = 'AI提案の処理に時間がかかりすぎています。もう一度お試しください。'
-    } else if (err.response?.status === 400) {
-      errorMessage = `リクエストエラー: ${err.response.data?.error || 'パラメータが正しくありません'}`
-    } else if (err.response?.status === 404) {
-      errorMessage = `メッセージが見つかりません: ${err.response.data?.error || 'メッセージIDが無効です'}`
-    } else if (err.response?.status === 500) {
-      errorMessage = 'サーバーエラーが発生しました。しばらく待ってからお試しください。'
-    } else if (err.response?.data?.error) {
-      errorMessage = err.response.data.error
-    }
-    
-    suggestionError.value = errorMessage
+    suggestionError.value = 'AI提案の取得に失敗しました'
   } finally {
     isLoadingSuggestion.value = false
   }
 }
 
-const selectTimeOption = (option: any) => {
-  selectedOption.value = option
-  // カスタム設定をクリア
-  customSchedule.date = ''
-  customSchedule.time = ''
-}
-
-const selectDate = (date: number) => {
-  selectedDate.value = date
-  console.log('選択された日付:', date)
-}
-
-const selectOption = (option: string) => {
-  if (option === 'immediate') {
-    sendImmediately()
-  } else {
-    selectedOption.value = option
-    console.log('選択されたオプション:', option)
-  }
-}
-
+// 即座送信
 const sendImmediately = async () => {
-  isSending.value = true
+  isScheduling.value = true
   error.value = ''
   
   try {
-    // 現在時刻で即座に送信スケジュールを作成
     const now = new Date()
-    const scheduledAt = now.toISOString()
-    
-    console.log('即座送信:', {
-      messageId: messageId.value,
-      scheduledAt
-    })
-    
     await scheduleService.createSchedule({
       messageId: messageId.value,
-      scheduledAt
+      scheduledAt: now.toISOString()
     })
     
     successMessage.value = 'メッセージを送信しました！'
-    
-    // 送信完了後、受信トレイ画面に遷移
     setTimeout(() => {
       router.push('/inbox')
     }, 2000)
     
   } catch (err: any) {
     console.error('即座送信エラー:', err)
-    error.value = err.response?.data?.error || 'メッセージの送信に失敗しました'
+    error.value = 'メッセージの送信に失敗しました'
   } finally {
-    isSending.value = false
+    isScheduling.value = false
   }
 }
 
+// 戻るボタン
 const goBack = () => {
-  // トーン変換画面に戻る
   if (messageId.value) {
     router.push({
       name: 'tone-transform',
@@ -450,57 +456,55 @@ const goBack = () => {
   }
 }
 
+// スケジュール設定
 const scheduleMessage = async () => {
+  if (!selectedOption.value) {
+    error.value = '送信時間を選択してください'
+    return
+  }
+  
   isScheduling.value = true
   error.value = ''
   
   try {
     let scheduledAt: string
     
-    if (selectedOption.value) {
-      // delay_minutesが文字列の場合の処理
-      if (typeof selectedOption.value.delay_minutes === 'string') {
-        const now = new Date()
-        const tomorrow = new Date(now)
+    if (selectedOption.value.type === 'immediate') {
+      scheduledAt = new Date().toISOString()
+    } else if (selectedOption.value.type === 'ai') {
+      const option = selectedOption.value.data
+      if (typeof option.delay_minutes === 'string') {
+        const tomorrow = new Date()
         tomorrow.setDate(tomorrow.getDate() + 1)
-        
-        if (selectedOption.value.delay_minutes === 'next_business_day_8:30am') {
-          tomorrow.setHours(8, 30, 0, 0)
-          scheduledAt = tomorrow.toISOString()
-        } else if (selectedOption.value.delay_minutes === 'next_business_day_9am') {
-          tomorrow.setHours(9, 0, 0, 0)
-          scheduledAt = tomorrow.toISOString()
-        } else {
-          throw new Error(`未対応の時間形式: ${selectedOption.value.delay_minutes}`)
-        }
+        tomorrow.setHours(10, 0, 0, 0)
+        scheduledAt = tomorrow.toISOString()
       } else {
-        // 数値の場合は既存の計算を使用
-        scheduledAt = scheduleService.calculateScheduleTime(selectedOption.value.delay_minutes)
+        const now = new Date()
+        const delay = option.delay_minutes || 60
+        const scheduled = new Date(now.getTime() + delay * 60000)
+        scheduledAt = scheduled.toISOString()
       }
-    } else if (customSchedule.date && customSchedule.time) {
-      // JST時間として正しく処理（UTC+9の時差を考慮）
-      const inputDateTime = `${customSchedule.date}T${customSchedule.time}:00`
-      console.log('カスタム時間入力:', inputDateTime)
+    } else if (selectedOption.value.type === 'custom') {
+      if (!selectedDate.value) {
+        throw new Error('日付を選択してください')
+      }
       
-      // 日本時間として明示的に作成（ブラウザのローカルタイムゾーン使用）
-      const localDateTime = new Date(inputDateTime)
-      console.log('ローカル時間として解釈:', localDateTime.toString())
-      
-      // 現在時刻より未来かチェック（ローカル時刻で比較）
       const now = new Date()
-      console.log('現在時刻:', now.toString())
+      const scheduled = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        selectedDate.value,
+        customHour.value,
+        customMinute.value
+      )
       
-      if (localDateTime <= now) {
-        const diffMinutes = Math.round((localDateTime.getTime() - now.getTime()) / (1000 * 60))
-        console.log('時刻差分（分）:', diffMinutes)
-        throw new Error(`送信時刻は現在より未来である必要があります（現在から${diffMinutes}分後の設定です）`)
+      if (scheduled <= now) {
+        throw new Error('送信時刻は現在より未来である必要があります')
       }
       
-      // ISOString変換（自動的にUTCに変換される）
-      scheduledAt = localDateTime.toISOString()
-      console.log('サーバー送信用UTC時刻:', scheduledAt)
+      scheduledAt = scheduled.toISOString()
     } else {
-      throw new Error('送信時間が選択されていません')
+      throw new Error('無効な選択です')
     }
     
     await scheduleService.createSchedule({
@@ -509,13 +513,13 @@ const scheduleMessage = async () => {
     })
     
     successMessage.value = 'スケジュールを設定しました！'
-    
     setTimeout(() => {
       router.push('/schedules')
     }, 2000)
     
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'スケジュールの設定に失敗しました'
+    console.error('スケジュール設定エラー:', err)
+    error.value = err.message || 'スケジュールの設定に失敗しました'
   } finally {
     isScheduling.value = false
   }
@@ -523,480 +527,356 @@ const scheduleMessage = async () => {
 
 // 初期化
 onMounted(() => {
-  // ルートから値を初期化
   initializeFromRoute()
   
-  // デフォルトの時間設定（5分後に変更）
-  const fiveMinutesLater = new Date()
-  fiveMinutesLater.setMinutes(fiveMinutesLater.getMinutes() + 5)
+  // 初期状態では何も選択されていない
+  selectedOption.value = null
+  selectedDate.value = null
   
-  // 日付と時刻を正しく設定
-  const year = fiveMinutesLater.getFullYear()
-  const month = String(fiveMinutesLater.getMonth() + 1).padStart(2, '0')
-  const day = String(fiveMinutesLater.getDate()).padStart(2, '0')
-  const hours = String(fiveMinutesLater.getHours()).padStart(2, '0')
-  const minutes = String(fiveMinutesLater.getMinutes()).padStart(2, '0')
+  // デフォルト時刻は設定しておく（日付選択時に使用）
+  const defaultTime = new Date()
+  defaultTime.setMinutes(defaultTime.getMinutes() + 60) // 1時間後
+  customHour.value = defaultTime.getHours()
+  customMinute.value = 0 // 0分に設定
   
-  customSchedule.date = `${year}-${month}-${day}`
-  customSchedule.time = `${hours}:${minutes}`
-  
-  console.log('カスタム時刻デフォルト設定（5分後）:', customSchedule.date, customSchedule.time)
-  
-  // AI提案を自動取得（サンプルデータを表示）
-  console.log('AI提案を自動実行')
+  // AI提案を取得
   loadAISuggestion()
 })
 </script>
 
+
 <style scoped>
 .schedule-wizard {
-  padding: 2rem;
-  max-width: 800px;
+  background: #ffffff;
+  font-family: var(--font-family-main);
+  position: relative;
+  width: 1280px;
+  height: 832px;
   margin: 0 auto;
-  background: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
 }
 
 /* ページタイトル */
 .page-title {
-  font-size: 1.5rem;
-  color: #333;
-  font-weight: 500;
-  margin: 0 0 2rem 0;
-  text-align: left;
+  position: absolute;
+  left: 93px;
+  top: 33px;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 100%;
+  margin: 0;
 }
 
-/* 時間選択グリッド（2x2） */
-.time-selection-grid {
+/* スケジュールオプション（2x2グリッド） */
+.schedule-options {
+  position: absolute;
+  left: 288px;
+  top: 61px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  grid-template-columns: 234px 234px;
+  grid-template-rows: 177px 177px;
+  gap: 25px 25px;
 }
 
-/* 時間選択オプション */
-.time-option {
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 1.5rem;
+/* スケジュールカード */
+.schedule-card {
+  background: #ffffff;
+  border: 3px solid #d9d9d9;
+  border-radius: 10px;
+  width: 234px;
+  height: 177px;
+  position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
-  text-align: center;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 
-.time-option:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.15);
+.schedule-card.selected {
+  background: var(--success-color);
+  border-color: var(--success-color);
 }
 
-.time-option.selected {
-  border-color: #007bff;
-  background: #f0f8ff;
-}
-
-.time-option.selected-default {
-  background: #b5fcb0;
-  border-color: #28a745;
-}
-
-.time-option.selected-default.selected {
-  background: #a0f0a0;
-  border-color: #1e7e34;
-}
-
-.option-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.5rem 0;
-}
-
-.option-content {
+/* カードタイトル */
+.card-title {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 100%;
   margin: 0;
 }
 
-.time-text {
-  font-size: 0.875rem;
-  color: #666;
+.card-content {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  right: 16px;
+}
+
+.time-display {
+  color: #000000;
+  font-size: 20px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 15px;
   margin: 0;
-  line-height: 1.4;
 }
 
 /* カスタム設定セクション */
 .custom-section {
-  margin-bottom: 2rem;
-  text-align: center;
+  position: absolute;
+  left: 541px;
+  top: 342px;
 }
 
 .custom-title {
-  font-size: 1rem;
-  color: #333;
-  font-weight: 500;
-  margin: 0 0 1.5rem 0;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 100%;
+  text-align: center;
+  margin: 0 0 24px 0;
+  width: 200px;
 }
 
 /* カレンダー */
-.calendar-grid {
-  margin-bottom: 1.5rem;
+.calendar-container {
+  margin-bottom: 24px;
 }
 
 .calendar-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  gap: 1px;
+  margin-bottom: 12px;
+  width: 294px;
 }
 
 .calendar-header span {
-  font-weight: 500;
-  color: #666;
-  font-size: 0.875rem;
-  padding: 0.5rem;
+  color: #666666;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  text-align: center;
+  padding: 4px 2px;
 }
 
-.calendar-dates {
+.calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.25rem;
-  max-width: 350px;
-  margin: 0 auto;
+  gap: 1px;
+  width: 294px;
 }
 
-.calendar-dates span {
-  padding: 0.5rem;
-  text-align: center;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  font-size: 0.875rem;
-  color: #333;
-  min-height: 40px;
+.calendar-date {
+  width: 40px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  color: #000000;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  transition: all 0.2s ease;
 }
 
-.calendar-dates span:hover {
+.calendar-date:hover:not(.disabled) {
   background: #f0f0f0;
 }
 
-.calendar-dates span.selected {
-  background: #007bff;
-  color: white;
+.calendar-date.selected {
+  background: var(--success-color);
+  border-radius: 50%;
 }
 
-/* 時間入力 */
+.calendar-date.disabled {
+  color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* 時間選択 */
+.time-selection-container {
+  transition: opacity 0.3s ease;
+}
+
+.time-selection-container.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.time-placeholder {
+  text-align: center;
+  padding: 48px 0;
+  color: #999999;
+  font-size: 16px;
+  font-family: var(--font-family-main);
+}
+
+.time-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .time-inputs {
   display: flex;
-  gap: 1rem;
-  justify-content: center;
   align-items: center;
+  gap: 70px;
 }
 
-.time-input {
+.time-input-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
-.time-field {
-  width: 60px;
-  padding: 0.75rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+.time-select {
+  width: 70px;
+  height: 70px;
+  background: #ffffff;
+  border: 3px solid #d9d9d9;
+  border-radius: 15px;
+  font-size: 16px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
   text-align: center;
-  font-size: 1rem;
-  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  padding: 0;
 }
 
-.time-field:focus {
-  outline: none;
-  border-color: #007bff;
+.time-unit {
+  color: #000000;
+  font-size: 30px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 100%;
 }
 
-.time-label {
-  font-size: 1rem;
-  color: #333;
-  font-weight: 500;
+/* 時間エラー */
+.time-error {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: var(--error-color);
+  border-radius: 8px;
+  color: #000000;
+  font-size: 14px;
+  font-family: var(--font-family-main);
+  white-space: nowrap;
 }
 
 /* アクションボタン */
 .action-buttons {
+  position: absolute;
+  left: 304px;
+  top: 570px;
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 2rem;
+  gap: 177px;
 }
 
-.action-btn {
-  padding: 0.875rem 2rem;
+.btn {
+  height: 60px;
   border: none;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 30px;
+  color: #000000;
+  font-size: 18px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
+  line-height: 100%;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
-  flex: 1;
-  max-width: 200px;
 }
 
-.back-btn {
-  background: #f0f0f0;
-  color: #333;
-  border: 2px solid #e0e0e0;
+.btn-secondary {
+  width: 150px;
+  background: var(--primary-color);
 }
 
-.back-btn:hover {
-  background: #e0e0e0;
+.btn-primary {
+  width: 250px;
+  background: var(--primary-color);
 }
 
-.schedule-btn {
-  background: #007bff;
-  color: white;
+.btn:hover {
+  background: var(--primary-color-dark);
 }
 
-.schedule-btn:hover:not(:disabled) {
-  background: #0056b3;
-}
-
-.schedule-btn:disabled {
-  background: #6c757d;
+.btn:disabled {
+  background: #d9d9d9;
+  color: #999999;
   cursor: not-allowed;
 }
 
-/* メッセージ */
-.message {
-  padding: 1rem;
+/* アラート */
+.alert {
+  position: absolute;
+  left: 304px;
+  top: 650px;
+  width: 577px;
+  padding: 16px;
   border-radius: 8px;
-  margin-top: 1rem;
   text-align: center;
+  font-size: 16px;
+  font-weight: 400;
+  font-family: var(--font-family-main);
 }
 
-.error-message {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+.alert-error {
+  background: var(--error-color);
+  color: #000000;
 }
 
-/* ===== レスポンシブ対応 ===== */
-/* ===== 大画面対応 ===== */
-@media (min-width: 1400px) {
-  .schedule-wizard {
-    max-width: 1000px;
-    padding: var(--spacing-3xl) var(--spacing-2xl);
-  }
-  
-  .page-title {
-    font-size: 2rem;
-    margin-bottom: var(--spacing-3xl);
-  }
-  
-  .time-selection-grid {
-    gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-3xl);
-  }
-  
-  .time-option {
-    min-height: 140px;
-    padding: var(--spacing-2xl);
-  }
-  
-  .option-title {
-    font-size: var(--font-size-xl);
-  }
-  
-  .time-text {
-    font-size: var(--font-size-lg);
-  }
-  
-  .calendar-dates {
-    max-width: 400px;
-    gap: var(--spacing-sm);
-  }
-  
-  .calendar-dates span {
-    min-height: 50px;
-    font-size: var(--font-size-lg);
-  }
-  
-  .time-field {
-    width: 80px;
-    padding: var(--spacing-lg);
-    font-size: var(--font-size-xl);
-  }
-  
-  .time-label {
-    font-size: var(--font-size-xl);
-  }
-  
-  .action-btn {
-    max-width: 250px;
-    padding: var(--spacing-lg) var(--spacing-2xl);
-    font-size: var(--font-size-xl);
-  }
-  
-  .custom-title {
-    font-size: var(--font-size-xl);
-    margin-bottom: var(--spacing-2xl);
-  }
+.alert-success {
+  background: var(--success-color);
+  color: #000000;
 }
 
-/* タブレット表示 */
-@media (max-width: 1199px) {
-  .schedule-wizard {
-    max-width: 100%;
-    padding: var(--spacing-2xl) var(--spacing-md);
-  }
-  
-  .page-title {
-    font-size: var(--font-size-2xl);
-  }
-  
-  .time-option {
-    min-height: 110px;
-    padding: var(--spacing-lg);
-  }
-  
-  .option-title {
-    font-size: var(--font-size-lg);
-  }
-  
-  .time-text {
-    font-size: var(--font-size-md);
-  }
-  
-  .calendar-dates {
-    max-width: 320px;
-  }
-  
-  .action-btn {
-    max-width: 180px;
-    padding: var(--spacing-md) var(--spacing-xl);
-  }
+/* ローディング */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  color: white;
+  font-family: var(--font-family-main);
 }
 
-/* モバイル表示 */
-@media (max-width: 767px) {
-  .schedule-wizard {
-    padding: var(--spacing-xl) var(--spacing-sm);
-  }
-  
-  .page-title {
-    font-size: var(--font-size-xl);
-  }
-  
-  .time-selection-grid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
-  }
-  
-  .time-option {
-    min-height: 100px;
-    padding: var(--spacing-md);
-  }
-  
-  .option-title {
-    font-size: var(--font-size-md);
-  }
-  
-  .time-text {
-    font-size: var(--font-size-sm);
-  }
-  
-  .calendar-dates {
-    max-width: 280px;
-  }
-  
-  .calendar-dates span {
-    min-height: 35px;
-    font-size: var(--font-size-sm);
-  }
-  
-  .time-field {
-    width: 50px;
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-sm);
-  }
-  
-  .time-label {
-    font-size: var(--font-size-sm);
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-  
-  .action-btn {
-    max-width: none;
-    width: 100%;
-    padding: var(--spacing-lg) var(--spacing-xl);
-    font-size: var(--font-size-lg);
-  }
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
 }
 
-/* 小さいモバイル表示 */
-@media (max-width: 479px) {
-  .schedule-wizard {
-    padding: var(--spacing-lg) var(--spacing-xs);
-  }
-  
-  .page-title {
-    font-size: var(--font-size-lg);
-  }
-  
-  .time-option {
-    min-height: 90px;
-    padding: var(--spacing-sm);
-  }
-  
-  .option-title {
-    font-size: var(--font-size-sm);
-  }
-  
-  .time-text {
-    font-size: var(--font-size-xs);
-  }
-  
-  .calendar-dates {
-    max-width: 250px;
-    gap: 0.125rem;
-  }
-  
-  .calendar-dates span {
-    min-height: 30px;
-    padding: var(--spacing-xs);
-    font-size: var(--font-size-xs);
-  }
-  
-  .calendar-header span {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-xs);
-  }
-  
-  .time-field {
-    width: 45px;
-    padding: var(--spacing-xs);
-    font-size: var(--font-size-xs);
-  }
-  
-  .time-label {
-    font-size: var(--font-size-xs);
-  }
-  
-  .action-btn {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: var(--font-size-md);
-  }
-  
-  .custom-title {
-    font-size: var(--font-size-sm);
-  }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
