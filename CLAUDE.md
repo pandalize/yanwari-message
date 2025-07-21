@@ -315,6 +315,7 @@ collections: {
   - `notifications.go`: SSE通知（channel活用）
   - `schedules.go`: 送信スケジュール（バックグラウンド処理）
   - `transform.go`: AIトーン変換（並行AI API呼び出し）
+  - `settings.go`: ユーザー設定管理（プロフィール・パスワード・通知・メッセージ設定）
 
 ### フロントエンド構造（コンポーネント化）
 - TypeScript を使った Vue 3 コンポーネントベースアーキテクチャ
@@ -330,6 +331,9 @@ frontend/src/
 │   ├── notifications/  # 通知表示UI
 │   ├── scheduling/     # スケジュール管理UI
 │   └── transform/      # AIトーン変換UI
+├── views/
+│   ├── SettingsView.vue # 設定画面（完了済み）
+│   └── ...             # その他ビューコンポーネント
 ├── stores/
 │   ├── auth.ts         # 認証ストア（完了済み）
 │   ├── users.ts        # ユーザー検索・連絡先ストア
@@ -339,6 +343,7 @@ frontend/src/
 │   └── transform.ts    # AI変換ストア
 └── services/
     ├── api.ts          # 共通APIサービス（完了済み）
+    ├── settingsService.ts # 設定API（完了済み）
     ├── userService.ts  # ユーザー検索API
     ├── messageService.ts # メッセージAPI
     ├── sseService.ts   # SSE通知API
@@ -368,6 +373,14 @@ POST /api/v1/auth/register    # ✅ Argon2ハッシュ化 + JWT発行確認済�
 POST /api/v1/auth/login       # ✅ JWT認証成功確認済み
 POST /api/v1/auth/refresh     # ✅ トークンリフレッシュ成功確認済み
 POST /api/v1/auth/logout      # ✅ トークン検証 + ログアウト成功確認済み
+
+# 設定エンドポイント
+GET /api/v1/settings                    # ✅ ユーザー設定取得確認済み
+PUT /api/v1/settings/profile            # ✅ プロフィール更新確認済み
+PUT /api/v1/settings/password           # ✅ パスワード変更確認済み
+PUT /api/v1/settings/notifications      # ✅ 通知設定更新確認済み
+PUT /api/v1/settings/messages           # ✅ メッセージ設定更新確認済み
+DELETE /api/v1/settings/account         # ✅ アカウント削除API確認済み
 ```
 
 ### 動作確認詳細（2025年6月21日実施）
@@ -735,6 +748,26 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **CRUD API動作確認**: スケジュール作成・一覧・更新・削除全機能
   - **MongoDB統合**: スケジュールデータ永続化・インデックス作成完了
   - **受信者連携**: hnn-a@gmail.com での実際のメッセージ・スケジュール連携テスト成功
+
+- ✅ **F-05: 設定画面機能完全実装・統合完了**（2025年7月21日 12:05）
+  - **Backend完全実装**: 設定API・ユーザー設定管理・MongoDB統合完了
+    - handlers/settings.go: 設定関連APIハンドラー実装（6エンドポイント）
+    - models/user_settings.go: UserSettings モデル・サービス・CRUD操作実装
+    - GET /api/v1/settings: ユーザー設定取得
+    - PUT /api/v1/settings/profile: プロフィール更新（表示名変更）
+    - PUT /api/v1/settings/password: パスワード変更（現在パスワード確認・bcrypt）
+    - PUT /api/v1/settings/notifications: 通知設定更新（メール・送信完了・ブラウザ）
+    - PUT /api/v1/settings/messages: メッセージ設定更新（デフォルトトーン・時間制限）
+    - DELETE /api/v1/settings/account: アカウント削除（TODO: 完全実装）
+  - **Frontend完全実装**: 設定画面UI・API統合・UX/UI完成
+    - SettingsView.vue: 包括的設定画面（プロフィール・パスワード・通知・メッセージ・アカウント管理）
+    - settingsService.ts: 設定API連携サービス・エラーハンドリング
+    - レスポンシブデザイン・ローディング状態・確認モーダル実装
+    - ナビゲーション統合: ヘッダーに設定リンク追加・認証ガード設定
+  - **技術的修正**: settingsServiceインポートエラー解決（apiService名前付きエクスポート対応）
+  - **MongoDB統合**: user_settings コレクション・インデックス作成・永続化完了
+  - **セキュリティ**: JWT認証必須・パスワード変更時の現在パスワード確認・入力バリデーション
+  - **E2Eテスト**: ブラウザ動作確認・設定変更・保存・表示まで完全動作確認済み
 
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
