@@ -14,7 +14,10 @@
             <span class="label">送信者</span>
           </div>
           <div class="sender-info">
-            <span class="sender-id">{{ message.senderId }}</span>
+            <div class="sender-main-info">
+              <span class="sender-name">{{ message.senderName || '名前未設定' }}</span>
+              <span class="sender-email">{{ message.senderEmail || 'unknown@example.com' }}</span>
+            </div>
             <span class="sent-time">{{ formatSentTime(message.sentAt) }}</span>
           </div>
         </div>
@@ -290,6 +293,23 @@ const formatFullTime = (dateTime: string) => {
   padding: 1rem;
   background: #f8f9fa;
   border-radius: 8px;
+}
+
+.sender-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sender-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 1.125rem;
+}
+
+.sender-email {
+  color: #757575;
+  font-size: 0.875rem;
 }
 
 .sender-id {

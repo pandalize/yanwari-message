@@ -472,7 +472,7 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 		
 		if sender, ok := userMap[msg.SenderID]; ok {
 			msgWithSender.SenderEmail = sender.Email
-			// TODO: ユーザー名フィールドが追加されたら設定
+			msgWithSender.SenderName = sender.Name
 		}
 		
 		messagesWithSender[i] = msgWithSender

@@ -42,8 +42,8 @@
           <div class="sender-info">
             <span class="sender-icon">{{ getSenderInitial(message) }}</span>
             <div class="sender-details">
+              <span class="sender-name">{{ message.senderName || '名前未設定' }}</span>
               <span class="sender-email">{{ message.senderEmail || 'unknown@example.com' }}</span>
-              <span class="sender-name" v-if="message.senderName">{{ message.senderName }}</span>
             </div>
           </div>
           <div class="message-meta">
@@ -411,13 +411,13 @@ onMounted(() => {
   gap: 0.125rem;
 }
 
-.sender-email {
+.sender-name {
   font-weight: 600;
   color: #1a1a1a;
   font-size: 1rem;
 }
 
-.sender-name {
+.sender-email {
   font-size: 0.875rem;
   color: #757575;
 }
