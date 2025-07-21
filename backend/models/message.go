@@ -449,8 +449,7 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 	}
 
 	// 送信者情報を一括取得
-	userService := NewUserService(s.db)
-	users, err := userService.GetUsersByIDs(ctx, senderIDs)
+	users, err := s.userService.GetUsersByIDs(ctx, senderIDs)
 	if err != nil {
 		return nil, 0, err
 	}
