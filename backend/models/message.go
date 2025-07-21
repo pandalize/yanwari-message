@@ -27,6 +27,13 @@ type Message struct {
 	ReadAt       *time.Time         `bson:"readAt,omitempty" json:"readAt,omitempty"`
 }
 
+// MessageWithSender 送信者情報を含むメッセージ
+type MessageWithSender struct {
+	Message
+	SenderEmail string `json:"senderEmail"`
+	SenderName  string `json:"senderName,omitempty"`
+}
+
 // MessageVariations AIトーン変換結果
 type MessageVariations struct {
 	Gentle       string `bson:"gentle,omitempty" json:"gentle,omitempty"`
@@ -421,4 +428,55 @@ func (s *MessageService) CreateIndexes(ctx context.Context) error {
 
 	_, err := s.collection.Indexes().CreateMany(ctx, indexes)
 	return err
+}
+
+// GetReceivedMessagesWithSender 送信者情報を含む受信メッセージ一覧を取得
+func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]MessageWithSender, int64, error) {
+	// まず通常のメッセージ一覧を取得
+	messages, total, err := s.GetReceivedMessages(ctx, recipientID, page, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 送信者IDのリストを作成
+	senderIDs := make([]primitive.ObjectID, 0)
+	senderIDMap := make(map[primitive.ObjectID]bool)
+	for _, msg := range messages {
+		if !senderIDMap[msg.SenderID] {
+			senderIDs = append(senderIDs, msg.SenderID)
+			senderIDMap[msg.SenderID] = true
+		}
+	}
+
+	// 送信者情報を一括取得
+	userService := NewUserService(s.db)
+	users, err := userService.GetUsersByIDs(ctx, senderIDs)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ユーザー情報をマップに変換
+	userMap := make(map[primitive.ObjectID]*User)
+	for _, user := range users {
+		userMap[user.ID] = &user
+	}
+
+	// メッセージに送信者情報を追加
+	messagesWithSender := make([]MessageWithSender, len(messages))
+	for i, msg := range messages {
+		msgWithSender := MessageWithSender{
+			Message:     msg,
+			SenderEmail: "",
+			SenderName:  "",
+		}
+		
+		if sender, ok := userMap[msg.SenderID]; ok {
+			msgWithSender.SenderEmail = sender.Email
+			// TODO: ユーザー名フィールドが追加されたら設定
+		}
+		
+		messagesWithSender[i] = msgWithSender
+	}
+
+	return messagesWithSender, total, nil
 }

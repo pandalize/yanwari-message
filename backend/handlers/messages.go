@@ -268,7 +268,7 @@ func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
 		}
 	}
 
-	messages, total, err := h.messageService.GetReceivedMessages(c.Request.Context(), recipientID, page, limit)
+	messages, total, err := h.messageService.GetReceivedMessagesWithSender(c.Request.Context(), recipientID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "受信メッセージの取得に失敗しました"})
 		return

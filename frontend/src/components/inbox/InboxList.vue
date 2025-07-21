@@ -40,8 +40,11 @@
       >
         <div class="message-header">
           <div class="sender-info">
-            <span class="sender-icon">👤</span>
-            <span class="sender-id">{{ message.senderId }}</span>
+            <span class="sender-icon">{{ getSenderInitial(message) }}</span>
+            <div class="sender-details">
+              <span class="sender-email">{{ message.senderEmail || 'unknown@example.com' }}</span>
+              <span class="sender-name" v-if="message.senderName">{{ message.senderName }}</span>
+            </div>
           </div>
           <div class="message-meta">
             <span class="status-badge" :class="`status-${getStatusBadge(message.status).color}`">
@@ -165,6 +168,16 @@ const formatSentTime = (sentAt?: string) => {
   return sentAt ? inboxService.formatSentTime(sentAt) : ''
 }
 
+// 送信者のイニシャルを取得
+const getSenderInitial = (message: ReceivedMessage) => {
+  if (message.senderName) {
+    return message.senderName.charAt(0).toUpperCase()
+  } else if (message.senderEmail) {
+    return message.senderEmail.charAt(0).toUpperCase()
+  }
+  return '?'
+}
+
 // 初期化
 onMounted(() => {
   inboxStore.fetchMessages()
@@ -173,9 +186,11 @@ onMounted(() => {
 
 <style scoped>
 .inbox-list {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
+  background: #f8f9fa;
+  min-height: 100vh;
 }
 
 .inbox-header {
@@ -183,13 +198,20 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #e0e0e0;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .inbox-header h2 {
   margin: 0;
-  color: #333;
+  color: #1a1a1a;
+  font-size: 1.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .header-actions {
@@ -202,40 +224,51 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #666;
+  background: #fff3e0;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  color: #f57c00;
+  font-weight: 500;
 }
 
 .count-badge {
-  background: #dc3545;
+  background: #ff6b6b;
   color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 700;
   min-width: 1.5rem;
   text-align: center;
+  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
 }
 
 .refresh-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #007bff;
+  padding: 0.75rem 1.25rem;
+  background: #4285f4;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #0056b3;
+  background: #3367d6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
 }
 
 .refresh-btn:disabled {
-  background: #6c757d;
+  background: #e0e0e0;
+  color: #9e9e9e;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .refresh-icon.spinning {
@@ -249,33 +282,59 @@ onMounted(() => {
 
 .loading-state {
   text-align: center;
-  padding: 3rem;
+  padding: 5rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4285f4;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
+  margin: 0 auto 1.5rem;
+}
+
+.loading-state p {
+  color: #757575;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 .error-state {
   text-align: center;
-  padding: 3rem;
-  color: #dc3545;
+  padding: 5rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.error-state p {
+  color: #d32f2f;
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
 }
 
 .retry-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: #dc3545;
+  padding: 0.75rem 1.5rem;
+  background: #d32f2f;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+}
+
+.retry-btn:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
 }
 
 .messages-container {
@@ -284,123 +343,193 @@ onMounted(() => {
 
 .message-item {
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border: none;
+  border-radius: 16px;
+  padding: 1.75rem;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
 }
 
 .message-item:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .message-item.unread {
-  border-left: 4px solid #007bff;
-  background: #f8f9ff;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+  box-shadow: 0 2px 12px rgba(66, 133, 244, 0.15);
+}
+
+.message-item.unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #4285f4;
 }
 
 .message-item.read {
-  background: #f8f9fa;
-  border-color: #dee2e6;
+  background: white;
+  opacity: 0.85;
 }
 
 .message-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
 }
 
 .sender-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .sender-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.25rem;
+  color: white;
+  flex-shrink: 0;
 }
 
-.sender-id {
+.sender-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.sender-email {
   font-weight: 600;
-  color: #333;
+  color: #1a1a1a;
+  font-size: 1rem;
+}
+
+.sender-name {
+  font-size: 0.875rem;
+  color: #757575;
 }
 
 .message-meta {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
 .status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 16px;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.025em;
 }
 
-.status-blue { background: #cce7ff; color: #004085; }
-.status-green { background: #d4edda; color: #155724; }
-.status-gray { background: #f8f9fa; color: #6c757d; }
+.status-blue { 
+  background: #e3f2fd; 
+  color: #1565c0; 
+}
+.status-green { 
+  background: #e8f5e8; 
+  color: #2e7d32; 
+}
+.status-gray { 
+  background: #f5f5f5; 
+  color: #616161; 
+}
 
 .sent-time {
-  color: #6c757d;
+  color: #9e9e9e;
   font-size: 0.875rem;
+  font-weight: 400;
 }
 
 .message-content {
   margin-bottom: 1rem;
+  padding-left: 3.25rem;
 }
 
 .message-text {
-  color: #333;
+  color: #424242;
   font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: 0.5rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .message-details {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .tone-badge {
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 16px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-.tone-gentle { background: #f3e5f5; color: #7b1fa2; }
-.tone-constructive { background: #e8f5e8; color: #2e7d32; }
-.tone-casual { background: #fff3e0; color: #e65100; }
+.tone-gentle { 
+  background: #f3e5f5; 
+  color: #7b1fa2; 
+}
+.tone-constructive { 
+  background: #e8f5e8; 
+  color: #2e7d32; 
+}
+.tone-casual { 
+  background: #fff3e0; 
+  color: #e65100; 
+}
 
 .message-actions {
   text-align: right;
+  padding-left: 3.25rem;
 }
 
 .mark-read-btn {
-  padding: 0.5rem 1rem;
-  background: #28a745;
+  padding: 0.625rem 1.25rem;
+  background: #34a853;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 0.875rem;
-  transition: background-color 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(52, 168, 83, 0.2);
 }
 
 .mark-read-btn:hover:not(:disabled) {
-  background: #218838;
+  background: #2d8e47;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(52, 168, 83, 0.3);
 }
 
 .mark-read-btn:disabled {
-  background: #6c757d;
+  background: #e0e0e0;
+  color: #9e9e9e;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .pagination {
@@ -408,52 +537,72 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
-  padding: 1rem;
+  margin-top: 3rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .page-btn {
-  padding: 0.5rem 1rem;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #4285f4;
+  border: 2px solid #4285f4;
+  border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #0056b3;
+  background: #4285f4;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.2);
 }
 
 .page-btn:disabled {
-  background: #6c757d;
+  background: #f5f5f5;
+  color: #bdbdbd;
+  border-color: #e0e0e0;
   cursor: not-allowed;
 }
 
 .page-info {
-  color: #6c757d;
+  color: #757575;
   font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0 1rem;
 }
 
 .empty-state {
   text-align: center;
-  padding: 4rem 2rem;
-  color: #6c757d;
+  padding: 5rem 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .empty-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  filter: grayscale(20%);
 }
 
 .empty-state h3 {
   margin: 1rem 0;
-  color: #495057;
+  color: #1a1a1a;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .empty-state p {
-  line-height: 1.6;
+  line-height: 1.8;
+  color: #757575;
+  font-size: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 @media (max-width: 768px) {

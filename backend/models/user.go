@@ -203,6 +203,30 @@ func (s *UserService) SearchUsers(ctx context.Context, query string, limit int) 
 	return users, nil
 }
 
+// GetUsersByIDs 複数のユーザーIDからユーザー情報を一括取得
+func (s *UserService) GetUsersByIDs(ctx context.Context, userIDs []primitive.ObjectID) ([]User, error) {
+	if len(userIDs) == 0 {
+		return []User{}, nil
+	}
+
+	filter := bson.M{
+		"_id": bson.M{"$in": userIDs},
+	}
+
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("ユーザー一括取得エラー: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var users []User
+	if err = cursor.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("ユーザー情報デコードエラー: %w", err)
+	}
+
+	return users, nil
+}
+
 // CreateEmailIndex メールアドレスにユニークインデックスを作成
 func (s *UserService) CreateEmailIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{

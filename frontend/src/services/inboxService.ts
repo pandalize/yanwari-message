@@ -4,6 +4,8 @@ import { apiService } from './api'
 export interface ReceivedMessage {
   id: string
   senderId: string
+  senderEmail?: string
+  senderName?: string
   recipientId: string
   originalText: string
   variations: {
