@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -448,10 +450,20 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 		}
 	}
 
+	// デバッグ: 送信者IDを出力
+	log.Printf("DEBUG: SenderIDs to lookup: %v", senderIDs)
+
 	// 送信者情報を一括取得
 	users, err := s.userService.GetUsersByIDs(ctx, senderIDs)
 	if err != nil {
+		log.Printf("DEBUG: Error getting users by IDs: %v", err)
 		return nil, 0, err
+	}
+
+	// デバッグ: 取得したユーザー情報を出力
+	log.Printf("DEBUG: Found users: %d", len(users))
+	for _, user := range users {
+		log.Printf("DEBUG: User - ID: %s, Name: %s, Email: %s", user.ID.Hex(), user.Name, user.Email)
 	}
 
 	// ユーザー情報をマップに変換
@@ -472,6 +484,9 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 		if sender, ok := userMap[msg.SenderID]; ok {
 			msgWithSender.SenderEmail = sender.Email
 			msgWithSender.SenderName = sender.Name
+			log.Printf("DEBUG: Mapped sender for message %s: %s (%s)", msg.ID.Hex(), sender.Name, sender.Email)
+		} else {
+			log.Printf("DEBUG: No sender found for message %s with senderID: %s", msg.ID.Hex(), msg.SenderID.Hex())
 		}
 		
 		messagesWithSender[i] = msgWithSender
