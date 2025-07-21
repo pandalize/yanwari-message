@@ -784,33 +784,219 @@ onMounted(() => {
   border: 1px solid #f5c6cb;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
+/* ===== レスポンシブ対応 ===== */
+/* ===== 大画面対応 ===== */
+@media (min-width: 1400px) {
   .schedule-wizard {
-    padding: 1rem;
+    max-width: 1000px;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+  }
+  
+  .page-title {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .time-selection-grid {
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .time-option {
+    min-height: 140px;
+    padding: var(--spacing-2xl);
+  }
+  
+  .option-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .time-text {
+    font-size: var(--font-size-lg);
+  }
+  
+  .calendar-dates {
+    max-width: 400px;
+    gap: var(--spacing-sm);
+  }
+  
+  .calendar-dates span {
+    min-height: 50px;
+    font-size: var(--font-size-lg);
+  }
+  
+  .time-field {
+    width: 80px;
+    padding: var(--spacing-lg);
+    font-size: var(--font-size-xl);
+  }
+  
+  .time-label {
+    font-size: var(--font-size-xl);
+  }
+  
+  .action-btn {
+    max-width: 250px;
+    padding: var(--spacing-lg) var(--spacing-2xl);
+    font-size: var(--font-size-xl);
+  }
+  
+  .custom-title {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+}
+
+/* タブレット表示 */
+@media (max-width: 1199px) {
+  .schedule-wizard {
+    max-width: 100%;
+    padding: var(--spacing-2xl) var(--spacing-md);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .time-option {
+    min-height: 110px;
+    padding: var(--spacing-lg);
+  }
+  
+  .option-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .time-text {
+    font-size: var(--font-size-md);
+  }
+  
+  .calendar-dates {
+    max-width: 320px;
+  }
+  
+  .action-btn {
+    max-width: 180px;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+}
+
+/* モバイル表示 */
+@media (max-width: 767px) {
+  .schedule-wizard {
+    padding: var(--spacing-xl) var(--spacing-sm);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-xl);
   }
   
   .time-selection-grid {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
+    gap: var(--spacing-md);
   }
   
   .time-option {
     min-height: 100px;
-    padding: 1rem;
+    padding: var(--spacing-md);
+  }
+  
+  .option-title {
+    font-size: var(--font-size-md);
+  }
+  
+  .time-text {
+    font-size: var(--font-size-sm);
   }
   
   .calendar-dates {
     max-width: 280px;
   }
   
+  .calendar-dates span {
+    min-height: 35px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .time-field {
+    width: 50px;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+  
+  .time-label {
+    font-size: var(--font-size-sm);
+  }
+  
   .action-buttons {
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--spacing-md);
   }
   
   .action-btn {
     max-width: none;
+    width: 100%;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* 小さいモバイル表示 */
+@media (max-width: 479px) {
+  .schedule-wizard {
+    padding: var(--spacing-lg) var(--spacing-xs);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .time-option {
+    min-height: 90px;
+    padding: var(--spacing-sm);
+  }
+  
+  .option-title {
+    font-size: var(--font-size-sm);
+  }
+  
+  .time-text {
+    font-size: var(--font-size-xs);
+  }
+  
+  .calendar-dates {
+    max-width: 250px;
+    gap: 0.125rem;
+  }
+  
+  .calendar-dates span {
+    min-height: 30px;
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+  
+  .calendar-header span {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs);
+  }
+  
+  .time-field {
+    width: 45px;
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+  
+  .time-label {
+    font-size: var(--font-size-xs);
+  }
+  
+  .action-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-md);
+  }
+  
+  .custom-title {
+    font-size: var(--font-size-sm);
   }
 }
 </style>

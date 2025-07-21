@@ -166,7 +166,7 @@ const handleLogout = async () => {
 }
 
 .header-content {
-  max-width: 1200px;
+  max-width: var(--max-width-content);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -229,7 +229,61 @@ const handleLogout = async () => {
 }
 
 /* ===== レスポンシブ対応 ===== */
-@media (max-width: 768px) {
+/* ===== 大画面対応 ===== */
+@media (min-width: 1400px) {
+  .sidebar {
+    width: 90px;
+  }
+  
+  .main-content.with-sidebar {
+    margin-left: 90px;
+  }
+  
+  .nav-item {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .nav-icon {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .nav-text {
+    font-size: var(--font-size-sm);
+  }
+  
+  .header-content {
+    max-width: 1400px;
+    padding: 0 var(--spacing-2xl);
+  }
+  
+  .simple-header h1 {
+    font-size: var(--font-size-4xl);
+  }
+  
+  .auth-btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* タブレット表示 */
+@media (max-width: 1199px) {
+  .sidebar {
+    width: 75px;
+  }
+  
+  .main-content.with-sidebar {
+    margin-left: 75px;
+  }
+  
+  .nav-text {
+    font-size: 11px;
+  }
+}
+
+/* モバイル表示 */
+@media (max-width: 767px) {
   .sidebar {
     width: 70px;
   }
@@ -250,9 +304,18 @@ const handleLogout = async () => {
   .nav-item {
     padding: var(--spacing-sm) var(--spacing-xs);
   }
+  
+  .simple-header {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .header-content h1 {
+    font-size: var(--font-size-2xl);
+  }
 }
 
-@media (max-width: 480px) {
+/* 小さいモバイル表示 */
+@media (max-width: 479px) {
   .sidebar {
     width: 60px;
   }
@@ -267,6 +330,25 @@ const handleLogout = async () => {
   
   .nav-item {
     padding: var(--spacing-md);
+  }
+  
+  .simple-header {
+    padding: var(--spacing-md);
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: center;
+  }
+  
+  .auth-buttons {
+    gap: var(--spacing-sm);
+  }
+  
+  .auth-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
 }
 </style>

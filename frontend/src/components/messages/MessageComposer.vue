@@ -484,9 +484,54 @@ onMounted(() => {
 }
 
 /* ===== レスポンシブ対応 ===== */
-@media (max-width: 768px) {
+/* ===== 大画面対応 ===== */
+@media (min-width: 1400px) {
   .message-composer {
-    padding: var(--spacing-lg) var(--spacing-md);
+    max-width: 1400px;
+    padding: var(--spacing-3xl) var(--spacing-3xl);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-2xl);
+  }
+  
+  .message-textarea {
+    min-height: 320px;
+    padding: var(--spacing-2xl);
+    font-size: var(--font-size-xl);
+  }
+  
+  .action-btn {
+    min-width: 250px;
+    padding: var(--spacing-xl) var(--spacing-3xl);
+    font-size: var(--font-size-2xl);
+  }
+  
+  .drafts-container {
+    padding: var(--spacing-2xl);
+    min-height: 300px;
+  }
+  
+  .draft-item {
+    padding: var(--spacing-xl);
+  }
+  
+  .draft-text {
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* タブレット表示 */
+@media (max-width: 1199px) {
+  .message-composer {
+    padding: var(--spacing-2xl) var(--spacing-md);
+    max-width: 100%;
   }
   
   .page-title {
@@ -498,8 +543,42 @@ onMounted(() => {
   }
   
   .message-textarea {
+    min-height: 200px;
+    padding: var(--spacing-lg);
+  }
+  
+  .action-buttons {
+    gap: var(--spacing-lg);
+  }
+  
+  .action-btn {
+    min-width: 180px;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+  
+  .drafts-container {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* モバイル表示 */
+@media (max-width: 767px) {
+  .message-composer {
+    padding: var(--spacing-xl) var(--spacing-sm);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-lg);
+  }
+  
+  .message-textarea {
     min-height: 150px;
     font-size: var(--font-size-md);
+    padding: var(--spacing-md);
   }
   
   .action-buttons {
@@ -510,21 +589,58 @@ onMounted(() => {
   .action-btn {
     width: 100%;
     min-width: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .message-composer {
-    padding: var(--spacing-md);
-  }
-  
-  .message-textarea {
-    padding: var(--spacing-md);
-    min-height: 120px;
+    font-size: var(--font-size-lg);
   }
   
   .draft-item {
     padding: var(--spacing-md);
+  }
+  
+  .drafts-container {
+    padding: var(--spacing-md);
+  }
+}
+
+/* 小さいモバイル表示 */
+@media (max-width: 479px) {
+  .message-composer {
+    padding: var(--spacing-lg) var(--spacing-xs);
+  }
+  
+  .page-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-md);
+  }
+  
+  .message-textarea {
+    padding: var(--spacing-sm);
+    min-height: 120px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .action-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-md);
+  }
+  
+  .draft-item {
+    padding: var(--spacing-sm);
+  }
+  
+  .drafts-container {
+    padding: var(--spacing-sm);
+    min-height: 200px;
+  }
+  
+  .draft-text {
+    font-size: var(--font-size-sm);
+  }
+  
+  .draft-date {
+    font-size: var(--font-size-xs);
   }
 }
 </style>

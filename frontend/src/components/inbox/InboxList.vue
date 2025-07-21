@@ -186,9 +186,9 @@ onMounted(() => {
 
 <style scoped>
 .inbox-list {
-  max-width: 900px;
+  max-width: var(--max-width-content);
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--spacing-3xl) var(--spacing-lg);
   background: #f8f9fa;
   min-height: 100vh;
 }
@@ -605,24 +605,95 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-@media (max-width: 768px) {
+/* ===== 大画面対応 ===== */
+@media (min-width: 1400px) {
   .inbox-list {
-    padding: 1rem;
+    max-width: 1400px;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+  }
+  
+  .inbox-header {
+    padding: var(--spacing-2xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .inbox-header h2 {
+    font-size: 2rem;
+  }
+  
+  .message-item {
+    padding: var(--spacing-2xl);
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .sender-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+  }
+  
+  .message-content {
+    padding-left: 4rem;
+  }
+  
+  .message-actions {
+    padding-left: 4rem;
+  }
+  
+  .pagination {
+    padding: var(--spacing-2xl);
+    margin-top: var(--spacing-3xl);
+  }
+}
+
+/* タブレット表示 */
+@media (max-width: 1199px) {
+  .inbox-list {
+    padding: var(--spacing-2xl) var(--spacing-md);
+  }
+  
+  .message-item {
+    padding: var(--spacing-lg);
+  }
+  
+  .sender-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .message-content {
+    padding-left: 2.75rem;
+  }
+  
+  .message-actions {
+    padding-left: 2.75rem;
+  }
+}
+
+/* モバイル表示 */
+@media (max-width: 767px) {
+  .inbox-list {
+    padding: var(--spacing-xl) var(--spacing-sm);
   }
   
   .inbox-header {
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--spacing-lg);
     align-items: stretch;
+    padding: var(--spacing-lg);
   }
   
   .header-actions {
     justify-content: space-between;
   }
   
+  .message-item {
+    padding: var(--spacing-lg);
+  }
+  
   .message-header {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
     align-items: stretch;
   }
   
@@ -630,9 +701,59 @@ onMounted(() => {
     justify-content: space-between;
   }
   
+  .sender-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .message-content {
+    padding-left: 0;
+    margin-top: var(--spacing-sm);
+  }
+  
+  .message-actions {
+    padding-left: 0;
+  }
+  
   .pagination {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* 小さいモバイル表示 */
+@media (max-width: 479px) {
+  .inbox-list {
+    padding: var(--spacing-lg) var(--spacing-xs);
+  }
+  
+  .inbox-header {
+    padding: var(--spacing-md);
+  }
+  
+  .inbox-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .message-item {
+    padding: var(--spacing-md);
+  }
+  
+  .sender-details {
+    gap: 0.125rem;
+  }
+  
+  .sender-name {
+    font-size: 0.875rem;
+  }
+  
+  .sender-email {
+    font-size: 0.75rem;
+  }
+  
+  .message-text {
+    font-size: 0.875rem;
+    -webkit-line-clamp: 2;
   }
 }
 </style>

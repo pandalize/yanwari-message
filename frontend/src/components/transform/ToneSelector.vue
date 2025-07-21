@@ -365,23 +365,210 @@ const retry = () => {
   cursor: not-allowed;
 }
 
-/* レスポンシブ対応 */
-@media (max-width: 768px) {
+/* ===== レスポンシブ対応 ===== */
+/* ===== 大画面対応 ===== */
+@media (min-width: 1400px) {
   .tone-selector {
-    padding: 15px;
+    max-width: 1000px;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+  }
+  
+  .loading-state, .error-state, .initial-state {
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+  }
+  
+  .tone-options {
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .tone-option {
+    padding: var(--spacing-2xl);
+  }
+  
+  .tone-label {
+    font-size: var(--font-size-xl);
+  }
+  
+  .tone-text {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-lg);
+    line-height: 1.8;
+  }
+  
+  .tone-preview {
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-3xl);
+  }
+  
+  .tone-preview-item {
+    padding: var(--spacing-lg) var(--spacing-xl);
+    font-size: var(--font-size-lg);
+  }
+  
+  .preview-icon {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .transform-btn {
+    padding: var(--spacing-lg) var(--spacing-2xl);
+    font-size: var(--font-size-xl);
+  }
+  
+  .selected-confirmation {
+    padding: var(--spacing-2xl);
+  }
+  
+  .confirmation-text {
+    font-size: var(--font-size-lg);
+  }
+  
+  .final-text {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-lg);
+  }
+}
+
+/* タブレット表示 */
+@media (max-width: 1199px) {
+  .tone-selector {
+    max-width: 100%;
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+  
+  .tone-option {
+    padding: var(--spacing-lg);
+  }
+  
+  .tone-label {
+    font-size: var(--font-size-md);
+  }
+  
+  .tone-text {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-md);
+  }
+  
+  .tone-preview {
+    gap: var(--spacing-md);
+  }
+  
+  .transform-btn {
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: var(--font-size-md);
+  }
+}
+
+/* モバイル表示 */
+@media (max-width: 767px) {
+  .tone-selector {
+    padding: var(--spacing-lg) var(--spacing-sm);
+  }
+  
+  .loading-state, .error-state, .initial-state {
+    padding: var(--spacing-2xl) var(--spacing-sm);
   }
   
   .tone-preview {
     flex-direction: column;
     align-items: center;
+    gap: var(--spacing-sm);
+  }
+  
+  .tone-preview-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
   
   .tone-options {
-    gap: 15px;
+    gap: var(--spacing-md);
   }
   
   .tone-option {
-    padding: 15px;
+    padding: var(--spacing-md);
+  }
+  
+  .tone-label {
+    font-size: var(--font-size-sm);
+  }
+  
+  .tone-text {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-sm);
+  }
+  
+  .transform-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .retry-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* 小さいモバイル表示 */
+@media (max-width: 479px) {
+  .tone-selector {
+    padding: var(--spacing-md) var(--spacing-xs);
+  }
+  
+  .loading-state, .error-state, .initial-state {
+    padding: var(--spacing-xl) var(--spacing-xs);
+  }
+  
+  .tone-options {
+    gap: var(--spacing-sm);
+  }
+  
+  .tone-option {
+    padding: var(--spacing-sm);
+  }
+  
+  .tone-header {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .tone-label {
+    font-size: var(--font-size-xs);
+  }
+  
+  .tone-text {
+    font-size: 11px;
+    padding: var(--spacing-xs);
+    line-height: 1.4;
+  }
+  
+  .tone-preview-item {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+  }
+  
+  .preview-icon {
+    font-size: var(--font-size-sm);
+  }
+  
+  .transform-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-xs);
+    width: 100%;
+  }
+  
+  .confirmation-header {
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .confirmation-text {
+    font-size: var(--font-size-xs);
+  }
+  
+  .final-text {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs);
   }
 }
 </style>
