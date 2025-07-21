@@ -161,6 +161,12 @@ func main() {
 
 	// サービスの初期化
 	scheduleService := models.NewScheduleService(db.Database, messageService)
+	userSettingsService := models.NewUserSettingsService(db.Database, userService)
+	
+	// ユーザー設定インデックス作成
+	if err := userSettingsService.CreateIndexes(ctx); err != nil {
+		log.Printf("警告: ユーザー設定インデックス作成エラー: %v", err)
+	}
 
 	// ハンドラーの初期化
 	authHandler := handlers.NewAuthHandler(userService)
@@ -168,6 +174,7 @@ func main() {
 	messageHandler := handlers.NewMessageHandler(messageService)
 	transformHandler := handlers.NewTransformHandler(messageService)
 	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService)
+	settingsHandler := handlers.NewSettingsHandler(userService, userSettingsService)
 
 	// JWTミドルウェア
 	jwtMiddleware := handlers.JWTMiddleware()
@@ -195,6 +202,17 @@ func main() {
 
 		// スケジュール関連エンドポイント
 		scheduleHandler.RegisterRoutes(v1, jwtMiddleware)
+
+		// 設定関連エンドポイント
+		settings := v1.Group("/settings").Use(jwtMiddleware)
+		{
+			settings.GET("", settingsHandler.GetSettings)                           // 設定取得
+			settings.PUT("/profile", settingsHandler.UpdateProfile)                 // プロフィール更新
+			settings.PUT("/password", settingsHandler.ChangePassword)               // パスワード変更
+			settings.PUT("/notifications", settingsHandler.UpdateNotificationSettings) // 通知設定更新
+			settings.PUT("/messages", settingsHandler.UpdateMessageSettings)       // メッセージ設定更新
+			settings.DELETE("/account", settingsHandler.DeleteAccount)             // アカウント削除
+		}
 	}
 
 	// HTTPサーバーの設定
