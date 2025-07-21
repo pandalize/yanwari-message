@@ -231,3 +231,51 @@ func (s *UserService) CreateNameIndex(ctx context.Context) error {
 
 	return nil
 }
+
+// UpdateProfile ユーザーのプロフィール（名前）を更新
+func (s *UserService) UpdateProfile(ctx context.Context, userID primitive.ObjectID, name string) error {
+	now := time.Now()
+	
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"name":       name,
+			"updated_at": now,
+		},
+	}
+
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("プロフィール更新エラー: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("更新対象のユーザーが見つかりません")
+	}
+
+	return nil
+}
+
+// UpdatePassword ユーザーのパスワードを更新
+func (s *UserService) UpdatePassword(ctx context.Context, userID primitive.ObjectID, passwordHash string) error {
+	now := time.Now()
+	
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"password_hash": passwordHash,
+			"updated_at":    now,
+		},
+	}
+
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("パスワード更新エラー: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("更新対象のユーザーが見つかりません")
+	}
+
+	return nil
+}

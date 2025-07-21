@@ -22,6 +22,7 @@ const handleLogout = async () => {
           <RouterLink to="/inbox" class="inbox-link">📫 受信トレイ</RouterLink>
           <RouterLink to="/compose" class="compose-link">✏️ メッセージ作成</RouterLink>
           <RouterLink to="/schedules" class="schedule-link">📅 スケジュール一覧</RouterLink>
+          <RouterLink to="/settings" class="settings-link">⚙️ 設定</RouterLink>
           <span class="user-info">{{ authStore.user?.name || authStore.user?.email }}</span>
           <button @click="handleLogout" class="logout-btn">ログアウト</button>
         </div>
@@ -116,5 +117,15 @@ nav a.router-link-exact-active {
 
 .compose-link:hover {
   background-color: #218838 !important;
+}
+
+.settings-link {
+  background-color: #6f42c1 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.settings-link:hover {
+  background-color: #5a32a3 !important;
 }
 </style>
