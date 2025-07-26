@@ -38,13 +38,13 @@ const router = createRouter({
     {
       path: '/schedule',
       name: 'schedule-wizard',
-      component: () => import('../views/ScheduleView.vue'),
+      component: () => import('../views/ScheduleWizardView.vue'),
       meta: { requiresAuth: true }
     },
     {
-      path: '/schedules',
-      name: 'schedule-list',
-      component: () => import('../views/ScheduleListView.vue'),
+      path: '/history',
+      name: 'message-history',
+      component: () => import('../views/HistoryView.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -63,12 +63,6 @@ const router = createRouter({
       path: '/settings',
       name: 'settings',
       component: () => import('../views/SettingsView.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/friends',
-      name: 'friends',
-      component: () => import('../views/FriendsView.vue'),
       meta: { requiresAuth: true }
     },
     {

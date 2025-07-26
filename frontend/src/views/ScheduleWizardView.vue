@@ -1,5 +1,5 @@
 <template>
-  <div class="schedule-view">
+  <div class="schedule-wizard-view">
     <ScheduleWizard />
   </div>
 </template>
@@ -9,8 +9,9 @@ import ScheduleWizard from '@/components/schedule/ScheduleWizard.vue'
 </script>
 
 <style scoped>
-.schedule-view {
-  min-height: 100vh;
+.schedule-wizard-view {
+  height: 100vh;
   background-color: #f8f9fa;
+  overflow: hidden;
 }
 </style>
