@@ -162,6 +162,8 @@ func main() {
 	// サービスの初期化
 	scheduleService := models.NewScheduleService(db.Database, messageService)
 	userSettingsService := models.NewUserSettingsService(db.Database, userService)
+	friendRequestService := models.NewFriendRequestService(db.Database)
+	friendshipService := models.NewFriendshipService(db.Database)
 	
 	// ユーザー設定インデックス作成
 	if err := userSettingsService.CreateIndexes(ctx); err != nil {
@@ -175,6 +177,7 @@ func main() {
 	transformHandler := handlers.NewTransformHandler(messageService)
 	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService)
 	settingsHandler := handlers.NewSettingsHandler(userService, userSettingsService)
+	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
 
 	// JWTミドルウェア
 	jwtMiddleware := handlers.JWTMiddleware()
@@ -197,25 +200,8 @@ func main() {
 		// メッセージ関連エンドポイント
 		messageHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// 友達申請関連エンドポイント
-		friendRequests := v1.Group("/friend-requests")
-		friendRequests.Use(jwtMiddleware)
-		{
-			friendRequests.POST("/send", handlers.SendFriendRequest)          // 友達申請送信
-			friendRequests.GET("/received", handlers.GetReceivedFriendRequests) // 受信した申請一覧
-			friendRequests.GET("/sent", handlers.GetSentFriendRequests)      // 送信した申請一覧
-			friendRequests.POST("/:id/accept", handlers.AcceptFriendRequest) // 申請承諾
-			friendRequests.POST("/:id/reject", handlers.RejectFriendRequest) // 申請拒否
-			friendRequests.POST("/:id/cancel", handlers.CancelFriendRequest) // 申請キャンセル
-		}
-
-		// 友達関連エンドポイント
-		friends := v1.Group("/friends")
-		friends.Use(jwtMiddleware)
-		{
-			friends.GET("/", handlers.GetFriends)       // 友達一覧取得
-			friends.DELETE("/remove", handlers.RemoveFriend) // 友達削除
-		}
+		// 友達申請・友達関連エンドポイント
+		friendRequestHandler.RegisterRoutes(v1, jwtMiddleware)
 
 		// AIトーン変換関連エンドポイント
 		transformHandler.RegisterRoutes(v1, jwtMiddleware)

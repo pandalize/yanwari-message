@@ -2,21 +2,36 @@ package handlers
 
 import (
 	"net/http"
-	"yanwari-message-backend/database"
 	"yanwari-message-backend/models"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+// FriendRequestHandler は友達申請関連のハンドラー構造体
+type FriendRequestHandler struct {
+	userService          *models.UserService
+	friendRequestService *models.FriendRequestService
+	friendshipService    *models.FriendshipService
+}
+
+// NewFriendRequestHandler は新しい友達申請ハンドラーを作成
+func NewFriendRequestHandler(userService *models.UserService, friendRequestService *models.FriendRequestService, friendshipService *models.FriendshipService) *FriendRequestHandler {
+	return &FriendRequestHandler{
+		userService:          userService,
+		friendRequestService: friendRequestService,
+		friendshipService:    friendshipService,
+	}
+}
+
 // SendFriendRequestInput は友達申請送信のリクエストボディ
 type SendFriendRequestInput struct {
-	ToUserEmail string `json:"to_user_email" binding:"required,email"`
-	Message     string `json:"message"`
+	ToEmail string `json:"to_email" binding:"required,email"`
+	Message string `json:"message"`
 }
 
 // SendFriendRequest は友達申請を送信するハンドラー
-func SendFriendRequest(c *gin.Context) {
+func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -43,13 +58,9 @@ func SendFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	userService := models.NewUserService(db)
-	friendRequestService := models.NewFriendRequestService(db)
-	
 	// 送信先ユーザーを取得
-	toUser, err := userService.GetUserByEmail(c.Request.Context(), input.ToUserEmail)
+	ctx := c.Request.Context()
+	toUser, err := h.userService.GetUserByEmail(ctx, input.ToEmail)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "ユーザーが見つかりません",
@@ -57,23 +68,55 @@ func SendFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// 友達申請を作成
-	request, err := friendRequestService.Create(c.Request.Context(), fromUserID, toUser.ID, input.Message)
-	if err != nil {
+	// 自分自身に申請しようとしていないかチェック
+	if fromUserID == toUser.ID {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "自分自身に友達申請することはできません",
+		})
+		return
+	}
+	
+	// 既に友達関係にあるかチェック
+	areFriends, err := h.friendshipService.AreFriends(ctx, fromUserID, toUser.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達関係の確認に失敗しました",
+		})
+		return
+	}
+	if areFriends {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "既に友達です",
+		})
+		return
+	}
+	
+	// 既存の申請があるかチェック
+	existingRequest, err := h.friendRequestService.GetPendingRequest(ctx, fromUserID, toUser.ID)
+	if err == nil && existingRequest != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "既に申請済みです",
+		})
+		return
+	}
+	
+	// 友達申請を作成
+	friendRequest, err := h.friendRequestService.Create(ctx, fromUserID, toUser.ID, input.Message)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達申請の作成に失敗しました",
 		})
 		return
 	}
 	
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "友達申請を送信しました",
-		"data":    request,
+		"data":    friendRequest,
 	})
 }
 
 // GetReceivedFriendRequests は受信した友達申請一覧を取得するハンドラー
-func GetReceivedFriendRequests(c *gin.Context) {
+func (h *FriendRequestHandler) GetReceivedFriendRequests(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -83,7 +126,7 @@ func GetReceivedFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -91,12 +134,9 @@ func GetReceivedFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendRequestService := models.NewFriendRequestService(db)
-	
-	// 受信した友達申請を取得
-	requests, err := friendRequestService.GetReceivedRequests(c.Request.Context(), userObjectID)
+	// 受信した申請を取得
+	ctx := c.Request.Context()
+	requests, err := h.friendRequestService.GetReceivedRequests(ctx, toUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "友達申請の取得に失敗しました",
@@ -105,12 +145,13 @@ func GetReceivedFriendRequests(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, gin.H{
-		"data": requests,
+		"message": "受信した友達申請を取得しました",
+		"data":    requests,
 	})
 }
 
 // GetSentFriendRequests は送信した友達申請一覧を取得するハンドラー
-func GetSentFriendRequests(c *gin.Context) {
+func (h *FriendRequestHandler) GetSentFriendRequests(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -120,7 +161,7 @@ func GetSentFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	fromUserID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -128,12 +169,9 @@ func GetSentFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendRequestService := models.NewFriendRequestService(db)
-	
-	// 送信した友達申請を取得
-	requests, err := friendRequestService.GetSentRequests(c.Request.Context(), userObjectID)
+	// 送信した申請を取得
+	ctx := c.Request.Context()
+	requests, err := h.friendRequestService.GetSentRequests(ctx, fromUserID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "友達申請の取得に失敗しました",
@@ -142,12 +180,13 @@ func GetSentFriendRequests(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, gin.H{
-		"data": requests,
+		"message": "送信した友達申請を取得しました",
+		"data":    requests,
 	})
 }
 
 // AcceptFriendRequest は友達申請を承諾するハンドラー
-func AcceptFriendRequest(c *gin.Context) {
+func (h *FriendRequestHandler) AcceptFriendRequest(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -157,7 +196,7 @@ func AcceptFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -165,8 +204,9 @@ func AcceptFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// リクエストIDを取得
-	requestID, err := primitive.ObjectIDFromHex(c.Param("id"))
+	// 申請IDを取得
+	requestIDStr := c.Param("id")
+	requestID, err := primitive.ObjectIDFromHex(requestIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効な申請IDです",
@@ -174,15 +214,12 @@ func AcceptFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendRequestService := models.NewFriendRequestService(db)
-	
-	// 友達申請を承諾
-	err = friendRequestService.Accept(c.Request.Context(), requestID, userObjectID)
+	// 申請を承諾
+	ctx := c.Request.Context()
+	err = h.friendRequestService.Accept(ctx, requestID, toUserID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達申請の承諾に失敗しました",
 		})
 		return
 	}
@@ -193,7 +230,7 @@ func AcceptFriendRequest(c *gin.Context) {
 }
 
 // RejectFriendRequest は友達申請を拒否するハンドラー
-func RejectFriendRequest(c *gin.Context) {
+func (h *FriendRequestHandler) RejectFriendRequest(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -203,7 +240,7 @@ func RejectFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -211,8 +248,9 @@ func RejectFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// リクエストIDを取得
-	requestID, err := primitive.ObjectIDFromHex(c.Param("id"))
+	// 申請IDを取得
+	requestIDStr := c.Param("id")
+	requestID, err := primitive.ObjectIDFromHex(requestIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効な申請IDです",
@@ -220,15 +258,12 @@ func RejectFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendRequestService := models.NewFriendRequestService(db)
-	
-	// 友達申請を拒否
-	err = friendRequestService.Reject(c.Request.Context(), requestID, userObjectID)
+	// 申請を拒否
+	ctx := c.Request.Context()
+	err = h.friendRequestService.Reject(ctx, requestID, toUserID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達申請の拒否に失敗しました",
 		})
 		return
 	}
@@ -238,8 +273,8 @@ func RejectFriendRequest(c *gin.Context) {
 	})
 }
 
-// CancelFriendRequest は送信した友達申請をキャンセルするハンドラー
-func CancelFriendRequest(c *gin.Context) {
+// CancelFriendRequest は友達申請をキャンセルするハンドラー
+func (h *FriendRequestHandler) CancelFriendRequest(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -249,7 +284,7 @@ func CancelFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	fromUserID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -257,8 +292,9 @@ func CancelFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// リクエストIDを取得
-	requestID, err := primitive.ObjectIDFromHex(c.Param("id"))
+	// 申請IDを取得
+	requestIDStr := c.Param("id")
+	requestID, err := primitive.ObjectIDFromHex(requestIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効な申請IDです",
@@ -266,15 +302,12 @@ func CancelFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendRequestService := models.NewFriendRequestService(db)
-	
-	// 友達申請をキャンセル
-	err = friendRequestService.Cancel(c.Request.Context(), requestID, userObjectID)
+	// 申請をキャンセル
+	ctx := c.Request.Context()
+	err = h.friendRequestService.Cancel(ctx, requestID, fromUserID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達申請のキャンセルに失敗しました",
 		})
 		return
 	}
@@ -284,8 +317,8 @@ func CancelFriendRequest(c *gin.Context) {
 	})
 }
 
-// GetFriends はユーザーの友達一覧を取得するハンドラー
-func GetFriends(c *gin.Context) {
+// GetFriends は友達一覧を取得するハンドラー
+func (h *FriendRequestHandler) GetFriends(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -295,7 +328,7 @@ func GetFriends(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	userObjID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -303,12 +336,9 @@ func GetFriends(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	friendshipService := models.NewFriendshipService(db)
-	
 	// 友達一覧を取得
-	friends, err := friendshipService.GetFriends(c.Request.Context(), userObjectID)
+	ctx := c.Request.Context()
+	friends, err := h.friendshipService.GetFriends(ctx, userObjID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "友達一覧の取得に失敗しました",
@@ -317,17 +347,18 @@ func GetFriends(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, gin.H{
-		"data": friends,
+		"message": "友達一覧を取得しました",
+		"data":    friends,
 	})
 }
 
 // RemoveFriendInput は友達削除のリクエストボディ
 type RemoveFriendInput struct {
-	FriendEmail string `json:"friend_email" binding:"required,email"`
+	FriendID string `json:"friend_id" binding:"required"`
 }
 
 // RemoveFriend は友達を削除するハンドラー
-func RemoveFriend(c *gin.Context) {
+func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 	// JWTからユーザーIDを取得
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -337,7 +368,7 @@ func RemoveFriend(c *gin.Context) {
 		return
 	}
 	
-	userObjectID, err := primitive.ObjectIDFromHex(userID.(string))
+	userObjID, err := primitive.ObjectIDFromHex(userID.(string))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "無効なユーザーIDです",
@@ -354,25 +385,20 @@ func RemoveFriend(c *gin.Context) {
 		return
 	}
 	
-	// データベース接続を取得
-	db := database.GetDB()
-	userService := models.NewUserService(db)
-	friendshipService := models.NewFriendshipService(db)
-	
-	// 友達ユーザーを取得
-	friendUser, err := userService.GetByEmail(c.Request.Context(), input.FriendEmail)
+	friendObjID, err := primitive.ObjectIDFromHex(input.FriendID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "ユーザーが見つかりません",
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "無効な友達IDです",
 		})
 		return
 	}
 	
 	// 友達関係を削除
-	err = friendshipService.Delete(c.Request.Context(), userObjectID, friendUser.ID)
+	ctx := c.Request.Context()
+	err = h.friendshipService.Delete(ctx, userObjID, friendObjID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "友達削除に失敗しました",
 		})
 		return
 	}
@@ -380,4 +406,27 @@ func RemoveFriend(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "友達を削除しました",
 	})
+}
+
+// RegisterRoutes は友達申請関連のルートを登録
+func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
+	// 友達申請関連エンドポイント
+	friendRequests := v1.Group("/friend-requests")
+	friendRequests.Use(jwtMiddleware)
+	{
+		friendRequests.POST("/send", h.SendFriendRequest)          // 友達申請送信
+		friendRequests.GET("/received", h.GetReceivedFriendRequests) // 受信した申請一覧
+		friendRequests.GET("/sent", h.GetSentFriendRequests)      // 送信した申請一覧
+		friendRequests.POST("/:id/accept", h.AcceptFriendRequest) // 申請承諾
+		friendRequests.POST("/:id/reject", h.RejectFriendRequest) // 申請拒否
+		friendRequests.POST("/:id/cancel", h.CancelFriendRequest) // 申請キャンセル
+	}
+
+	// 友達関連エンドポイント
+	friends := v1.Group("/friends")
+	friends.Use(jwtMiddleware)
+	{
+		friends.GET("/", h.GetFriends)       // 友達一覧取得
+		friends.DELETE("/remove", h.RemoveFriend) // 友達削除
+	}
 }
