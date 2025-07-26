@@ -21,7 +21,7 @@ const handleLogout = async () => {
           <span class="nav-text">ホーム</span>
         </RouterLink>
         
-        <RouterLink to="/compose" class="nav-item">
+        <RouterLink to="/recipient-select" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
           </svg>

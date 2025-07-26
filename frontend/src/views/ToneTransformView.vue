@@ -199,6 +199,13 @@ const proceedToSchedule = async () => {
   try {
     const messageId = route.params.id as string
     
+    console.log('Proceeding to schedule with:', {
+      messageId,
+      selectedTone: selectedTone.value,
+      selectedText: selectedText.value,
+      currentDraft: messageStore.currentDraft
+    })
+    
     // 選択したトーンを保存
     const success = await messageStore.updateDraft(messageId, {
       originalText: originalMessage.value,
@@ -209,6 +216,9 @@ const proceedToSchedule = async () => {
     })
 
     if (success) {
+      const recipientEmail = messageStore.currentDraft?.recipientEmail || ''
+      console.log('Navigating to schedule wizard with recipient:', recipientEmail)
+      
       // 予約配信画面に遷移（必要な情報をすべてクエリパラメータで渡す）
       await router.push({
         name: 'schedule-wizard',
@@ -217,13 +227,14 @@ const proceedToSchedule = async () => {
           messageText: originalMessage.value,
           selectedTone: selectedTone.value,
           finalText: selectedText.value,
-          recipientEmail: messageStore.currentDraft?.recipientEmail || ''
+          recipientEmail
         }
       })
     } else {
       throw new Error('保存に失敗しました')
     }
   } catch (err: any) {
+    console.error('Schedule proceed error:', err)
     error.value = 'トーンの保存に失敗しました'
   } finally {
     isSaving.value = false

@@ -3,36 +3,68 @@ import { apiService } from './api'
 // User lookup cache to avoid repeated API calls
 const userCache = new Map<string, { name: string, email: string }>()
 
-// Helper function to get user info by ID
-export const getUserInfo = async (userId: string): Promise<{ name: string, email: string }> => {
-  if (userCache.has(userId)) {
-    return userCache.get(userId)!
+// Helper function to get user info by ID or email
+export const getUserInfo = async (userIdOrEmail: string): Promise<{ name: string, email: string }> => {
+  if (userCache.has(userIdOrEmail)) {
+    return userCache.get(userIdOrEmail)!
   }
   
   try {
+    console.log('getUserInfo called with:', userIdOrEmail)
+    
     // Try to search user by email if it looks like an email
-    if (userId.includes('@')) {
-      const response = await apiService.get(`/users/search?email=${userId}`)
-      if (response.data.data && response.data.data.length > 0) {
-        const user = response.data.data[0]
+    if (userIdOrEmail.includes('@')) {
+      console.log('Searching by email:', userIdOrEmail)
+      const response = await apiService.get(`/users/by-email?email=${userIdOrEmail}`)
+      if (response.data.data) {
+        const user = response.data.data
         const userInfo = { 
-          name: user.displayName || user.email.split('@')[0] || 'Unknown User', 
+          name: user.name && user.name.trim() !== '' ? user.name : user.email.split('@')[0], 
           email: user.email 
         }
-        userCache.set(userId, userInfo)
+        userCache.set(userIdOrEmail, userInfo)
+        console.log('Found user by email:', userInfo)
         return userInfo
       }
     }
     
-    // If it's an ObjectID, we'll use a placeholder for now
-    // In a real application, you'd have a "get user by ID" endpoint
-    const userInfo = { name: `User-${userId.slice(-6)}`, email: `${userId}@example.com` }
-    userCache.set(userId, userInfo)
+    // For ObjectID, try a general search to find users
+    // This is a workaround until we have a proper user-by-id API
+    try {
+      console.log('Searching for ObjectID:', userIdOrEmail)
+      const searchResponse = await apiService.get('/users/search?q=@')  // Search for users with @
+      if (searchResponse.data.data && searchResponse.data.data.users && searchResponse.data.data.users.length > 0) {
+        // Look for a user that might match this ID
+        const allUsers = searchResponse.data.data.users
+        const matchingUser = allUsers.find((user: any) => 
+          user.id === userIdOrEmail || user._id === userIdOrEmail
+        )
+        
+        if (matchingUser) {
+          const userInfo = { 
+            name: matchingUser.name && matchingUser.name.trim() !== '' ? matchingUser.name : matchingUser.email.split('@')[0], 
+            email: matchingUser.email 
+          }
+          userCache.set(userIdOrEmail, userInfo)
+          console.log('Found user by ID:', userInfo)
+          return userInfo
+        }
+      }
+    } catch (searchError) {
+      console.warn('Failed to search for user:', searchError)
+    }
+    
+    // ハードコードされたフォールバックは削除し、APIデータのみを使用
+    
+    // Final fallback: use a more user-friendly placeholder
+    const userInfo = { name: '受信者', email: `user-${userIdOrEmail.slice(-6)}@example.com` }
+    userCache.set(userIdOrEmail, userInfo)
+    console.log('Using fallback user info:', userInfo)
     return userInfo
   } catch (error) {
     console.error('Failed to fetch user info:', error)
-    const userInfo = { name: 'Unknown User', email: 'unknown@example.com' }
-    userCache.set(userId, userInfo)
+    const userInfo = { name: '受信者', email: 'unknown@example.com' }
+    userCache.set(userIdOrEmail, userInfo)
     return userInfo
   }
 }

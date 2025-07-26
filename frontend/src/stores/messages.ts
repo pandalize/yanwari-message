@@ -15,7 +15,9 @@ export const useMessageStore = defineStore('messages', () => {
     error.value = ''
 
     try {
+      console.log('Creating draft with request:', request)
       const response = await messageService.createDraft(request)
+      console.log('Draft creation response:', response)
       
       const newDraft: MessageDraft = {
         id: response.data.id,
@@ -28,9 +30,11 @@ export const useMessageStore = defineStore('messages', () => {
 
       drafts.value.unshift(newDraft)
       currentDraft.value = newDraft
+      console.log('Draft created successfully:', newDraft)
       
       return true
     } catch (err: any) {
+      console.error('Draft creation failed:', err)
       error.value = err.response?.data?.error || 'メッセージの作成に失敗しました'
       return false
     } finally {
@@ -43,11 +47,14 @@ export const useMessageStore = defineStore('messages', () => {
     error.value = ''
 
     try {
+      console.log('Updating draft:', messageId, request)
       const response = await messageService.updateDraft(messageId, request)
+      console.log('Update response:', response)
       
       const updatedDraft: MessageDraft = {
         id: response.data.id,
         originalText: response.data.originalText,
+        recipientEmail: response.data.recipientId || currentDraft.value?.recipientEmail || request.recipientEmail,
         status: response.data.status as MessageDraft['status'],
         createdAt: response.data.createdAt,
         updatedAt: response.data.updatedAt
@@ -64,8 +71,10 @@ export const useMessageStore = defineStore('messages', () => {
         currentDraft.value = updatedDraft
       }
 
+      console.log('Draft updated successfully:', updatedDraft)
       return true
     } catch (err: any) {
+      console.error('Draft update failed:', err)
       error.value = err.response?.data?.error || 'メッセージの更新に失敗しました'
       return false
     } finally {
@@ -92,16 +101,21 @@ export const useMessageStore = defineStore('messages', () => {
     error.value = ''
 
     try {
+      console.log('Loading message:', messageId)
       const response = await messageService.getMessage(messageId)
+      console.log('Message loaded:', response)
       
       currentDraft.value = {
         id: response.data.id,
         originalText: response.data.originalText,
+        recipientEmail: response.data.recipientId, // Use recipientId as recipientEmail for now
         status: response.data.status as MessageDraft['status'],
         createdAt: response.data.createdAt,
         updatedAt: response.data.updatedAt
       }
+      console.log('Current draft set:', currentDraft.value)
     } catch (err: any) {
+      console.error('Failed to load message:', err)
       error.value = err.response?.data?.error || 'メッセージの取得に失敗しました'
     } finally {
       isLoading.value = false

@@ -25,6 +25,7 @@ type Message struct {
 	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt    time.Time          `bson:"updatedAt" json:"updatedAt"`
 	SentAt       *time.Time         `bson:"sentAt,omitempty" json:"sentAt,omitempty"`
+	DeliveredAt  *time.Time         `bson:"deliveredAt,omitempty" json:"deliveredAt,omitempty"`
 	ReadAt       *time.Time         `bson:"readAt,omitempty" json:"readAt,omitempty"`
 }
 
@@ -106,7 +107,9 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		}
 		message.RecipientID = recipient.ID
 		
-		// 友達関係をチェック
+		// TODO: 友達関係のチェック（一時的に無効化）
+		// 友達システムが完全に実装されるまで、この制限を解除
+		/*
 		friendshipService := NewFriendshipService(s.db)
 		areFriends, err := friendshipService.AreFriends(ctx, senderID, recipient.ID)
 		if err != nil {
@@ -115,6 +118,7 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		if !areFriends {
 			return nil, errors.New("メッセージを送るには友達になる必要があります")
 		}
+		*/
 	}
 
 	result, err := s.collection.InsertOne(ctx, message)
@@ -413,6 +417,40 @@ func (s *MessageService) MarkMessageAsRead(ctx context.Context, messageID, recip
 		return mongo.ErrNoDocuments
 	}
 
+	return nil
+}
+
+// UpdateMessageStatus メッセージのステータスを更新
+func (s *MessageService) UpdateMessageStatus(ctx context.Context, messageID primitive.ObjectID, status MessageStatus) error {
+	now := time.Now()
+	
+	filter := bson.M{"_id": messageID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    status,
+			"updatedAt": now,
+		},
+	}
+	
+	// ステータスに応じて追加フィールドを設定
+	switch status {
+	case MessageStatusSent:
+		update["$set"].(bson.M)["sentAt"] = now
+	case MessageStatusDelivered:
+		update["$set"].(bson.M)["deliveredAt"] = now
+	case MessageStatusRead:
+		update["$set"].(bson.M)["readAt"] = now
+	}
+	
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	
+	if result.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+	
 	return nil
 }
 

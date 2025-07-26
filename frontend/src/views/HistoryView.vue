@@ -250,7 +250,8 @@ const loadScheduleDetail = async (scheduleId: string) => {
     const response = await scheduleService.getScheduleDetail(scheduleId)
     selectedMessage.value = {
       id: response.schedule.id,
-      recipientName: response.schedule.recipientName || response.schedule.recipientEmail,
+      
+    : response.schedule.recipientName || response.schedule.recipientEmail,
       recipientEmail: response.schedule.recipientEmail,
       scheduledAt: response.schedule.scheduledAt,
       sentAt: undefined,
