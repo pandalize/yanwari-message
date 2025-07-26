@@ -521,9 +521,7 @@ onMounted(() => {
   min-width: 120px;
 }
 
-.urgency-high { color: #d32f2f; }
-.urgency-medium { color: #f57c00; }
-.urgency-low { color: #388e3c; }
+
 
 .reasoning {
   background: #f5f5f5;
