@@ -82,8 +82,10 @@ const handleLogin = async () => {
 <style scoped>
 .login-form {
   max-width: 400px;
+  min-width: 300px;
   margin: 0 auto;
   padding: 2rem;
+  width: 90%;
 }
 
 .form-group {
@@ -102,6 +104,8 @@ input {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
+  box-sizing: border-box;
+  min-width: 250px;
 }
 
 button {
@@ -113,6 +117,7 @@ button {
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 button:disabled {
