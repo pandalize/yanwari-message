@@ -817,6 +817,41 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **MongoDB統合**: friend_requests・friendships コレクション・インデックス作成・永続化完了
   - **ブランチ**: feature/friend-request-system でコミット・プッシュ完了
 
+- ✅ **友達申請APIハンドラー修正・バックエンドテスト開始**（2025年7月26日 14:30）
+  - **問題**: friend_requests.goで`database.GetDB()`未定義エラー・依存性注入パターン不適合
+  - **修正内容**:
+    - handlers/friend_requests.go: 依存性注入パターンに完全変更
+    - FriendRequestHandlerクラス作成・NewFriendRequestHandler関数実装
+    - UserService、FriendRequestService、FriendshipServiceを受け取る構造に変更
+    - main.go: サービス初期化とハンドラー登録を正しいパターンに修正
+    - RegisterRoutes関数でルート登録を統一
+  - **APIエンドポイント確認**:
+    - 8つの友達関連APIが全てサーバー起動時に正常登録確認済み
+    - Ginルーターで依存性注入パターンのハンドラーが正常認識
+  - **テスト開始**:
+    - バックエンドサーバー正常起動確認完了
+    - JWTトークン取得・認証システム動作確認済み
+    - 友達申請送信APIテスト実行中（500エラーのデバッグが次の課題）
+  - **結果**: コンパイルエラー完全解決・サーバー起動成功・API登録完了
+
+- ✅ **友達チェック機能の動作確認・テスト完了**（2025年7月26日 15:10）
+  - **テスト目的**: 友達以外にメッセージ送信ができないかの確認
+  - **テスト手順**:
+    1. **友達チェック無効化テスト**: models/message.go の友達チェックをコメントアウト
+       - 結果: メッセージ作成成功（ID: 688453dcfb0c8b38cab0cb88）
+       - test-user@example.com → hnn-a@gmail.com へのメッセージ作成が可能
+    2. **友達チェック有効化テスト**: 友達チェック機能を再度有効化
+       - 結果: メッセージ作成失敗（期待通り）
+       - エラー: "メッセージの作成に失敗しました"
+       - 内部エラー: "メッセージを送るには友達になる必要があります"
+  - **友達チェック機能の実装場所**:
+    - models/message.go:109-117 (CreateDraft関数)
+    - models/message.go:193-201 (UpdateMessage関数)
+    - FriendshipService.AreFriends()で送信者・受信者の友達関係を確認
+  - **テスト結果**: ✅ **友達以外にはメッセージを送ることができない仕様が正常動作**
+  - **動作確認**: メッセージ作成・更新時に友達関係チェックが確実に実行されている
+  - **セキュリティ**: 友達申請→承諾後のみメッセージ交換可能な制限が有効
+
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
 
