@@ -41,6 +41,13 @@ const handleLogout = async () => {
           </svg>
           <span class="nav-text">履歴</span>
         </RouterLink>
+        
+        <RouterLink to="/friends" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 18v-4h3v4h2v-4h3l-2.5-7.5c-.28-.86-1.08-1.5-2-1.5s-1.72.64-2 1.5L1 14h3v4h0z"/>
+          </svg>
+          <span class="nav-text">友達</span>
+        </RouterLink>
       </div>
       
       <!-- 設定・ログアウト -->

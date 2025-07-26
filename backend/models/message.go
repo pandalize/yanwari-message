@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,6 +74,7 @@ type UpdateMessageRequest struct {
 type MessageService struct {
 	collection *mongo.Collection
 	userService *UserService
+	db         *mongo.Database
 }
 
 // NewMessageService メッセージサービスを作成
@@ -80,6 +82,7 @@ func NewMessageService(db *mongo.Database, userService *UserService) *MessageSer
 	return &MessageService{
 		collection:  db.Collection("messages"),
 		userService: userService,
+		db:          db,
 	}
 }
 
@@ -102,6 +105,16 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 			return nil, err
 		}
 		message.RecipientID = recipient.ID
+		
+		// 友達関係をチェック
+		friendshipService := NewFriendshipService(s.db)
+		areFriends, err := friendshipService.AreFriends(ctx, senderID, recipient.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !areFriends {
+			return nil, errors.New("メッセージを送るには友達になる必要があります")
+		}
 	}
 
 	result, err := s.collection.InsertOne(ctx, message)
@@ -176,6 +189,16 @@ func (s *MessageService) UpdateMessage(ctx context.Context, messageID, senderID 
 			return nil, err
 		}
 		updateData["recipientId"] = recipient.ID
+		
+		// 友達関係をチェック
+		friendshipService := NewFriendshipService(s.db)
+		areFriends, err := friendshipService.AreFriends(ctx, senderID, recipient.ID)
+		if err != nil {
+			return nil, err
+		}
+		if !areFriends {
+			return nil, errors.New("メッセージを送るには友達になる必要があります")
+		}
 	}
 
 	// 送信者のメッセージのみ更新可能

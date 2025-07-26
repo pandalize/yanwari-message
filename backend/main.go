@@ -197,6 +197,26 @@ func main() {
 		// メッセージ関連エンドポイント
 		messageHandler.RegisterRoutes(v1, jwtMiddleware)
 
+		// 友達申請関連エンドポイント
+		friendRequests := v1.Group("/friend-requests")
+		friendRequests.Use(jwtMiddleware)
+		{
+			friendRequests.POST("/send", handlers.SendFriendRequest)          // 友達申請送信
+			friendRequests.GET("/received", handlers.GetReceivedFriendRequests) // 受信した申請一覧
+			friendRequests.GET("/sent", handlers.GetSentFriendRequests)      // 送信した申請一覧
+			friendRequests.POST("/:id/accept", handlers.AcceptFriendRequest) // 申請承諾
+			friendRequests.POST("/:id/reject", handlers.RejectFriendRequest) // 申請拒否
+			friendRequests.POST("/:id/cancel", handlers.CancelFriendRequest) // 申請キャンセル
+		}
+
+		// 友達関連エンドポイント
+		friends := v1.Group("/friends")
+		friends.Use(jwtMiddleware)
+		{
+			friends.GET("/", handlers.GetFriends)       // 友達一覧取得
+			friends.DELETE("/remove", handlers.RemoveFriend) // 友達削除
+		}
+
 		// AIトーン変換関連エンドポイント
 		transformHandler.RegisterRoutes(v1, jwtMiddleware)
 

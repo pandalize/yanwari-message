@@ -1127,3 +1127,31 @@ Week 9: feature/message-system-integration  # 全機能統合
 - **MongoDB Atlas**: 実接続・データ永続化確認済み
 - **テストユーザー**: test-user@example.com で実際にDB登録済み
 - **受信者テストアカウント**: hnn-a@gmail.com で動作確認済み
+
+## **ブランチ統合作業履歴**
+
+### **2025年01月21日: develop → feature/ui-design-improvement 統合完了**
+
+#### **実施内容**
+- **設定機能統合**: developブランチの設定機能をui-design-improvementブランチに統合
+- **マージコンフリクト解決**: App.vueでサイドバーナビゲーションとヘッダーナビゲーションの競合解決
+- **UI統一**: ui-design-improvementの美しいサイドバーデザインを維持しながら設定機能を追加
+
+#### **統合された機能**
+- ✅ **設定機能バックエンド**: `backend/handlers/settings.go`, `backend/models/user_settings.go`
+- ✅ **設定機能フロントエンド**: `frontend/src/views/SettingsView.vue`, `frontend/src/services/settingsService.ts`
+- ✅ **サイドバーナビゲーション統合**: 設定リンクを歯車アイコンで追加（薄緑背景）
+- ✅ **ルーティング統合**: `/settings`パスでアクセス可能
+
+#### **解決したコンフリクト**
+```diff
+// App.vue マージコンフリクト解決
+- ヘッダーナビゲーション（develop）: 絵文字アイコン + 横並び
++ サイドバーナビゲーション（ui-design-improvement）: SVGアイコン + 縦型サイドバー
++ 設定リンク追加: RouterLink to="/settings" + 歯車SVGアイコン
+```
+
+#### **今後の作業方針**
+- `feature/ui-design-improvement`ブランチで設定画面のUIデザイン改善を実施
+- 美しいサイドバーデザインとの統一感を保った設定画面の作成
+- 完了後にdevelopブランチへマージしてUI改善を本線に統合
