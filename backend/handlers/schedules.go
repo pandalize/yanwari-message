@@ -442,7 +442,7 @@ func (h *ScheduleHandler) getDefaultSchedulePrompt(messageText, selectedTone str
 必ず以下のJSON形式で回答してください：
 {
   "message_type": "謝罪|お礼|依頼|報告|相談|確認|連絡|その他",
-  "urgency_level": "高|中|低",
+  
   "recommended_timing": "今すぐ|1時間以内|当日中|翌朝|翌日中|来週",
   "reasoning": "推奨理由を日本語で100文字以内で説明",
   "suggested_options": [

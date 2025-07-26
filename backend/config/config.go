@@ -55,7 +55,7 @@ type ScheduleAnalysis struct {
 
 // DefaultSuggestion デフォルト提案設定
 type DefaultSuggestion struct {
-	UrgencyLevel       string `yaml:"urgency_level"`
+	
 	RecommendedTiming  string `yaml:"recommended_timing"`
 	Reasoning          string `yaml:"reasoning"`
 }

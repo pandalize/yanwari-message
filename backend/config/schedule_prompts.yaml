@@ -18,15 +18,13 @@ schedule_analysis:
     
     以下の観点で分析してください：
     1. メッセージの種類（謝罪、お礼、依頼、報告、相談、確認など）
-    2. 緊急度レベル（高/中/低）
-    3. 相手への配慮（即座送信/少し時間を置く/翌日など）
-    4. 日本のビジネスマナー的な最適タイミング
-    5. 時間帯や曜日による適切性
+    2. 相手への配慮（即座送信/少し時間を置く/翌日など）
+    3. 日本のビジネスマナー的な最適タイミング
+    4. 時間帯や曜日による適切性
 
     必ず以下のJSON形式で回答してください：
     {
       "message_type": "謝罪|お礼|依頼|報告|相談|確認|連絡|その他",
-      "urgency_level": "高|中|低",
       "recommended_timing": "今すぐ|1時間以内|当日中|翌朝|翌日中|来週",
       "reasoning": "推奨理由を日本語で100文字以内で説明",
       "suggested_options": [
@@ -54,22 +52,18 @@ schedule_analysis:
 # メッセージタイプ別デフォルト提案パターン
 default_suggestions:
   謝罪:
-    urgency_level: "高"
     recommended_timing: "今すぐ"
     reasoning: "謝罪は迅速さが重要。相手への誠意を示すため早めの送信を推奨します。"
     
   お礼:
-    urgency_level: "中" 
     recommended_timing: "当日中"
     reasoning: "感謝の気持ちは早めに伝える方が効果的ですが、緊急性は高くありません。"
     
   依頼:
-    urgency_level: "中"
     recommended_timing: "1時間以内"
     reasoning: "依頼は相手の時間を考慮し、少し考える時間を置いてから送信することを推奨します。"
     
   報告:
-    urgency_level: "中"
     recommended_timing: "翌朝"
     reasoning: "報告は相手が落ち着いて確認できる時間帯での送信を推奨します。"
 

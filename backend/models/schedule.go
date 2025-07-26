@@ -43,7 +43,7 @@ type SuggestionOption struct {
 // ScheduleSuggestionResponse AI時間提案レスポンス
 type ScheduleSuggestionResponse struct {
 	MessageType       string             `json:"message_type"`
-	UrgencyLevel      string             `json:"urgency_level"`
+	
 	RecommendedTiming string             `json:"recommended_timing"`
 	Reasoning         string             `json:"reasoning"`
 	SuggestedOptions  []SuggestionOption `json:"suggested_options"`
