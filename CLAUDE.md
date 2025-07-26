@@ -247,10 +247,13 @@ npm run clean
 # 各機能が独立したAPIエンドポイントを持つ（他アプリでも再利用可能）
 /api/v1/auth/*              # 認証システム（完了済み）
 /api/v1/users/*             # ユーザー検索・連絡先管理
-/api/v1/messages/*          # メッセージ作成・管理
-/api/v1/transform/*         # AIトーン変換（3種並行処理）
-/api/v1/schedules/*         # 配信スケジュール管理
-/api/v1/notifications/*     # SSE通知・配信
+/api/v1/messages/*          # メッセージ作成・管理（完了済み）
+/api/v1/transform/*         # AIトーン変換（3種並行処理・完了済み）
+/api/v1/schedules/*         # 配信スケジュール管理（完了済み）
+/api/v1/friend-requests/*   # 友達申請管理（完了済み）
+/api/v1/friends/*           # 友達関係管理（完了済み）
+/api/v1/settings/*          # ユーザー設定管理（完了済み）
+/api/v1/notifications/*     # SSE通知・配信（予定）
 /api/v1/dashboard           # BFF統合エンドポイント（必要時）
 ```
 
@@ -293,6 +296,23 @@ collections: {
     createdAt: Date,
     sentAt: Date,
     readAt: Date
+  },
+  
+  friend_requests: {
+    _id: ObjectId,
+    from_user_id: ObjectId,      // 申請者ID
+    to_user_id: ObjectId,        // 受信者ID
+    status: "pending|accepted|rejected|canceled",
+    message: string,             // 申請メッセージ（任意）
+    created_at: Date,
+    updated_at: Date
+  },
+  
+  friendships: {
+    _id: ObjectId,
+    user1_id: ObjectId,          // 小さいID（正規化）
+    user2_id: ObjectId,          // 大きいID（正規化）
+    created_at: Date             // 友達になった日時
   },
   
   contacts: {
@@ -768,6 +788,34 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **MongoDB統合**: user_settings コレクション・インデックス作成・永続化完了
   - **セキュリティ**: JWT認証必須・パスワード変更時の現在パスワード確認・入力バリデーション
   - **E2Eテスト**: ブラウザ動作確認・設定変更・保存・表示まで完全動作確認済み
+
+- ✅ **F-06: 友達申請システム完全実装・統合完了**（2025年7月26日 12:35）
+  - **Backend完全実装**: 友達申請・友達関係管理・MongoDB統合完了
+    - models/friend_request.go: FriendRequest モデル・申請状態管理（pending/accepted/rejected/canceled）
+    - models/friendship.go: Friendship モデル・友達関係管理（正規化されたペア管理）
+    - handlers/friend_requests.go: 友達申請APIハンドラー実装（6エンドポイント）
+    - POST /api/v1/friend-requests/send: 友達申請送信
+    - GET /api/v1/friend-requests/received: 受信した申請一覧
+    - GET /api/v1/friend-requests/sent: 送信した申請一覧
+    - POST /api/v1/friend-requests/:id/accept: 申請承諾
+    - POST /api/v1/friend-requests/:id/reject: 申請拒否
+    - POST /api/v1/friend-requests/:id/cancel: 申請キャンセル
+    - GET /api/v1/friends/: 友達一覧取得
+    - DELETE /api/v1/friends/remove: 友達削除
+  - **Frontend完全実装**: 友達管理UI・API統合・UX/UI完成
+    - components/friends/SendFriendRequest.vue: 友達申請送信フォーム
+    - components/friends/FriendRequestList.vue: 申請一覧表示（受信・送信）
+    - components/friends/FriendsList.vue: 友達リスト・メッセージ送信・削除機能
+    - views/FriendsView.vue: タブ式友達管理統合画面（/friends）
+    - services/friendService.ts: 友達申請管理サービス層
+    - stores/friends.ts: Pinia状態管理（友達・申請データ）
+  - **セキュリティ機能**: 
+    - 友達チェック: メッセージ送信前の友達関係確認（models/message.go修正）
+    - 重複防止: 同じユーザー間の重複申請を防止
+    - 権限制御: 自分の申請のみ操作可能
+  - **ナビゲーション統合**: App.vue サイドバーに友達管理リンク追加
+  - **MongoDB統合**: friend_requests・friendships コレクション・インデックス作成・永続化完了
+  - **ブランチ**: feature/friend-request-system でコミット・プッシュ完了
 
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
