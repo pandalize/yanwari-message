@@ -34,12 +34,8 @@
             <span class="label">📋 メッセージ種別:</span>
             <span class="value">{{ suggestion.message_type }}</span>
           </div>
-          <div class="analysis-item">
-            <span class="label">⚡ 緊急度:</span>
-            <span class="value urgency" :class="`urgency-${getUrgencyLevel(suggestion.urgency_level)}`">
-              {{ suggestion.urgency_level }}
-            </span>
-          </div>
+
+
           <div class="analysis-item">
             <span class="label">💡 推奨タイミング:</span>
             <span class="value recommended">{{ suggestion.recommended_timing }}</span>
@@ -213,14 +209,7 @@ const getToneLabel = (tone: string) => {
   return labels[tone] || tone
 }
 
-const getUrgencyLevel = (urgency: string) => {
-  const mapping: Record<string, string> = {
-    '高': 'high',
-    '中': 'medium', 
-    '低': 'low'
-  }
-  return mapping[urgency] || 'medium'
-}
+
 
 const getPriorityClass = (priority: string) => {
   const mapping: Record<string, string> = {

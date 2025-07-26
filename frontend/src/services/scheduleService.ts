@@ -11,7 +11,6 @@ export interface ScheduleSuggestionRequest {
 // AI時間提案レスポンス
 export interface ScheduleSuggestionResponse {
   message_type: string
-  urgency_level: string
   recommended_timing: string
   reasoning: string
   suggested_options: Array<{
