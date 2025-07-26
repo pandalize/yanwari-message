@@ -125,11 +125,28 @@ const transformTone = async () => {
 
 <style scoped>
 .message-compose-view {
-  padding: var(--spacing-2xl) var(--spacing-3xl);
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: var(--spacing-2xl) 5%;
   background: var(--background-primary);
   font-family: var(--font-family-main);
+  min-height: 100vh;
+}
+
+@media (min-width: 768px) {
+  .message-compose-view {
+    padding: var(--spacing-2xl) 10%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .message-compose-view {
+    padding: var(--spacing-2xl) 15%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .message-compose-view {
+    padding: var(--spacing-2xl) 20%;
+  }
 }
 
 .page-title {
@@ -142,7 +159,7 @@ const transformTone = async () => {
 
 /* 新規作成セクション */
 .compose-section {
-  margin-bottom: var(--spacing-3xl);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .section-title {
@@ -155,9 +172,9 @@ const transformTone = async () => {
 
 /* メッセージ入力エリア */
 .message-input-container {
-  width: 700px;
-  height: 299px;
-  margin-bottom: var(--spacing-2xl);
+  width: 100%;
+  height: 200px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .message-textarea {
@@ -192,13 +209,13 @@ const transformTone = async () => {
 .action-buttons {
   display: flex;
   gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .action-btn {
   width: 200px;
-  height: 60px;
-  border-radius: 30px;
+  height: 50px;
+  border-radius: 25px;
   border: none;
   font-size: var(--font-size-base);
   font-family: var(--font-family-main);
@@ -229,12 +246,14 @@ const transformTone = async () => {
 
 /* 下書きセクション */
 .drafts-section {
-  margin-bottom: var(--spacing-3xl);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .drafts-container {
-  width: 700px;
-  min-height: 227px;
+  width: 100%;
+  min-height: 150px;
+  max-height: 250px;
+  overflow-y: auto;
   border: 3px solid var(--border-color);
   border-radius: 10px;
   background: var(--neutral-color);
@@ -247,16 +266,6 @@ const transformTone = async () => {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .message-compose-view {
-    padding: var(--spacing-lg);
-  }
-  
-  .message-input-container,
-  .drafts-container {
-    width: 100%;
-    max-width: 700px;
-  }
-  
   .action-buttons {
     flex-direction: column;
     gap: var(--spacing-md);

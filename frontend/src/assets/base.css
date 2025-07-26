@@ -83,8 +83,10 @@
   --breakpoint-desktop: 1200px;
   
   /* ===== レイアウト最大幅 ===== */
-  --max-width-content: 1200px;
-  --max-width-narrow: 800px;
+  --max-width-content: 100%;
+  --max-width-narrow: 100%;
+  --max-width-container: 1200px;
+  --max-width-container-narrow: 800px;
 }
 
 /* ダークモード対応（将来的に実装） */

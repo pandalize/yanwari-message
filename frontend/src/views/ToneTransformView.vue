@@ -239,7 +239,7 @@ onMounted(() => {
 <style scoped>
 .tone-transform-view {
   padding: var(--spacing-2xl) var(--spacing-3xl);
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   background: var(--background-primary);
   font-family: var(--font-family-main);
@@ -456,6 +456,49 @@ onMounted(() => {
 }
 
 /* レスポンシブ対応 */
+
+/* 大画面対応 */
+@media (min-width: 1400px) {
+  .tone-transform-view {
+    padding: var(--spacing-3xl) var(--spacing-3xl);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .message-container {
+    width: 100%;
+    max-width: 1000px;
+    height: 350px;
+  }
+  
+  .message-text {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-2xl);
+  }
+  
+  .tone-options {
+    max-width: 1000px;
+    gap: var(--spacing-xl);
+  }
+  
+  .tone-option {
+    padding: var(--spacing-2xl);
+  }
+  
+  .tone-text {
+    font-size: var(--font-size-lg);
+  }
+  
+  .proceed-btn {
+    width: 280px;
+    height: 70px;
+    font-size: var(--font-size-lg);
+  }
+}
+
 @media (max-width: 768px) {
   .tone-transform-view {
     padding: var(--spacing-lg);
@@ -464,7 +507,7 @@ onMounted(() => {
   .message-container,
   .tone-options {
     width: 100%;
-    max-width: 700px;
+    max-width: 900px;
   }
   
   .proceed-btn {
