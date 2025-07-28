@@ -93,6 +93,33 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 	})
 }
 
+// GetUserByID ユーザーIDでユーザー情報を取得
+// GET /api/v1/users/:id
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+	// 認証チェック
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ユーザーIDが必要です"})
+		return
+	}
+
+	user, err := h.userService.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ユーザーが見つかりません"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": user,
+	})
+}
+
 // GetCurrentUser 現在のログインユーザー情報を取得
 // GET /api/v1/users/me
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
@@ -126,6 +153,8 @@ func (h *UserHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin
 	{
 		users.GET("/search", h.SearchUsers)
 		users.GET("/by-email", h.GetUserByEmail)
+		// 注意: /me は /:id より先に登録する必要がある
 		users.GET("/me", h.GetCurrentUser)
+		users.GET("/:id", h.GetUserByID)
 	}
 }

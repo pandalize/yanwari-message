@@ -303,3 +303,40 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID primitive.Objec
 
 	return nil
 }
+
+// UpdateEmail ユーザーのメールアドレスを更新
+func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID, email string) error {
+	// まず新しいメールアドレスが既に使用されていないかチェック
+	exists, err := s.EmailExists(ctx, email)
+	if err != nil {
+		return fmt.Errorf("メールアドレス重複チェックエラー: %w", err)
+	}
+	if exists {
+		return fmt.Errorf("このメールアドレスは既に使用されています")
+	}
+
+	now := time.Now()
+	
+	filter := bson.M{"_id": userID}
+	update := bson.M{
+		"$set": bson.M{
+			"email":      email,
+			"updated_at": now,
+		},
+	}
+
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		// 重複エラーの場合（インデックス制約違反）
+		if mongo.IsDuplicateKeyError(err) {
+			return fmt.Errorf("このメールアドレスは既に使用されています")
+		}
+		return fmt.Errorf("メールアドレス更新エラー: %w", err)
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("更新対象のユーザーが見つかりません")
+	}
+
+	return nil
+}

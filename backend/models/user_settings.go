@@ -37,7 +37,8 @@ type MessageSettings struct {
 
 // UpdateProfileRequest プロフィール更新リクエスト
 type UpdateProfileRequest struct {
-	Name string `json:"name" binding:"max=100"`
+	Name  string `json:"name" binding:"max=100"`
+	Email string `json:"email" binding:"omitempty,email,max=255"`
 }
 
 // ChangePasswordRequest パスワード変更リクエスト

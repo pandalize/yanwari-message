@@ -97,11 +97,22 @@ func (h *SettingsHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// プロフィールを更新
-	err := h.userService.UpdateProfile(c.Request.Context(), userID, req.Name)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "プロフィールの更新に失敗しました"})
-		return
+	// 名前が提供されている場合は更新
+	if req.Name != "" {
+		err := h.userService.UpdateProfile(c.Request.Context(), userID, req.Name)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "名前の更新に失敗しました"})
+			return
+		}
+	}
+
+	// メールアドレスが提供されている場合は更新
+	if req.Email != "" {
+		err := h.userService.UpdateEmail(c.Request.Context(), userID, req.Email)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -53,6 +53,9 @@ func main() {
 	// メッセージサービスの初期化
 	messageService := models.NewMessageService(db.Database, userService)
 	
+	// スケジュールサービスの初期化
+	scheduleService := models.NewScheduleService(db.Database, messageService)
+	
 	// インデックス作成
 	ctx := context.Background()
 	if err := userService.CreateEmailIndex(ctx); err != nil {
@@ -66,7 +69,7 @@ func main() {
 	}
 
 	// 配信サービスの初期化
-	deliveryService := services.NewDeliveryService(messageService)
+	deliveryService := services.NewDeliveryService(messageService, scheduleService)
 	// 1分間隔でスケジュール配信をチェック
 	deliveryService.Start(1 * time.Minute)
 
@@ -160,7 +163,6 @@ func main() {
 	})
 
 	// サービスの初期化
-	scheduleService := models.NewScheduleService(db.Database, messageService)
 	userSettingsService := models.NewUserSettingsService(db.Database, userService)
 	friendRequestService := models.NewFriendRequestService(db.Database)
 	friendshipService := models.NewFriendshipService(db.Database)
@@ -175,7 +177,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 	messageHandler := handlers.NewMessageHandler(messageService)
 	transformHandler := handlers.NewTransformHandler(messageService)
-	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService)
+	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService, deliveryService)
 	settingsHandler := handlers.NewSettingsHandler(userService, userSettingsService)
 	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
 

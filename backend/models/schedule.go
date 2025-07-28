@@ -322,3 +322,23 @@ func (s *ScheduleService) MarkAsFailed(ctx context.Context, scheduleID primitive
 	_, err := s.collection.UpdateOne(ctx, filter, update)
 	return err
 }
+
+// UpdateScheduleStatusByMessageID メッセージIDによるスケジュールステータス更新
+func (s *ScheduleService) UpdateScheduleStatusByMessageID(ctx context.Context, messageID primitive.ObjectID, status string) error {
+	now := time.Now()
+	filter := bson.M{"messageId": messageID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    status,
+			"updatedAt": now,
+		},
+	}
+	
+	// 送信済みの場合は送信時刻も記録
+	if status == "sent" {
+		update["$set"].(bson.M)["sentAt"] = now
+	}
+
+	_, err := s.collection.UpdateOne(ctx, filter, update)
+	return err
+}

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"yanwari-message-backend/models"
@@ -10,16 +11,18 @@ import (
 
 // DeliveryService メッセージ配信サービス
 type DeliveryService struct {
-	messageService *models.MessageService
-	ticker         *time.Ticker
-	done           chan bool
+	messageService  *models.MessageService
+	scheduleService *models.ScheduleService
+	ticker          *time.Ticker
+	done            chan bool
 }
 
 // NewDeliveryService 配信サービスを作成
-func NewDeliveryService(messageService *models.MessageService) *DeliveryService {
+func NewDeliveryService(messageService *models.MessageService, scheduleService *models.ScheduleService) *DeliveryService {
 	return &DeliveryService{
-		messageService: messageService,
-		done:           make(chan bool),
+		messageService:  messageService,
+		scheduleService: scheduleService,
+		done:            make(chan bool),
 	}
 }
 
@@ -85,27 +88,122 @@ func (s *DeliveryService) processScheduledMessages() {
 
 // deliverMessageToRecipient メッセージを受信者に実際に配信
 func (s *DeliveryService) deliverMessageToRecipient(ctx context.Context, msg models.Message) error {
-	// TODO: 実際の配信処理を実装
-	// - メール送信
-	// - プッシュ通知
-	// - SMS送信
-	// - その他外部API連携
-	
-	log.Printf("受信者配信処理: メッセージID=%s, 受信者ID=%s, 内容=%s", 
+	// 配信処理の詳細ログ
+	log.Printf("📤 配信開始: ID=%s, 受信者=%s, 内容=%s", 
 		msg.ID.Hex(), 
 		msg.RecipientID.Hex(),
 		truncateText(msg.FinalText, 50))
 	
-	// 現在はログ出力のみ（実際の外部配信は将来実装）
-	// ここで受信者への実際の通知を行う
+	// 配信試行回数の制限チェック（将来の再試行機能用）
+	// TODO: メッセージモデルにretryCountフィールドを追加することを検討
+	// maxRetries := 3
+	
+	// 実際の配信処理を実行
+	deliveryError := s.performDelivery(ctx, &msg)
+	
+	if deliveryError != nil {
+		// 配信エラー時の処理
+		log.Printf("❌ 配信エラー: ID=%s, エラー=%v", msg.ID.Hex(), deliveryError)
+		
+		// エラーの種類に応じて処理を分岐
+		if isRetryableError(deliveryError) {
+			// 再試行可能なエラーの場合
+			log.Printf("🔄 再試行可能エラー: ID=%s, %s", msg.ID.Hex(), deliveryError.Error())
+			// メッセージのステータスはsentのまま維持（次回のバックグラウンド処理で再試行）
+			return deliveryError
+		} else {
+			// 再試行不可能なエラーの場合
+			log.Printf("💀 致命的エラー: ID=%s, %s", msg.ID.Hex(), deliveryError.Error())
+			// ステータスを失敗に更新
+			if err := s.messageService.UpdateMessageStatus(ctx, msg.ID, models.MessageStatusSent); err != nil {
+				log.Printf("ステータス更新エラー: %v", err)
+			}
+			return deliveryError
+		}
+	}
+	
+	// 配信成功時の処理
+	log.Printf("✅ 配信成功: ID=%s, 受信者=%s", msg.ID.Hex(), msg.RecipientID.Hex())
 	
 	// ステータスをdeliveredに更新
 	err := s.messageService.UpdateMessageStatus(ctx, msg.ID, models.MessageStatusDelivered)
 	if err != nil {
+		log.Printf("ステータス更新エラー: ID=%s, エラー=%v", msg.ID.Hex(), err)
 		return err
 	}
 	
+	// スケジュールのステータスを送信済みに更新
+	if s.scheduleService != nil {
+		if err := s.scheduleService.UpdateScheduleStatusByMessageID(ctx, msg.ID, "sent"); err != nil {
+			log.Printf("スケジュールステータス更新エラー: MessageID=%s, エラー=%v", msg.ID.Hex(), err)
+		} else {
+			log.Printf("📅 スケジュールステータス更新成功: MessageID=%s → sent", msg.ID.Hex())
+		}
+	}
+	
+	// 送信者への送信完了通知を実行
+	s.notifySenderOfDelivery(ctx, &msg)
+	
 	return nil
+}
+
+// performDelivery 実際の配信処理を実行
+func (s *DeliveryService) performDelivery(ctx context.Context, msg *models.Message) error {
+	// TODO: 実際の配信処理を実装
+	// - メール送信
+	// - プッシュ通知
+	// - SMS送信
+	// - Webhook呼び出し
+	// - 外部API連携
+	
+	// 現在は成功として扱う（将来の外部サービス連携のため）
+	log.Printf("📧 実際の配信処理実行中... (現在はログ出力のみ)")
+	
+	// シミュレーション: 10%の確率でエラーを発生させる（テスト用）
+	// if rand.Float32() < 0.1 {
+	//     return fmt.Errorf("シミュレーション配信エラー")
+	// }
+	
+	return nil
+}
+
+// isRetryableError エラーが再試行可能かどうか判定
+func isRetryableError(err error) bool {
+	// 再試行可能エラーの条件
+	errorMsg := err.Error()
+	
+	// ネットワーク関連エラー
+	if strings.Contains(errorMsg, "connection") ||
+	   strings.Contains(errorMsg, "timeout") ||
+	   strings.Contains(errorMsg, "temporary") {
+		return true
+	}
+	
+	// レート制限エラー
+	if strings.Contains(errorMsg, "rate limit") ||
+	   strings.Contains(errorMsg, "too many requests") {
+		return true
+	}
+	
+	// サーバーエラー（5xx）
+	if strings.Contains(errorMsg, "server error") ||
+	   strings.Contains(errorMsg, "service unavailable") {
+		return true
+	}
+	
+	// デフォルトは再試行不可
+	return false
+}
+
+// notifySenderOfDelivery 送信者に配信完了を通知
+func (s *DeliveryService) notifySenderOfDelivery(ctx context.Context, msg *models.Message) {
+	// TODO: 送信者への通知実装
+	// - プッシュ通知
+	// - メール通知
+	// - アプリ内通知
+	// - WebSocket/SSE通知
+	
+	log.Printf("📬 送信者通知: 送信者=%s, メッセージ配信完了", msg.SenderID.Hex())
 }
 
 // truncateText テキストを指定文字数で切り詰め

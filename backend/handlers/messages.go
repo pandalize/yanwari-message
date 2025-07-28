@@ -324,21 +324,73 @@ func (h *MessageHandler) MarkMessageAsRead(c *gin.Context) {
 	})
 }
 
-// DeliverScheduledMessages スケジュール配信を実行（内部API）
+// DeliverScheduledMessages スケジュール配信を実行（管理者API）
 // POST /api/v1/messages/deliver-scheduled
 func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 	messages, err := h.messageService.DeliverScheduledMessages(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュール配信に失敗しました"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュール配信に失敗しました", "details": err.Error()})
+		return
+	}
+
+	response := gin.H{
+		"data": gin.H{
+			"delivered_count": len(messages),
+			"messages":        nil, // セキュリティ上、メッセージ詳細は返さない
+		},
+		"message": "スケジュール配信を実行しました",
+	}
+
+	// 詳細情報をリクエストされた場合のみ追加
+	if c.Query("include_details") == "true" {
+		response["data"].(gin.H)["messages"] = messages
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
+// GET /api/v1/messages/sent
+func (h *MessageHandler) GetSentMessages(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	senderID, ok := userID.(primitive.ObjectID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+		return
+	}
+
+	// ページネーション
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	// 送信済みメッセージを取得
+	messages, total, err := h.messageService.GetSentMessages(c.Request.Context(), senderID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "送信済みメッセージの取得に失敗しました"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"delivered_count": len(messages),
-			"messages":        messages,
+			"messages": messages,
+			"pagination": gin.H{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+			},
 		},
-		"message": "スケジュール配信を実行しました",
+		"message": "送信済みメッセージ一覧を取得しました",
 	})
 }
 
@@ -349,8 +401,9 @@ func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware 
 	{
 		// 送信者向け
 		messages.POST("/draft", h.CreateDraft)
-		messages.PUT("/:id", h.UpdateMessage)
 		messages.GET("/drafts", h.GetDrafts)
+		messages.GET("/sent", h.GetSentMessages)     // 特定パスを先に配置
+		messages.PUT("/:id", h.UpdateMessage)
 		messages.GET("/:id", h.GetMessage)
 		messages.DELETE("/:id", h.DeleteMessage)
 		

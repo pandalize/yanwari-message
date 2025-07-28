@@ -540,3 +540,48 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 
 	return messagesWithSender, total, nil
 }
+
+// GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
+func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
+	var messages []Message
+	
+	// 送信者が送信したメッセージで、送信済み以上の状態のメッセージを取得
+	filter := bson.M{
+		"senderId": senderID,
+		"status": bson.M{"$in": []MessageStatus{
+			MessageStatusSent,
+			MessageStatusDelivered,
+			MessageStatusRead,
+		}},
+	}
+
+	// 総数を取得
+	total, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ページネーション設定
+	skip := int64((page - 1) * limit)
+	limitInt64 := int64(limit)
+	
+	cursor, err := s.collection.Find(ctx, filter, &options.FindOptions{
+		Sort:  bson.D{{Key: "sentAt", Value: -1}}, // 送信日時の降順
+		Skip:  &skip,
+		Limit: &limitInt64,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &messages); err != nil {
+		return nil, 0, err
+	}
+
+	if messages == nil {
+		messages = []Message{}
+	}
+
+	return messages, total, nil
+}

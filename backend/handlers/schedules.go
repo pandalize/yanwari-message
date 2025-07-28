@@ -12,6 +12,7 @@ import (
 
 	"yanwari-message-backend/config"
 	"yanwari-message-backend/models"
+	"yanwari-message-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -42,12 +43,13 @@ type ScheduleContent struct {
 type ScheduleHandler struct {
 	scheduleService  *models.ScheduleService
 	messageService   *models.MessageService
+	deliveryService  *services.DeliveryService
 	anthropicAPIKey  string
 	scheduleConfig   *config.ScheduleConfig
 }
 
 // NewScheduleHandler スケジュールハンドラーのコンストラクタ
-func NewScheduleHandler(scheduleService *models.ScheduleService, messageService *models.MessageService) *ScheduleHandler {
+func NewScheduleHandler(scheduleService *models.ScheduleService, messageService *models.MessageService, deliveryService *services.DeliveryService) *ScheduleHandler {
 	// スケジュール設定を読み込み
 	scheduleConfig, err := config.LoadScheduleConfig()
 	if err != nil {
@@ -58,6 +60,7 @@ func NewScheduleHandler(scheduleService *models.ScheduleService, messageService 
 	return &ScheduleHandler{
 		scheduleService: scheduleService,
 		messageService:  messageService,
+		deliveryService: deliveryService,
 		anthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 		scheduleConfig:  scheduleConfig,
 	}
@@ -118,24 +121,41 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 	fmt.Printf("時刻差分: %v\n", timeDiff)
 	fmt.Printf("========================\n")
 	
+	// 過去時刻の場合は即座に送信
+	var isPastSchedule bool
 	if scheduledTime.Before(now) || scheduledTime.Equal(now) {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "送信時刻は現在より未来である必要があります",
-			"details": map[string]interface{}{
-				"provided_time": scheduledTime.Format(time.RFC3339),
-				"current_time":  now.Format(time.RFC3339),
-				"provided_time_jst": scheduledTime.In(jst).Format(time.RFC3339),
-				"current_time_jst":  now.In(jst).Format(time.RFC3339),
-				"time_diff_minutes": timeDiff.Minutes(),
-			},
-		})
-		return
+		fmt.Printf("過去時刻が指定されました。即座に送信処理を実行します。\n")
+		isPastSchedule = true
+		// 送信時刻を現在時刻に設定
+		scheduledTime = now
+		req.ScheduledAt = now
 	}
 
 	// スケジュール作成
 	schedule, err := h.scheduleService.CreateSchedule(c.Request.Context(), currentUserID, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュールの作成に失敗しました"})
+		return
+	}
+
+	// 過去時刻の場合は即座に送信処理を実行
+	if isPastSchedule {
+		fmt.Printf("即座に送信処理を実行中...\n")
+		
+		// DeliveryServiceを使って即座に配信
+		if h.deliveryService != nil {
+			deliveredCount, deliveryErr := h.deliveryService.DeliverNow()
+			if deliveryErr != nil {
+				fmt.Printf("即座送信エラー: %v\n", deliveryErr)
+			} else {
+				fmt.Printf("即座送信完了: %d件のメッセージを配信しました\n", deliveredCount)
+			}
+		}
+		
+		c.JSON(http.StatusCreated, gin.H{
+			"data":    schedule,
+			"message": "スケジュールを作成し、即座に送信しました",
+		})
 		return
 	}
 
@@ -223,26 +243,17 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 		return
 	}
 
-	// 送信時刻が現在より未来であることを確認
+	// 送信時刻チェック（過去時刻の場合は即座に送信）
+	var isPastSchedule bool
 	if req.ScheduledAt != nil {
 		now := time.Now().UTC()
 		scheduledTime := req.ScheduledAt.UTC()
 		
 		if scheduledTime.Before(now) || scheduledTime.Equal(now) {
-			jst, _ := time.LoadLocation("Asia/Tokyo")
-			timeDiff := scheduledTime.Sub(now)
-			
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "送信時刻は現在より未来である必要があります",
-				"details": map[string]interface{}{
-					"provided_time": scheduledTime.Format(time.RFC3339),
-					"current_time":  now.Format(time.RFC3339),
-					"provided_time_jst": scheduledTime.In(jst).Format(time.RFC3339),
-					"current_time_jst":  now.In(jst).Format(time.RFC3339),
-					"time_diff_minutes": timeDiff.Minutes(),
-				},
-			})
-			return
+			fmt.Printf("更新で過去時刻が指定されました。即座に送信処理を実行します。\n")
+			isPastSchedule = true
+			// 送信時刻を現在時刻に設定
+			*req.ScheduledAt = now
 		}
 	}
 
@@ -253,9 +264,69 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 		return
 	}
 
+	// 過去時刻の場合は即座に送信処理を実行
+	if isPastSchedule {
+		fmt.Printf("即座に送信処理を実行中...\n")
+		
+		// DeliveryServiceを使って即座に配信
+		if h.deliveryService != nil {
+			deliveredCount, deliveryErr := h.deliveryService.DeliverNow()
+			if deliveryErr != nil {
+				fmt.Printf("即座送信エラー: %v\n", deliveryErr)
+			} else {
+				fmt.Printf("即座送信完了: %d件のメッセージを配信しました\n", deliveredCount)
+			}
+		}
+		
+		c.JSON(http.StatusOK, gin.H{
+			"data":    schedule,
+			"message": "スケジュールを更新し、即座に送信しました",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"data":    schedule,
 		"message": "スケジュールを更新しました",
+	})
+}
+
+// SyncScheduleStatus スケジュールとメッセージのステータス同期
+// POST /api/v1/schedules/sync-status
+func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	currentUserID, ok := userID.(primitive.ObjectID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+		return
+	}
+
+	// 送信済みメッセージを取得
+	sentMessages, _, err := h.messageService.GetSentMessages(c.Request.Context(), currentUserID, 1, 100)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "送信済みメッセージの取得に失敗しました"})
+		return
+	}
+
+	syncCount := 0
+	for _, msg := range sentMessages {
+		// メッセージIDに対応するスケジュールのステータスを更新
+		if err := h.scheduleService.UpdateScheduleStatusByMessageID(c.Request.Context(), msg.ID, "sent"); err != nil {
+			fmt.Printf("スケジュール同期エラー: MessageID=%s, エラー=%v\n", msg.ID.Hex(), err)
+		} else {
+			syncCount++
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "スケジュールステータスを同期しました",
+		"synced_count": syncCount,
+		"total_sent_messages": len(sentMessages),
 	})
 }
 
@@ -503,5 +574,6 @@ func (h *ScheduleHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware
 		schedules.GET("/", h.GetSchedules)
 		schedules.PUT("/:id", h.UpdateSchedule)
 		schedules.DELETE("/:id", h.DeleteSchedule)
+		schedules.POST("/sync-status", h.SyncScheduleStatus) // スケジュール・メッセージ同期
 	}
 }
