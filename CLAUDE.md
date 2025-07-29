@@ -1189,11 +1189,28 @@ Week 9: feature/message-system-integration  # 全機能統合
 
 ### 現在のセッション状況
 - **開発者**: fujinoyuki
-- **現在のブランチ**: feature/ui-responsive-improvement
-- **最終更新**: 2025年7月26日 20:00
-- **セッション状態**: UI画面比率改善・レスポンシブデザイン対応完了
+- **現在のブランチ**: develop
+- **最終更新**: 2025年7月29日 22:30
+- **セッション状態**: ui-design-improvementブランチ機能統合完了・E2E統合テスト完了
 
 ### 完了したタスク（本セッション）
+- ✅ **ui-design-improvementブランチ機能統合完了**（fujinoyuki, 2025年7月29日 22:30）
+  - **統合戦略**: 履歴ボタン問題解決→機能改善選択統合→developブランチ統合
+  - **Phase 1 - フロントエンド機能統合**:
+    - MessageComposeView: 受信者情報表示・編集機能・クエリパラメータ対応
+    - ScheduleWizard: 完全なスケジュール作成ウィザード・AI提案UI
+    - RecipientSelectView: 受信者選択画面・友達一覧・手動入力
+    - ルーティング改良: `/recipient-select`、`/schedule`、`/schedules`パス統合
+  - **Phase 2 - バックエンド機能統合**:
+    - メッセージハンドラー: GetSentMessages API・DeliverScheduledMessages拡張
+    - メッセージモデル: DeliveredAtフィールド・UpdateMessageStatusメソッド・GetSentMessagesページネーション
+    - エラーハンドリング改善: getUserInfoヘルパー・キャッシュ機能・フォールバック処理
+    - スケジュールストア: 完全なPinia状態管理・CRUD操作・エラーハンドリング
+  - **Phase 3 - 統合テスト完了**:
+    - E2Eフロー動作確認: 認証→メッセージ作成→トーン変換→AI提案→スケジュール作成
+    - 編集フロー動作確認: メッセージ更新・トーン変換結果保存・選択トーン反映
+    - API統合テスト: 全エンドポイント動作確認済み（test-integration@example.com）
+
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
   - **統一パディングシステム**: パーセンテージベースの画面サイズ別パディング(5%→10%→15%→20%)
@@ -1218,16 +1235,52 @@ Week 9: feature/message-system-integration  # 全機能統合
 3. **サイドバー不均等配置**: 設定ボタンはみ出し・ログアウト非表示→6項目均等配置
 4. **モバイル対応不足**: 友達管理ページのタブはみ出し→段階的レスポンシブ対応
 
+### **🧪 E2E統合テスト結果**
+- ✅ **ユーザー認証**: test-integration@example.com 新規登録・ログイン成功
+- ✅ **メッセージ作成**: POST /api/v1/messages/draft 正常動作（ID: 6888cba61c5dfd8d3a468d29）
+- ✅ **AIトーン変換**: POST /api/v1/transform/tones 3種類トーン変換成功
+- ✅ **AI時間提案**: POST /api/v1/schedule/suggest 適切な提案生成（明日朝9時・10時・今すぐ）
+- ✅ **スケジュール作成**: POST /api/v1/schedules/ タイムゾーン対応成功（Asia/Tokyo）
+- ✅ **スケジュール一覧**: GET /api/v1/schedules/ ページネーション・フィルタリング動作
+- ✅ **メッセージ編集**: PUT /api/v1/messages/:id テキスト・トーン変換保存成功
+- ✅ **リポジトリ統合**: develop ブランチへコミット・プッシュ完了（commit: 34050db）
+
 ### 開発環境状態
 - **バックエンドサーバー**: `http://localhost:8080` で動作中
-- **フロントエンドサーバー**: `http://localhost:5173` で動作中（CORS設定済み）
+- **フロントエンドサーバー**: `http://localhost:5174` で動作中（ポート5173使用中のため5174使用）
 - **AI時間提案機能**: フロントエンド・バックエンド統合動作確認済み
 - **MongoDB Atlas**: 実接続・データ永続化確認済み
-- **テストユーザー**: test-user@example.com で実際にDB登録済み
+- **テストユーザー**: test-integration@example.com で統合テスト実行済み
 - **受信者テストアカウント**: hnn-a@gmail.com で動作確認済み
 - **レスポンシブデザイン**: 全画面サイズ（スマホ→タブレット→デスクトップ→大画面）で動作確認済み
+- **機能統合状態**: ui-design-improvement の機能改善が develop ブランチに完全統合済み
 
 ## **ブランチ統合作業履歴**
+
+### **2025年07月29日: feature/ui-design-improvement → develop 機能統合完了**
+
+#### **実施内容**
+- **課題解決**: 履歴ボタンが押せない問題を発端として、ui-design-improvementの機能改善をdevelopに統合
+- **統合戦略**: develop のデザインを維持しつつ、ui-design-improvement の機能改善のみを選択的に統合
+- **3段階統合**: Phase 1（フロントエンド）→ Phase 2（バックエンド）→ Phase 3（統合テスト）
+
+#### **統合された主要機能**
+- ✅ **MessageComposeView 拡張**: 受信者情報表示・編集モード・クエリパラメータ対応
+- ✅ **ScheduleWizard 完全実装**: AI提案UI・カレンダー選択・時間設定ウィザード
+- ✅ **RecipientSelectView 新規追加**: 友達一覧・手動入力・受信者選択画面
+- ✅ **メッセージモデル拡張**: DeliveredAt フィールド・UpdateMessageStatus・ページネーション
+- ✅ **エラーハンドリング強化**: getUserInfo キャッシュ・フォールバック処理・詳細ログ
+- ✅ **スケジュールストア新規作成**: Pinia 状態管理・CRUD 操作・エラーハンドリング
+
+#### **統合テスト結果**
+- ✅ **API統合テスト**: 認証→メッセージ作成→トーン変換→AI提案→スケジュール作成の完全フロー
+- ✅ **編集フロー**: メッセージ更新・トーン変換保存・選択トーン反映の動作確認
+- ✅ **リポジトリ統合**: commit 34050db で develop ブランチに統合完了
+
+#### **解決した問題**
+- 🔧 **履歴ボタン問題**: `/schedules` ルーティングで正常動作
+- 🔧 **機能分散問題**: ui-design-improvement の改善を develop に統合
+- 🔧 **テスト不足問題**: E2E統合テストによる全フロー動作確認
 
 ### **2025年01月21日: develop → feature/ui-design-improvement 統合完了**
 
