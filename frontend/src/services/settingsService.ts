@@ -25,7 +25,8 @@ export interface UserSettings {
 }
 
 export interface UpdateProfileRequest {
-  name: string
+  name?: string
+  email?: string
 }
 
 export interface ChangePasswordRequest {
@@ -34,7 +35,7 @@ export interface ChangePasswordRequest {
 }
 
 class SettingsService {
-  private readonly baseUrl = '/api/v1/settings'
+  private readonly baseUrl = '/settings'
 
   /**
    * ユーザー設定を取得

@@ -103,8 +103,8 @@
                   @change="onTimeInput"
                   :disabled="!selectedDate"
                 >
-                  <option v-for="hour in 24" :key="hour-1" :value="hour-1">
-                    {{ String(hour-1).padStart(2, '0') }}
+                  <option v-for="hour in 24" :key="hour - 1" :value="hour - 1">
+                    {{ String(hour - 1).padStart(2, '0') }}
                   </option>
                 </select>
                 <span class="time-unit">時</span>
@@ -556,9 +556,15 @@ const scheduleMessage = async () => {
     })
     
     successMessage.value = 'スケジュールを設定しました！'
+    console.log('Attempting to navigate to /history in 1.5 seconds...')
     setTimeout(() => {
-      router.push('/history')
-    }, 2000)
+      console.log('Executing router.push("/history")')
+      router.push('/history').then(() => {
+        console.log('Navigation to /history successful')
+      }).catch((error) => {
+        console.error('Navigation to /history failed:', error)
+      })
+    }, 1500)
     
   } catch (err: any) {
     console.error('スケジュール設定エラー:', err)

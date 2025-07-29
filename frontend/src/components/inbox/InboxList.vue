@@ -47,9 +47,6 @@
             </div>
           </div>
           <div class="message-meta">
-            <span class="status-badge" :class="`status-${getStatusBadge(message.status).color}`">
-              {{ getStatusBadge(message.status).text }}
-            </span>
             <span class="sent-time">{{ formatSentTime(message.sentAt) }}</span>
           </div>
         </div>
@@ -57,11 +54,6 @@
         <div class="message-content">
           <div class="message-text">
             {{ message.finalText || message.originalText }}
-          </div>
-          <div class="message-details" v-if="message.selectedTone">
-            <span class="tone-badge" :class="`tone-${message.selectedTone}`">
-              🎭 {{ getToneLabel(message.selectedTone) }}
-            </span>
           </div>
         </div>
 
@@ -162,8 +154,6 @@ const handleMarkedAsRead = (messageId: string) => {
 }
 
 // ヘルパー関数
-const getStatusBadge = inboxService.getStatusBadge
-const getToneLabel = inboxService.getToneLabel
 const formatSentTime = (sentAt?: string) => {
   return sentAt ? inboxService.formatSentTime(sentAt) : ''
 }
@@ -189,7 +179,7 @@ onMounted(() => {
   max-width: var(--max-width-content);
   margin: 0 auto;
   padding: var(--spacing-3xl) var(--spacing-lg);
-  background: #f8f9fa;
+  background: var(--background-muted);
   min-height: 100vh;
 }
 
@@ -429,26 +419,6 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
-.status-badge {
-  padding: 0.375rem 0.875rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-}
-
-.status-blue { 
-  background: #e3f2fd; 
-  color: #1565c0; 
-}
-.status-green { 
-  background: #e8f5e8; 
-  color: #2e7d32; 
-}
-.status-gray { 
-  background: #f5f5f5; 
-  color: #616161; 
-}
 
 .sent-time {
   color: #9e9e9e;
@@ -472,34 +442,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.message-details {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.tone-badge {
-  padding: 0.375rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.tone-gentle { 
-  background: #f3e5f5; 
-  color: #7b1fa2; 
-}
-.tone-constructive { 
-  background: #e8f5e8; 
-  color: #2e7d32; 
-}
-.tone-casual { 
-  background: #fff3e0; 
-  color: #e65100; 
-}
 
 .message-actions {
   text-align: right;

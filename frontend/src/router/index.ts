@@ -54,6 +54,18 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/history-simple',
+      name: 'message-history-simple',
+      component: () => import('../views/SimpleHistoryView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/history-original',
+      name: 'message-history-original',
+      component: () => import('../views/HistoryView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/inbox',
       name: 'inbox',
       component: () => import('../views/InboxView.vue'),
@@ -77,6 +89,12 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/test-history',
+      name: 'test-history',
+      component: () => import('../views/TestHistoryView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
 })
 
@@ -84,10 +102,12 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   
   console.log('Router navigation:', {
+    from: from.path,
     to: to.path,
     authenticated: authStore.isAuthenticated,
     requiresAuth: to.meta.requiresAuth,
-    user: authStore.user
+    user: authStore.user,
+    routeName: to.name
   })
   
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
@@ -97,7 +117,7 @@ router.beforeEach((to, from, next) => {
     console.log('Redirecting to home - already authenticated')
     next('/')
   } else {
-    console.log('Navigation allowed')
+    console.log('Navigation allowed - proceeding to:', to.path)
     next()
   }
 })

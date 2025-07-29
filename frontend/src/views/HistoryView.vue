@@ -30,15 +30,20 @@
           @click="showScheduleDetail(message.id)"
         >
           <div class="message-left">
-            <div class="recipient-name">{{ message.recipientName || '' }}</div>
+            <div class="recipient-name">{{ message.recipientName }}</div>
           </div>
           <div class="message-center">
             <div class="message-time">{{ formatDateTime(message.scheduledAt) }}</div>
           </div>
           <div class="message-right">
-            <button class="edit-btn" @click.stop="editMessage(message.id)">
-              編集
-            </button>
+            <div class="action-buttons">
+              <button class="edit-btn" @click.stop="editMessage(message.id)">
+                編集
+              </button>
+              <button class="cancel-btn" @click.stop="cancelSchedule(message.id)">
+                キャンセル
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -58,7 +63,7 @@
           @click="showSentMessageDetail(message.id)"
         >
           <div class="message-left">
-            <div class="recipient-name">{{ message.recipientName || '' }}</div>
+            <div class="recipient-name">{{ message.recipientName }}</div>
           </div>
           <div class="message-center">
             <div class="message-time">{{ formatDateTime(message.sentAt) }}</div>
@@ -86,7 +91,7 @@
         <div v-else-if="selectedMessage" class="modal-body">
           <div class="detail-section">
             <h4 class="detail-label">送信先</h4>
-            <p class="detail-value">{{ selectedMessage.recipientName || selectedMessage.recipientEmail || '未設定' }}</p>
+            <p class="detail-value recipient-name">{{ selectedMessage.recipientName }}</p>
           </div>
           
           <div class="detail-section">
@@ -99,11 +104,6 @@
             <p class="detail-value status" :class="`status-${selectedMessage.status}`">
               {{ getStatusLabel(selectedMessage.status) }}
             </p>
-          </div>
-          
-          <div class="detail-section" v-if="selectedMessage.originalText">
-            <h4 class="detail-label">元のメッセージ</h4>
-            <p class="detail-value message-text">{{ selectedMessage.originalText }}</p>
           </div>
           
           <div class="detail-section" v-if="selectedMessage.finalText">
@@ -127,14 +127,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { messageService, getUserInfo } from '@/services/messageService'
+import { messageService, getUserInfo, clearUserCache } from '@/services/messageService'
 import scheduleService from '@/services/scheduleService'
 import { apiService } from '@/services/api'
 
 interface HistoryMessage {
   id: string
+  messageId?: string
   recipientName?: string
   recipientEmail?: string
   scheduledAt?: string
@@ -165,6 +166,10 @@ const detailError = ref('')
 // 計算プロパティ
 const filteredScheduledMessages = computed(() => {
   let filtered = scheduledMessages.value
+  
+  // TODO: 将来的にはスケジュールとメッセージのステータス同期を実装
+  // 現時点では全てのスケジュールを表示（ユーザーが送信予定として確認できるように）
+  // filtered = filtered (フィルタリングなし)
   
   if (searchQuery.value) {
     filtered = filtered.filter(msg => 
@@ -222,6 +227,23 @@ const editMessage = (messageId: string) => {
   })
 }
 
+const cancelSchedule = async (scheduleId: string) => {
+  if (!confirm('このスケジュールをキャンセルしますか？')) {
+    return
+  }
+  
+  try {
+    await scheduleService.deleteSchedule(scheduleId)
+    // スケジュール一覧を更新
+    await loadScheduledMessages()
+    // 成功メッセージ（簡易版）
+    alert('スケジュールをキャンセルしました')
+  } catch (error) {
+    console.error('スケジュールキャンセルエラー:', error)
+    alert('スケジュールのキャンセルに失敗しました')
+  }
+}
+
 // モーダル関連のメソッド
 const showScheduleDetail = async (scheduleId: string) => {
   selectedMessageId.value = scheduleId
@@ -247,29 +269,69 @@ const loadScheduleDetail = async (scheduleId: string) => {
   detailError.value = ''
   
   try {
-    const response = await scheduleService.getScheduleDetail(scheduleId)
-    selectedMessage.value = {
-      id: response.schedule.id,
-      
-    : response.schedule.recipientName || response.schedule.recipientEmail,
-      recipientEmail: response.schedule.recipientEmail,
-      scheduledAt: response.schedule.scheduledAt,
-      sentAt: undefined,
-      isRead: false,
-      status: response.schedule.status as any,
-      originalText: response.schedule.originalText,
-      finalText: response.schedule.finalText,
-      selectedTone: response.schedule.selectedTone
+    // まずキャッシュされたデータから取得を試行
+    const cachedMessage = scheduledMessages.value.find(m => m.id === scheduleId)
+    if (cachedMessage) {
+      // キャッシュからメッセージ詳細を追加で取得
+      try {
+        const messageResponse = await apiService.get(`/messages/${cachedMessage.messageId || scheduleId}`)
+        const message = messageResponse.data.data
+        
+        selectedMessage.value = {
+          ...cachedMessage,
+          originalText: message.originalText || cachedMessage.originalText,
+          finalText: message.finalText || message.originalText || cachedMessage.finalText,
+          selectedTone: message.selectedTone || cachedMessage.selectedTone
+        }
+      } catch (messageError) {
+        console.warn('メッセージ詳細の取得に失敗、キャッシュデータを使用:', messageError)
+        selectedMessage.value = cachedMessage
+      }
+    } else {
+      // キャッシュにない場合は直接APIから取得
+      try {
+        const response = await apiService.get(`/schedules/${scheduleId}`)
+        const schedule = response.data.data
+        
+        // スケジュールに関連するメッセージから受信者情報を取得
+        let recipientName = 'Unknown User'
+        let recipientEmail = 'unknown@example.com'
+        
+        if (schedule.messageId) {
+          try {
+            const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
+            const message = messageResponse.data.data
+            
+            if (message?.recipientId && message.recipientId !== '000000000000000000000000') {
+              const userInfo = await getUserInfo(message.recipientId)
+              recipientName = userInfo.name || userInfo.email || '未登録の受信者'
+              recipientEmail = userInfo.email || 'unknown@example.com'
+            }
+          } catch (messageError) {
+            console.warn('メッセージから受信者情報の取得に失敗:', messageError)
+          }
+        }
+        
+        selectedMessage.value = {
+          id: schedule.id,
+          recipientName,
+          recipientEmail,
+          scheduledAt: schedule.scheduledAt,
+          sentAt: undefined,
+          isRead: false,
+          status: schedule.status as any,
+          originalText: 'スケジュールされたメッセージ',
+          finalText: 'スケジュールされたメッセージ',
+          selectedTone: 'gentle'
+        }
+      } catch (apiError) {
+        console.error('API からのスケジュール詳細取得失敗:', apiError)
+        detailError.value = 'スケジュールの詳細を取得できませんでした'
+      }
     }
   } catch (error) {
     console.error('スケジュール詳細の取得に失敗:', error)
-    // フォールバック：キャッシュされたデータから取得
-    const cachedMessage = scheduledMessages.value.find(m => m.id === scheduleId)
-    if (cachedMessage) {
-      selectedMessage.value = cachedMessage
-    } else {
-      detailError.value = 'スケジュールの詳細を取得できませんでした'
-    }
+    detailError.value = 'スケジュールの詳細を取得できませんでした'
   } finally {
     isLoadingDetail.value = false
   }
@@ -281,10 +343,25 @@ const loadMessageDetail = async (messageId: string) => {
   
   try {
     const response = await messageService.getMessage(messageId)
+    
+    // 受信者の名前を取得
+    let recipientName = 'Unknown User'
+    let recipientEmail = 'unknown@example.com'
+    
+    if (response.data.recipientId && response.data.recipientId !== '000000000000000000000000') {
+      try {
+        const userInfo = await getUserInfo(response.data.recipientId)
+        recipientName = userInfo.name || userInfo.email || '未登録の受信者'
+        recipientEmail = userInfo.email || 'unknown@example.com'
+      } catch (userError) {
+        console.warn('受信者情報の取得に失敗:', userError)
+      }
+    }
+    
     selectedMessage.value = {
       id: response.data.id,
-      recipientName: response.data.recipientId || '受信者', // TODO: 実際の名前を取得
-      recipientEmail: response.data.recipientId || 'unknown@example.com', // TODO: 実際のメールアドレスを取得
+      recipientName,
+      recipientEmail,
       scheduledAt: response.data.scheduledAt,
       sentAt: response.data.sentAt,
       isRead: response.data.status === 'read',
@@ -311,7 +388,7 @@ const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
     scheduled: '送信予定',
     sent: '送信済み',
-    delivered: '配信済み',
+    delivered: '送信済み',
     read: '既読',
     draft: '下書き'
   }
@@ -342,45 +419,48 @@ const retryLoadDetail = async () => {
 
 const loadScheduledMessages = async () => {
   try {
-    console.log('Loading scheduled messages directly via API...')
+    // Clear any cached user info to get fresh data
+    clearUserCache()
     // scheduleServiceを使わずに直接APIを呼び出し
     const response = await apiService.get('/schedules/?page=1&limit=100&status=pending')
-    console.log('Direct API response:', response)
     
+    console.log('送信予定スケジュールAPI レスポンス:', response.data)
     const schedulesData = response.data.data
     if (schedulesData && schedulesData.schedules) {
-      // 各スケジュールの受信者情報を並行して取得
+      console.log('取得したpendingスケジュール数:', schedulesData.schedules.length)
+      // 各スケジュールの受信者情報を取得
       const schedulesWithRecipientInfo = await Promise.all(
         schedulesData.schedules.map(async (schedule: any) => {
-          let recipientName = '受信者'
+          let recipientName = 'Unknown User'
           let recipientEmail = 'unknown@example.com'
           
-          // メッセージIDからメッセージ詳細を取得し、受信者情報を取得
+          // メッセージIDから受信者情報を取得（簡略化）
           if (schedule.messageId) {
             try {
               const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
               const message = messageResponse.data.data
-              
-              if (message && message.recipientId) {
-                // recipientIdからユーザー情報を取得（キャッシュ機能付き）
-                try {
-                  const userInfo = await getUserInfo(message.recipientId)
-                  recipientName = userInfo.name
-                  recipientEmail = userInfo.email
-                } catch (userError) {
-                  console.warn('Failed to get user info for:', message.recipientId)
-                  // フォールバック: IDの末尾を使用
-                  recipientName = `User-${message.recipientId.slice(-6)}`
-                  recipientEmail = `${message.recipientId}@example.com`
-                }
+
+              // メッセージが実際に送信済み/配信済みの場合はnullを返す（除外する）
+              if (message && ['sent', 'delivered', 'read'].includes(message.status)) {
+                console.log(`スケジュール ${schedule.id} は既に配信済み (${message.status}) のためスキップ`)
+                return null
               }
-            } catch (messageError) {
-              console.warn('Failed to get message info for:', schedule.messageId)
+
+              if (message?.recipientId && message.recipientId !== '000000000000000000000000') {
+                const userInfo = await getUserInfo(message.recipientId)
+                console.log('スケジュール受信者情報:', userInfo)
+                recipientName = userInfo.name || userInfo.email || '未登録の受信者'
+                recipientEmail = userInfo.email || 'unknown@example.com'
+              }
+            } catch (error) {
+              // エラー時はデフォルト値を使用
+              console.warn('受信者情報の取得に失敗:', error)
             }
           }
-          
+
           return {
             id: schedule.id,
+            messageId: schedule.messageId, // メッセージIDを追加
             recipientName,
             recipientEmail,
             scheduledAt: schedule.scheduledAt,
@@ -392,10 +472,12 @@ const loadScheduledMessages = async () => {
         })
       )
       
-      scheduledMessages.value = schedulesWithRecipientInfo
-      console.log('Successfully loaded', scheduledMessages.value.length, 'scheduled messages')
+      // nullを除外（実際に配信済みのスケジュールを除く）
+      const validSchedules = schedulesWithRecipientInfo.filter(schedule => schedule !== null)
+      console.log('フィルタリング後の有効なスケジュール数:', validSchedules.length)
+      console.log('有効なスケジュール:', validSchedules)
+      scheduledMessages.value = validSchedules
     } else {
-      console.warn('No schedules found in API response:', schedulesData)
       scheduledMessages.value = []
     }
   
@@ -407,41 +489,51 @@ const loadScheduledMessages = async () => {
 
 const loadSentMessages = async () => {
   try {
-    console.log('Loading sent messages directly via API...')
-    // messageServiceを使わずに直接APIを呼び出し
-    const response = await apiService.get('/messages/drafts?page=1&limit=100')
-    console.log('Direct messages API response:', response)
+    // 送信済みメッセージAPIを使用
+    const response = await apiService.get('/messages/sent?page=1&limit=100')
     
-    const allMessages = response.data.data?.messages || []
-    console.log('All messages count:', allMessages.length)
+    console.log('送信済みメッセージAPI レスポンス:', response.data)
+    const sentMessagesData = response.data.data?.messages || []
+    console.log('取得した送信済みメッセージ数:', sentMessagesData.length)
     
-    // ステータス別の統計
-    const statusCounts: Record<string, number> = {}
-    allMessages.forEach((msg: any) => {
-      statusCounts[msg.status] = (statusCounts[msg.status] || 0) + 1
-    })
-    console.log('Message status breakdown:', statusCounts)
-    
-    // 送信済みステータスのメッセージをフィルタリング
-    const sentMessages = allMessages.filter((msg: any) => 
-      ['sent', 'delivered', 'read'].includes(msg.status)
-    )
-    console.log('Filtered sent messages count:', sentMessages.length)
-    
-    if (sentMessages.length > 0) {
-      sentMessages.value = sentMessages.map((message: any) => ({
-        id: message.id || '',
-        recipientName: message.recipientName || message.recipientEmail || message.recipientId || '受信者',
-        recipientEmail: message.recipientEmail || message.recipientId || 'unknown@example.com',
-        sentAt: message.sentAt,
-        isRead: message.status === 'read',
-        status: message.status as 'sent' | 'delivered' | 'read',
-        originalText: message.originalText,
-        finalText: message.finalText || message.originalText
-      }))
-      console.log('Successfully loaded', sentMessages.value.length, 'sent messages')
+    if (sentMessagesData.length > 0) {
+      // 送信済みメッセージを表示用に変換（受信者情報を取得）
+      const formattedMessages = await Promise.all(
+        sentMessagesData.map(async (message: any) => {
+          let recipientName = 'Unknown User'
+          let recipientEmail = 'unknown@example.com'
+          
+          // 受信者情報を取得
+          console.log('送信済みメッセージ受信者ID:', message.recipientId)
+          if (message.recipientId && message.recipientId !== '000000000000000000000000') {
+            try {
+              const userInfo = await getUserInfo(message.recipientId)
+              console.log('送信済み受信者情報:', userInfo)
+              console.log('userInfo.name:', userInfo.name, 'userInfo.email:', userInfo.email)
+              recipientName = userInfo.name || userInfo.email || '未登録の受信者'
+              recipientEmail = userInfo.email || 'unknown@example.com'
+            } catch (error) {
+              console.warn('受信者情報の取得に失敗:', error)
+            }
+          }
+
+          const formattedMessage = {
+            id: message.id,
+            recipientName,
+            recipientEmail,
+            sentAt: message.sentAt || message.updatedAt,
+            isRead: message.status === 'read',
+            status: message.status,
+            originalText: message.originalText || 'メッセージ',
+            finalText: message.finalText || message.originalText || 'メッセージ'
+          }
+          console.log('フォーマット済み送信済みメッセージ:', formattedMessage)
+          return formattedMessage
+        })
+      )
+      
+      sentMessages.value = formattedMessages
     } else {
-      console.log('No sent messages found - all messages are in draft status')
       sentMessages.value = []
     }
   } catch (error) {
@@ -450,8 +542,8 @@ const loadSentMessages = async () => {
   }
 }
 
-// 初期化
-onMounted(async () => {
+// データリロード関数
+const reloadData = async () => {
   isLoading.value = true
   try {
     await Promise.all([
@@ -461,38 +553,79 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+// 初期化
+onMounted(async () => {
+  try {
+    await reloadData()
+    setupVisibilityHandler()
+  } catch (error) {
+    console.error('HistoryView data loading failed:', error)
+  }
+})
+
+// ページが表示される度にデータを更新（ナビゲーション後）
+const refreshData = () => {
+  // 少し遅延させてAPIが完了するのを待つ
+  setTimeout(reloadData, 500)
+}
+
+// ページの可視性変更時にもデータを更新（修正版）
+let visibilityHandler: (() => void) | null = null
+
+const setupVisibilityHandler = () => {
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+  }
+  
+  visibilityHandler = () => {
+    if (!document.hidden) {
+      refreshData()
+    }
+  }
+  
+  document.addEventListener('visibilitychange', visibilityHandler)
+}
+
+// コンポーネントがアンマウントされる時にイベントリスナーを削除
+onUnmounted(() => {
+  if (visibilityHandler) {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
+  }
 })
 </script>
 
 <style scoped>
 .history-page {
-  background: #f5f5f5;
+  background: var(--background-primary);
   font-family: var(--font-family-main);
   position: relative;
   width: 1280px;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 32px 80px;
+  padding: var(--spacing-xl) var(--spacing-3xl);
   box-sizing: border-box;
 }
 
 .page-title {
-  color: #000000;
-  font-size: 24px;
+  color: var(--text-primary);
+  font-size: var(--font-size-2xl);
   font-weight: 600;
   font-family: var(--font-family-main);
-  line-height: 100%;
-  margin: 0 0 32px 0;
+  line-height: var(--line-height-base);
+  margin: 0 0 var(--spacing-xl) 0;
 }
 
 /* フィルターバー */
 .filter-bar {
   display: flex;
-  gap: 24px;
+  gap: var(--spacing-lg);
   align-items: center;
   width: 100%;
   max-width: 1104px;
-  margin: 0 0 40px 0;
+  margin: 0 0 var(--spacing-2xl) 0;
 }
 
 .search-wrapper {
@@ -503,83 +636,83 @@ onMounted(async () => {
 .search-input {
   width: 100%;
   height: 56px;
-  padding: 0 24px;
-  background: #C4E3FF;
+  padding: 0 var(--spacing-lg);
+  background: var(--primary-color);
   border: none;
   border-radius: 28px;
-  font-size: 16px;
-  color: #000000;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
   outline: none;
   box-sizing: border-box;
   font-family: var(--font-family-main);
 }
 
 .search-input::placeholder {
-  color: #666666;
+  color: var(--text-secondary);
   font-family: var(--font-family-main);
 }
 
 .sort-button {
   height: 56px;
-  padding: 0 24px;
-  background: #FFFFFF;
-  border: 1px solid #D9D9D9;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #000000;
+  padding: 0 var(--spacing-lg);
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
   cursor: pointer;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   font-family: var(--font-family-main);
   transition: all 0.2s ease;
 }
 
 .sort-button:hover {
-  background: #F0F0F0;
+  background: var(--background-muted);
 }
 
 /* セクション */
 .section {
-  margin-bottom: 48px;
+  margin-bottom: var(--spacing-2xl);
   width: 100%;
   max-width: 1104px;
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #000000;
-  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
   font-family: var(--font-family-main);
 }
 
 /* メッセージコンテナ */
 .message-container {
-  background: #FFFFFF;
-  border: 1px solid #D9D9D9;
-  border-radius: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   min-height: 200px;
 }
 
 .empty-state {
-  padding: 40px 24px;
+  padding: var(--spacing-2xl) var(--spacing-lg);
   text-align: center;
-  color: #666666;
-  font-size: 16px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-md);
   font-family: var(--font-family-main);
 }
 
 .message-item {
   display: flex;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #F0F0F0;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-bottom: 1px solid var(--background-muted);
   min-height: 60px;
   transition: background-color 0.2s ease;
 }
 
 .message-item:hover {
-  background: #FAFAFA;
+  background: var(--background-secondary);
 }
 
 .message-item.clickable {
@@ -601,32 +734,32 @@ onMounted(async () => {
 }
 
 .message-right {
-  flex: 0 0 100px;
+  flex: 0 0 160px;
   text-align: right;
 }
 
 .recipient-name {
-  font-size: 16px;
+  font-size: var(--font-size-md);
   font-weight: 500;
-  color: #000000;
+  color: var(--text-primary);
   margin: 0;
   font-family: var(--font-family-main);
 }
 
 .message-time {
-  font-size: 16px;
-  color: #000000;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
   margin: 0;
   font-family: var(--font-family-main);
 }
 
 .edit-btn {
-  padding: 8px 16px;
-  background: #E8F4FD;
-  border: 1px solid #B3D9F7;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #000000;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--primary-color-light);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
   cursor: pointer;
   font-weight: 500;
   font-family: var(--font-family-main);
@@ -634,19 +767,44 @@ onMounted(async () => {
 }
 
 .edit-btn:hover {
-  background: #D1E8F7;
-  border-color: #9BC9F0;
+  background: var(--primary-color);
+  border-color: var(--primary-color-dark);
 }
 
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--error-color);
+  border: 1px solid var(--error-color);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: 500;
+  font-family: var(--font-family-main);
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: var(--error-color);
+  opacity: 0.8;
+}
+
+
 .read-badge {
-  font-size: 14px;
-  color: #000000;
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
   margin: 0;
   font-family: var(--font-family-main);
-  padding: 4px 8px;
-  background: #E8F5E8;
-  border-radius: 4px;
-  border: 1px solid #B8E6B8;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--success-color);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--success-color);
 }
 
 /* モーダルスタイル */
@@ -661,31 +819,31 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .modal-content {
-  background: #FFFFFF;
-  border-radius: 12px;
+  background: var(--background-primary);
+  border-radius: var(--radius-lg);
   width: 100%;
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 24px 16px 24px;
-  border-bottom: 1px solid #E0E0E0;
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-title {
-  font-size: 20px;
+  font-size: var(--font-size-xl);
   font-weight: 600;
-  color: #000000;
+  color: var(--text-primary);
   margin: 0;
   font-family: var(--font-family-main);
 }
@@ -693,8 +851,8 @@ onMounted(async () => {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
-  color: #666666;
+  font-size: var(--font-size-2xl);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -707,16 +865,16 @@ onMounted(async () => {
 }
 
 .close-btn:hover {
-  background: #F0F0F0;
-  color: #000000;
+  background: var(--background-muted);
+  color: var(--text-primary);
 }
 
 .modal-body {
-  padding: 24px;
+  padding: var(--spacing-lg);
 }
 
 .detail-section {
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .detail-section:last-child {
@@ -724,42 +882,42 @@ onMounted(async () => {
 }
 
 .detail-label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
-  color: #666666;
-  margin: 0 0 8px 0;
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-sm) 0;
   font-family: var(--font-family-main);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .detail-value {
-  font-size: 16px;
-  color: #000000;
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
   margin: 0;
   font-family: var(--font-family-main);
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
 }
 
 .detail-value.message-text {
-  background: #F8F9FA;
-  border: 1px solid #E0E0E0;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 
 .detail-value.final-message {
-  background: #E8F5E8;
-  border-color: #B8E6B8;
+  background: var(--success-color);
+  border-color: var(--success-color);
 }
 
 .detail-value.status {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 16px;
-  font-size: 14px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
   font-weight: 500;
 }
 
@@ -769,34 +927,36 @@ onMounted(async () => {
 }
 
 .status-sent {
-  background: #D1ECF1;
-  color: #0C5460;
+  background: var(--secondary-color-light);
+  color: var(--text-primary);
 }
 
 .status-delivered {
-  background: #D4EDDA;
-  color: #155724;
+  background: var(--secondary-color-light);
+  color: var(--text-primary);
 }
 
 .status-read {
-  background: #D4EDDA;
-  color: #155724;
+  background: var(--success-color);
+  color: var(--text-primary);
 }
 
+
+
 .loading-state {
-  padding: 40px;
+  padding: var(--spacing-2xl);
   text-align: center;
-  color: #666666;
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #F0F0F0;
-  border-top: 3px solid #007BFF;
+  border: 3px solid var(--background-muted);
+  border-top: 3px solid var(--secondary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
+  margin: 0 auto var(--spacing-md);
 }
 
 @keyframes spin {
@@ -805,48 +965,48 @@ onMounted(async () => {
 }
 
 .error-state {
-  padding: 24px;
+  padding: var(--spacing-lg);
   text-align: center;
 }
 
 .error-message {
-  color: #DC3545;
-  margin: 0 0 16px 0;
-  font-size: 16px;
+  color: var(--error-color);
+  margin: 0 0 var(--spacing-md) 0;
+  font-size: var(--font-size-md);
 }
 
 .retry-btn {
-  background: #007BFF;
-  color: white;
+  background: var(--secondary-color);
+  color: var(--text-primary);
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-family: var(--font-family-main);
   transition: background 0.2s ease;
 }
 
 .retry-btn:hover {
-  background: #0056B3;
+  background: var(--secondary-color-dark);
 }
 
 /* レスポンシブ対応 */
 @media (max-width: 1320px) {
   .history-page {
     width: 100%;
-    padding: 32px 40px;
+    padding: var(--spacing-xl) var(--spacing-2xl);
   }
 }
 
 @media (max-width: 768px) {
   .history-page {
-    padding: 20px;
+    padding: var(--spacing-lg);
   }
   
   .filter-bar {
     flex-direction: column;
-    gap: 16px;
+    gap: var(--spacing-md);
     align-items: stretch;
   }
   
@@ -857,8 +1017,8 @@ onMounted(async () => {
   .message-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
-    padding: 16px;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
   
   .message-left,

@@ -4,6 +4,12 @@ import { apiService } from './api'
 const userCache = new Map<string, { name: string, email: string }>()
 
 // Helper function to get user info by ID or email
+// Add cache clearing function
+export const clearUserCache = () => {
+  userCache.clear()
+  console.log('User cache cleared')
+}
+
 export const getUserInfo = async (userIdOrEmail: string): Promise<{ name: string, email: string }> => {
   if (userCache.has(userIdOrEmail)) {
     return userCache.get(userIdOrEmail)!
@@ -12,58 +18,111 @@ export const getUserInfo = async (userIdOrEmail: string): Promise<{ name: string
   try {
     console.log('getUserInfo called with:', userIdOrEmail)
     
+    // 🚨 無効なIDの場合は早期リターン
+    if (!userIdOrEmail || userIdOrEmail === '000000000000000000000000' || userIdOrEmail.trim() === '') {
+      console.log('⚠️ Invalid userIdOrEmail detected:', userIdOrEmail)
+      const fallbackInfo = { name: '不明なユーザー', email: 'unknown@example.com' }
+      userCache.set(userIdOrEmail, fallbackInfo)
+      return fallbackInfo
+    }
+    
+
+    // Try to search user by ID first (MongoDB ObjectID format)
+    if (userIdOrEmail.length === 24 && /^[0-9a-fA-F]{24}$/.test(userIdOrEmail)) {
+      console.log('Searching by ObjectID:', userIdOrEmail)
+      try {
+        const response = await apiService.get(`/users/${userIdOrEmail}`)
+        if (response.data.data) {
+          const user = response.data.data
+          console.log('Raw user data from ID API:', user)
+          const userInfo = { 
+            name: user.name && user.name.trim() !== '' ? user.name : 'Unknown User', 
+            email: user.email 
+          }
+          userCache.set(userIdOrEmail, userInfo)
+          console.log('Processed user info from ID:', userInfo)
+          return userInfo
+        }
+      } catch (idError) {
+        console.warn('Failed to fetch user by ID:', idError)
+        // Continue to try other methods
+      }
+    }
+    
     // Try to search user by email if it looks like an email
     if (userIdOrEmail.includes('@')) {
       console.log('Searching by email:', userIdOrEmail)
-      const response = await apiService.get(`/users/by-email?email=${userIdOrEmail}`)
-      if (response.data.data) {
-        const user = response.data.data
-        const userInfo = { 
-          name: user.name && user.name.trim() !== '' ? user.name : user.email.split('@')[0], 
-          email: user.email 
-        }
-        userCache.set(userIdOrEmail, userInfo)
-        console.log('Found user by email:', userInfo)
-        return userInfo
-      }
-    }
-    
-    // For ObjectID, try a general search to find users
-    // This is a workaround until we have a proper user-by-id API
-    try {
-      console.log('Searching for ObjectID:', userIdOrEmail)
-      const searchResponse = await apiService.get('/users/search?q=@')  // Search for users with @
-      if (searchResponse.data.data && searchResponse.data.data.users && searchResponse.data.data.users.length > 0) {
-        // Look for a user that might match this ID
-        const allUsers = searchResponse.data.data.users
-        const matchingUser = allUsers.find((user: any) => 
-          user.id === userIdOrEmail || user._id === userIdOrEmail
-        )
-        
-        if (matchingUser) {
+      try {
+        const response = await apiService.get(`/users/by-email?email=${userIdOrEmail}`)
+        if (response.data.data) {
+          const user = response.data.data
+          console.log('Raw user data from email API:', user)
           const userInfo = { 
-            name: matchingUser.name && matchingUser.name.trim() !== '' ? matchingUser.name : matchingUser.email.split('@')[0], 
-            email: matchingUser.email 
+            name: user.name && user.name.trim() !== '' ? user.name : 'Unknown User', 
+            email: user.email 
           }
           userCache.set(userIdOrEmail, userInfo)
-          console.log('Found user by ID:', userInfo)
+          console.log('Processed user info from email:', userInfo)
           return userInfo
         }
+      } catch (emailError) {
+        console.warn('Failed to fetch user by email:', emailError)
+        // Continue to try other methods
       }
-    } catch (searchError) {
-      console.warn('Failed to search for user:', searchError)
     }
     
-    // ハードコードされたフォールバックは削除し、APIデータのみを使用
+    // For ObjectID that wasn't found directly, try a general search as fallback
+    if (userIdOrEmail.length === 24 && /^[0-9a-fA-F]{24}$/.test(userIdOrEmail)) {
+      try {
+        console.log('Fallback: Searching all users for ObjectID:', userIdOrEmail)
+        const searchResponse = await apiService.get('/users/search?q=@')  // Search for users with @
+        if (searchResponse.data.data && searchResponse.data.data.users && searchResponse.data.data.users.length > 0) {
+          // Look for a user that might match this ID
+          const allUsers = searchResponse.data.data.users
+          const matchingUser = allUsers.find((user: any) => 
+            user.id === userIdOrEmail || user._id === userIdOrEmail
+          )
+          
+          if (matchingUser) {
+            const userInfo = { 
+              name: matchingUser.name && matchingUser.name.trim() !== '' ? matchingUser.name : 'Unknown User', 
+              email: matchingUser.email 
+            }
+            userCache.set(userIdOrEmail, userInfo)
+            console.log('Found user by fallback search:', userInfo)
+            return userInfo
+          }
+        }
+      } catch (searchError) {
+        console.warn('Failed to search for user:', searchError)
+      }
+    }
     
-    // Final fallback: use a more user-friendly placeholder
-    const userInfo = { name: '受信者', email: `user-${userIdOrEmail.slice(-6)}@example.com` }
+    // Final fallback: always use Unknown User
+    let fallbackEmail = 'unknown@example.com'
+    
+    if (userIdOrEmail.includes('@')) {
+      fallbackEmail = userIdOrEmail
+    } else {
+      // For ObjectID format, create a generic email
+      fallbackEmail = `user-${userIdOrEmail.slice(-6)}@example.com`
+    }
+    
+    const userInfo = { name: 'Unknown User', email: fallbackEmail }
     userCache.set(userIdOrEmail, userInfo)
-    console.log('Using fallback user info:', userInfo)
+    console.log('Using improved fallback user info:', userInfo)
     return userInfo
   } catch (error) {
     console.error('Failed to fetch user info:', error)
-    const userInfo = { name: '受信者', email: 'unknown@example.com' }
+    
+    // Error fallback: always use Unknown User
+    let errorFallbackEmail = 'unknown@example.com'
+    
+    if (userIdOrEmail && userIdOrEmail.includes('@')) {
+      errorFallbackEmail = userIdOrEmail
+    }
+    
+    const userInfo = { name: 'Unknown User', email: errorFallbackEmail }
     userCache.set(userIdOrEmail, userInfo)
     return userInfo
   }
@@ -169,7 +228,7 @@ class MessageService {
     // 受信者情報を並行して取得
     const messagesWithRecipientInfo = await Promise.all(
       sentMessages.map(async (msg: any) => {
-        let recipientName = '受信者'
+        let recipientName = 'Unknown User'
         let recipientEmail = 'unknown@example.com'
         
         if (msg.recipientId) {

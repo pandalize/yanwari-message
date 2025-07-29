@@ -87,6 +87,20 @@ class ScheduleService {
     await apiService.delete(`/schedules/${id}`)
   }
 
+  // スケジュール詳細を取得
+  async getScheduleDetail(id: string): Promise<{
+    schedule: Schedule & {
+      recipientName?: string
+      recipientEmail?: string
+      originalText?: string
+      finalText?: string
+      selectedTone?: string
+    }
+  }> {
+    const response = await apiService.get(`/schedules/${id}`)
+    return response.data
+  }
+
   // 相対時間を絶対時間に変換（delay_minutesから）
   calculateScheduleTime(delayMinutes: number): string {
     const now = new Date()

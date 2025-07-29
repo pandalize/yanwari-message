@@ -16,6 +16,15 @@ const goToLogin = () => {
 const goToRegister = () => {
   router.push('/register')
 }
+
+const goToHistory = () => {
+  console.log('HomeView: Attempting to navigate to /history')
+  router.push('/history').then(() => {
+    console.log('HomeView: Navigation to /history successful')
+  }).catch((error) => {
+    console.error('HomeView: Navigation to /history failed:', error)
+  })
+}
 </script>
 
 <template>
@@ -34,6 +43,9 @@ const goToRegister = () => {
         <div v-if="authStore.isAuthenticated" class="hero-actions">
           <button @click="goToCompose" class="btn btn-primary">
             📝 メッセージを作成する
+          </button>
+          <button @click="goToHistory" class="btn btn-secondary">
+            📋 履歴を見る
           </button>
           <p class="welcome-message">
             お帰りなさい、{{ authStore.user?.name || authStore.user?.email }}さん
