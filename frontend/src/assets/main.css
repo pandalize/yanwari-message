@@ -1,35 +1,60 @@
 @import './base.css';
 
+/* アプリケーション全体のレイアウト */
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
   font-weight: normal;
 }
 
-a,
-.green {
+/* リンクのデフォルトスタイル */
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: inherit;
+  transition: 0.3s ease;
 }
 
 @media (hover: hover) {
   a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+    opacity: 0.8;
   }
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+/* ボディのリセット */
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+/* 全画面レイアウトのためのリセット */
+html, body {
+  overflow-x: hidden;
+}
+
+/* コンテンツの基本レイアウト */
+.content-wrapper {
+  width: 100%;
+  padding: 0 5%;
+}
+
+@media (min-width: 768px) {
+  .content-wrapper {
+    padding: 0 8%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .content-wrapper {
+    padding: 0 10%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .content-wrapper {
+    padding: 0 15%;
   }
 }

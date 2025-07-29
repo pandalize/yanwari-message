@@ -133,6 +133,7 @@ const changeRecipient = () => {
   router.push('/recipient-select')
 }
 
+<<<<<<< HEAD
 // 日付フォーマット関数
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)

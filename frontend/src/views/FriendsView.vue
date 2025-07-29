@@ -95,13 +95,30 @@ function onRequestSent() {
 .friends-view {
   min-height: 100vh;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  padding: 20px 0;
+  padding: var(--spacing-2xl) 5%;
+}
+
+@media (min-width: 768px) {
+  .friends-view {
+    padding: var(--spacing-2xl) 10%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .friends-view {
+    padding: var(--spacing-2xl) 15%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .friends-view {
+    padding: var(--spacing-2xl) 20%;
+  }
 }
 
 .container {
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 20px;
 }
 
 .page-header {
@@ -139,17 +156,17 @@ function onRequestSent() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 12px 8px;
   border: none;
   background: none;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-  min-width: 120px;
+  min-width: 80px;
 }
 
 .tab-button:hover {
@@ -198,15 +215,33 @@ function onRequestSent() {
   }
 }
 
-@media (max-width: 768px) {
-  .friends-view {
-    padding: 10px 0;
-  }
-  
+/* 大画面対応 */
+@media (min-width: 1400px) {
   .container {
-    padding: 0 10px;
+    padding: 0 40px;
   }
   
+  .page-title {
+    font-size: 3rem;
+  }
+  
+  .page-subtitle {
+    font-size: 1.25rem;
+  }
+  
+  .tabs {
+    padding: 12px;
+    margin-bottom: 32px;
+  }
+  
+  .tab-button {
+    padding: 16px 24px;
+    font-size: 1rem;
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 768px) {
   .page-title {
     font-size: 2rem;
   }
@@ -221,9 +256,39 @@ function onRequestSent() {
   }
   
   .tab-button {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    min-width: 100px;
+    padding: 8px 4px;
+    font-size: 0.75rem;
+    min-width: 60px;
+    gap: 4px;
+  }
+  
+  .tab-count {
+    padding: 1px 4px;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.9rem;
+    padding: 0 10px;
+  }
+  
+  .tab-button {
+    padding: 6px 2px;
+    font-size: 0.7rem;
+    min-width: 50px;
+    gap: 2px;
+  }
+  
+  .tab-count {
+    padding: 1px 3px;
+    font-size: 0.65rem;
+    min-width: 14px;
   }
 }
 </style>

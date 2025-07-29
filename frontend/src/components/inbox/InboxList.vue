@@ -176,11 +176,27 @@ onMounted(() => {
 
 <style scoped>
 .inbox-list {
-  max-width: var(--max-width-content);
-  margin: 0 auto;
-  padding: var(--spacing-3xl) var(--spacing-lg);
   background: var(--background-muted);
   min-height: 100vh;
+  padding: var(--spacing-3xl) 5%;
+}
+
+@media (min-width: 768px) {
+  .inbox-list {
+    padding: var(--spacing-3xl) 10%;
+  }
+}
+
+@media (min-width: 1200px) {
+  .inbox-list {
+    padding: var(--spacing-3xl) 15%;
+  }
+}
+
+@media (min-width: 1600px) {
+  .inbox-list {
+    padding: var(--spacing-3xl) 20%;
+  }
 }
 
 .inbox-header {
@@ -547,76 +563,8 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* ===== 大画面対応 ===== */
-@media (min-width: 1400px) {
-  .inbox-list {
-    max-width: 1400px;
-    padding: var(--spacing-3xl) var(--spacing-2xl);
-  }
-  
-  .inbox-header {
-    padding: var(--spacing-2xl);
-    margin-bottom: var(--spacing-3xl);
-  }
-  
-  .inbox-header h2 {
-    font-size: 2rem;
-  }
-  
-  .message-item {
-    padding: var(--spacing-2xl);
-    margin-bottom: var(--spacing-lg);
-  }
-  
-  .sender-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 1.5rem;
-  }
-  
-  .message-content {
-    padding-left: 4rem;
-  }
-  
-  .message-actions {
-    padding-left: 4rem;
-  }
-  
-  .pagination {
-    padding: var(--spacing-2xl);
-    margin-top: var(--spacing-3xl);
-  }
-}
-
-/* タブレット表示 */
-@media (max-width: 1199px) {
-  .inbox-list {
-    padding: var(--spacing-2xl) var(--spacing-md);
-  }
-  
-  .message-item {
-    padding: var(--spacing-lg);
-  }
-  
-  .sender-icon {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .message-content {
-    padding-left: 2.75rem;
-  }
-  
-  .message-actions {
-    padding-left: 2.75rem;
-  }
-}
-
 /* モバイル表示 */
 @media (max-width: 767px) {
-  .inbox-list {
-    padding: var(--spacing-xl) var(--spacing-sm);
-  }
   
   .inbox-header {
     flex-direction: column;
@@ -665,9 +613,6 @@ onMounted(() => {
 
 /* 小さいモバイル表示 */
 @media (max-width: 479px) {
-  .inbox-list {
-    padding: var(--spacing-lg) var(--spacing-xs);
-  }
   
   .inbox-header {
     padding: var(--spacing-md);

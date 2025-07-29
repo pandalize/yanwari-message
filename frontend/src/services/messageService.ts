@@ -3,13 +3,13 @@ import { apiService } from './api'
 // User lookup cache to avoid repeated API calls
 const userCache = new Map<string, { name: string, email: string }>()
 
-// Helper function to get user info by ID or email
 // Add cache clearing function
 export const clearUserCache = () => {
   userCache.clear()
   console.log('User cache cleared')
 }
 
+// Helper function to get user info by ID or email
 export const getUserInfo = async (userIdOrEmail: string): Promise<{ name: string, email: string }> => {
   if (userCache.has(userIdOrEmail)) {
     return userCache.get(userIdOrEmail)!

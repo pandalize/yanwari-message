@@ -977,6 +977,42 @@ input:checked + .toggle-slider:before {
   border: 1px solid var(--error-color);
 }
 
+/* 大画面対応 */
+@media (min-width: 1400px) {
+  .settings-container {
+    max-width: 1200px;
+    padding: 0 2rem;
+  }
+  
+  .settings-section {
+    margin-bottom: 3rem;
+  }
+  
+  .settings-card {
+    padding: 2.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+  }
+  
+  .form-group {
+    margin-bottom: 2rem;
+  }
+  
+  .form-input,
+  .form-select {
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+  }
+  
+  .btn {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+}
+
 @media (max-width: 768px) {
   .settings-view {
     padding: 1rem 0;
