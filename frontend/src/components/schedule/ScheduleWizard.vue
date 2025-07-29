@@ -58,71 +58,87 @@
     <div class="custom-section">
       <h3 class="custom-title">自分で設定する</h3>
       
-      
-      <!-- カレンダー -->
-      <div class="calendar-container">
-        <div class="calendar-header">
-          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-        </div>
-        <div class="calendar-grid">
-          <div v-for="date in calendarDates" :key="date.value" 
-               :class="['calendar-date', { 
-                 selected: date.value === selectedDate, 
-                 disabled: date.disabled 
-               }]"
-               @click="!date.disabled && selectDate(date.value)">
-            {{ date.display }}
+      <div class="custom-content">
+        <!-- カレンダー -->
+        <div class="calendar-container">
+          <!-- 月移動ヘッダー -->
+          <div class="calendar-month-header">
+            <button class="month-nav-btn" @click="previousMonth">
+              ←
+            </button>
+            <span class="current-month">
+              {{ currentYear }}年{{ currentMonth + 1 }}月
+            </span>
+            <button class="month-nav-btn" @click="nextMonth">
+              →
+            </button>
+          </div>
+          <div class="calendar-header">
+            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+          </div>
+          <div class="calendar-grid">
+            <div v-for="date in calendarDates" :key="date.value || `empty-${date.display}`" 
+                 :class="['calendar-date', { 
+                   selected: date.value === selectedDate, 
+                   disabled: date.disabled,
+                   past: date.disabled && date.value !== null
+                 }]"
+                 @click="!date.disabled && date.value && selectDate(date.value)">
+              {{ date.display }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 時間選択 -->
-      <div class="time-selection-container" :class="{ disabled: !selectedDate }">
-        <div v-if="!selectedDate" class="time-placeholder">
-          <p>まず日付を選択してください</p>
-        </div>
-        <div v-else class="time-selector">
-          <div class="time-inputs">
-            <div class="time-input-group">
-              <select 
-                v-model="customHour" 
-                class="time-select" 
-                @change="onTimeInput"
-                :disabled="!selectedDate"
-              >
-                <option v-for="hour in 24" :key="hour-1" :value="hour-1">
-                  {{ String(hour-1).padStart(2, '0') }}
-                </option>
-              </select>
-              <span class="time-unit">時</span>
-            </div>
-            <div class="time-input-group">
-              <select 
-                v-model="customMinute" 
-                class="time-select" 
-                @change="onTimeInput"
-                :disabled="!selectedDate"
-              >
-                <option value="0">00</option>
-                <option value="5">05</option>
-                <option value="10">10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="30">30</option>
-                <option value="35">35</option>
-                <option value="40">40</option>
-                <option value="45">45</option>
-                <option value="50">50</option>
-                <option value="55">55</option>
-              </select>
-              <span class="time-unit">分</span>
-            </div>
+        <!-- 時間選択 -->
+        <div class="time-selection-container" :class="{ disabled: !selectedDate }">
+          <div v-if="!selectedDate" class="time-placeholder">
+            <p>まず日付を選択してください</p>
           </div>
-          
-          <!-- 過去の時間エラー表示 -->
-          <div v-if="isPastTime" class="time-error">
-            ⚠️ 選択できません（現在より前の時間です）
+          <div v-else class="time-selector">
+            <div class="time-inputs">
+              <div class="time-input-group">
+                <select 
+                  v-model="customHour" 
+                  class="time-select" 
+                  @change="onTimeInput"
+                  :disabled="!selectedDate"
+                >
+                  <option v-for="hour in 24" :key="hour-1" :value="hour-1">
+                    {{ String(hour-1).padStart(2, '0') }}
+                  </option>
+                </select>
+                <span class="time-unit">時</span>
+              </div>
+              <div class="time-input-group">
+                <select 
+                  v-model="customMinute" 
+                  class="time-select" 
+                  @change="onTimeInput"
+                  :disabled="!selectedDate"
+                >
+                  <option value="0">00</option>
+                  <option value="5">05</option>
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="20">20</option>
+                  <option value="25">25</option>
+                  <option value="30">30</option>
+                  <option value="35">35</option>
+                  <option value="40">40</option>
+                  <option value="45">45</option>
+                  <option value="50">50</option>
+                  <option value="55">55</option>
+                </select>
+                <span class="time-unit">分</span>
+              </div>
+            </div>
+            
+            <!-- 過去の時間エラー表示（ポップアップ） -->
+            <div v-if="isPastTime" class="time-error-popup">
+              <div class="error-popup-content">
+                ⚠️ 選択できません（現在より前の時間です）
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -188,15 +204,14 @@ const selectedDate = ref<number | null>(null)
 const customHour = ref(9)
 const customMinute = ref(0)
 
+// カレンダー表示状態
+const currentYear = ref(new Date().getFullYear())
+const currentMonth = ref(new Date().getMonth())
+
 // UI状態
 const isScheduling = ref(false)
 const error = ref('')
 const successMessage = ref('')
-
-// カスタム選択状態
-const isTimeSelected = computed(() => {
-  return selectedDate.value && customHour.value !== null && customMinute.value !== null
-})
 
 // 過去の時間チェック
 const isPastTime = computed(() => {
@@ -206,35 +221,40 @@ const isPastTime = computed(() => {
   
   const now = new Date()
   const selectedDateTime = new Date(
-    now.getFullYear(),
-    now.getMonth(),
+    currentYear.value,
+    currentMonth.value,
     selectedDate.value,
     customHour.value,
     customMinute.value
   )
   
-  return selectedDateTime <= now
+  const pastTime = selectedDateTime <= now
+  
+  // ポップアップが表示されたら2秒後に時間を再設定してポップアップを閉じる
+  if (pastTime) {
+    setTimeout(() => {
+      const oneHourLater = new Date()
+      oneHourLater.setHours(oneHourLater.getHours() + 1)
+      customHour.value = oneHourLater.getHours()
+      customMinute.value = 0
+    }, 2000)
+  }
+  
+  return pastTime
 })
 
 // 計算プロパティ
-const currentTime = computed(() => {
-  const now = new Date()
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  return `${hours}:${minutes}`
-})
-
 const calendarDates = computed(() => {
   const today = new Date()
-  const currentMonth = today.getMonth()
-  const currentYear = today.getFullYear()
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay()
+  const displayYear = currentYear.value
+  const displayMonth = currentMonth.value
+  const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate()
+  const firstDayOfWeek = new Date(displayYear, displayMonth, 1).getDay()
   
   const dates = []
   
   // 前月の日付で埋める
-  const prevMonth = new Date(currentYear, currentMonth, 0)
+  const prevMonth = new Date(displayYear, displayMonth, 0)
   const daysInPrevMonth = prevMonth.getDate()
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     dates.push({
@@ -244,9 +264,9 @@ const calendarDates = computed(() => {
     })
   }
   
-  // 今月の日付（今日も選択可能）
+  // 今月の日付
   for (let i = 1; i <= daysInMonth; i++) {
-    const date = new Date(currentYear, currentMonth, i)
+    const date = new Date(displayYear, displayMonth, i)
     // 今日より前の日付を無効化（今日は含まない）
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const isPast = date < startOfToday
@@ -390,6 +410,29 @@ const onTimeInput = () => {
   }
 }
 
+// 月移動メソッド
+const previousMonth = () => {
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11
+    currentYear.value--
+  } else {
+    currentMonth.value--
+  }
+  // 選択日付をクリア（異なる月になるため）
+  selectedDate.value = null
+}
+
+const nextMonth = () => {
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0
+    currentYear.value++
+  } else {
+    currentMonth.value++
+  }
+  // 選択日付をクリア（異なる月になるため）
+  selectedDate.value = null
+}
+
 
 
 // AI提案を取得
@@ -491,8 +534,8 @@ const scheduleMessage = async () => {
       
       const now = new Date()
       const scheduled = new Date(
-        now.getFullYear(),
-        now.getMonth(),
+        currentYear.value,
+        currentMonth.value,
         selectedDate.value,
         customHour.value,
         customMinute.value
@@ -514,7 +557,7 @@ const scheduleMessage = async () => {
     
     successMessage.value = 'スケジュールを設定しました！'
     setTimeout(() => {
-      router.push('/schedules')
+      router.push('/history')
     }, 2000)
     
   } catch (err: any) {
@@ -551,7 +594,7 @@ onMounted(() => {
   font-family: var(--font-family-main);
   position: relative;
   width: 1280px;
-  height: 832px;
+  height: 100vh;
   margin: 0 auto;
   overflow: hidden;
 }
@@ -575,62 +618,69 @@ onMounted(() => {
   left: 288px;
   top: 61px;
   display: grid;
-  grid-template-columns: 234px 234px;
-  grid-template-rows: 177px 177px;
-  gap: 25px 25px;
+  grid-template-columns: 18.75rem 18.75rem; /* 300px 300px */
+  grid-template-rows: 6rem 6rem; /* 96px 96px */
+  gap: 1.5625rem 1.5625rem; /* 25px 25px */
 }
 
 /* スケジュールカード */
 .schedule-card {
-  background: #ffffff;
-  border: 3px solid #d9d9d9;
-  border-radius: 10px;
-  width: 234px;
-  height: 177px;
+  width: 18.75rem; /* 300px */
+  height: 6rem; /* 96px */
+  flex-shrink: 0;
+  border-radius: 0.625rem; /* 10px */
+  border: 3px solid var(--gray-color, #D9D9D9);
+  background: var(--neutral-color, #FFF);
   position: relative;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 12px;
+  box-sizing: border-box;
 }
 
 .schedule-card.selected {
-  background: var(--success-color);
-  border-color: var(--success-color);
+  background: var(--success-color, #28a745);
+  border-color: var(--success-color, #28a745);
 }
 
 /* カードタイトル */
 .card-title {
-  position: absolute;
-  left: 16px;
-  top: 16px;
   color: #000000;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   font-family: var(--font-family-main);
   line-height: 100%;
-  margin: 0;
+  margin: 0 0 6px 0;
+  position: static;
 }
 
 .card-content {
-  position: absolute;
-  left: 16px;
-  bottom: 16px;
-  right: 16px;
+  position: static;
+  width: 100%;
 }
 
 .time-display {
   color: #000000;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
   font-family: var(--font-family-main);
   line-height: 15px;
-  margin: 0;
+  margin: 6px 0 0 0;
 }
 
 /* カスタム設定セクション */
 .custom-section {
   position: absolute;
-  left: 541px;
-  top: 342px;
+  left: 288px;
+  top: 320px;
+  width: 625px;
+  display: flex;
+  flex-direction: column;
 }
 
 .custom-title {
@@ -640,20 +690,66 @@ onMounted(() => {
   font-family: var(--font-family-main);
   line-height: 100%;
   text-align: center;
-  margin: 0 0 24px 0;
-  width: 200px;
+  margin: 0 0 20px 0;
+  width: 625px;
+}
+
+/* カレンダーと時間選択を横並びにするコンテナ */
+.custom-content {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
 }
 
 /* カレンダー */
 .calendar-container {
-  margin-bottom: 24px;
+  width: 294px;
+  flex-shrink: 0;
+}
+
+/* 月移動ヘッダー */
+.calendar-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  width: 294px;
+}
+
+.month-nav-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #000000;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.month-nav-btn:hover {
+  background: #f0f0f0;
+  border-color: #999999;
+}
+
+.current-month {
+  color: #000000;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-family-main);
+  text-align: center;
+  min-width: 120px;
 }
 
 .calendar-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  margin-bottom: 12px;
+  gap: 2px;
+  margin-bottom: 8px;
   width: 294px;
 }
 
@@ -669,7 +765,7 @@ onMounted(() => {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
+  gap: 2px;
   width: 294px;
 }
 
@@ -680,7 +776,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   color: #000000;
   font-size: 12px;
   font-weight: 400;
@@ -692,18 +788,33 @@ onMounted(() => {
   background: #f0f0f0;
 }
 
+.calendar-date.disabled:hover {
+  background: transparent !important;
+  color: #cccccc !important;
+}
+
 .calendar-date.selected {
-  background: var(--success-color);
-  border-radius: 50%;
+  background: var(--success-color, #28a745);
+  color: white;
+  border-radius: 4px;
 }
 
 .calendar-date.disabled {
-  color: #cccccc;
+  color: #cccccc !important;
+  background: transparent !important;
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.calendar-date.past {
+  opacity: 0.3;
+  color: #cccccc;
 }
 
 /* 時間選択 */
 .time-selection-container {
+  flex: 1;
+  min-width: 280px;
   transition: opacity 0.3s ease;
 }
 
@@ -714,7 +825,7 @@ onMounted(() => {
 
 .time-placeholder {
   text-align: center;
-  padding: 48px 0;
+  padding: 40px 20px;
   color: #999999;
   font-size: 16px;
   font-family: var(--font-family-main);
@@ -725,13 +836,13 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .time-inputs {
   display: flex;
   align-items: center;
-  gap: 70px;
+  gap: 40px;
 }
 
 .time-input-group {
@@ -746,7 +857,7 @@ onMounted(() => {
   background: #ffffff;
   border: 3px solid #d9d9d9;
   border-radius: 15px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
   font-family: var(--font-family-main);
   text-align: center;
@@ -763,27 +874,56 @@ onMounted(() => {
   line-height: 100%;
 }
 
-/* 時間エラー */
-.time-error {
-  position: absolute;
-  left: 50%;
-  top: 100%;
-  transform: translateX(-50%);
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: var(--error-color);
-  border-radius: 8px;
-  color: #000000;
-  font-size: 14px;
+/* 時間エラーポップアップ */
+.time-error-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.error-popup-content {
+  background: #ffffff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  color: #e74c3c;
+  font-size: 16px;
+  font-weight: 500;
   font-family: var(--font-family-main);
-  white-space: nowrap;
+  text-align: center;
+  border: 2px solid #e74c3c;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* アクションボタン */
 .action-buttons {
   position: absolute;
   left: 304px;
-  top: 570px;
+  top: 670px;
   display: flex;
   gap: 177px;
 }
@@ -802,6 +942,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-secondary {
@@ -828,7 +969,7 @@ onMounted(() => {
 .alert {
   position: absolute;
   left: 304px;
-  top: 650px;
+  top: 750px;
   width: 577px;
   padding: 16px;
   border-radius: 8px;

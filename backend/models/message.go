@@ -25,6 +25,7 @@ type Message struct {
 	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt    time.Time          `bson:"updatedAt" json:"updatedAt"`
 	SentAt       *time.Time         `bson:"sentAt,omitempty" json:"sentAt,omitempty"`
+	DeliveredAt  *time.Time         `bson:"deliveredAt,omitempty" json:"deliveredAt,omitempty"`
 	ReadAt       *time.Time         `bson:"readAt,omitempty" json:"readAt,omitempty"`
 }
 
@@ -106,7 +107,9 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		}
 		message.RecipientID = recipient.ID
 		
-		// 友達関係をチェック
+		// TODO: 友達関係のチェック（一時的に無効化）
+		// 友達システムが完全に実装されるまで、この制限を解除
+		/*
 		friendshipService := NewFriendshipService(s.db)
 		areFriends, err := friendshipService.AreFriends(ctx, senderID, recipient.ID)
 		if err != nil {
@@ -115,6 +118,7 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		if !areFriends {
 			return nil, errors.New("メッセージを送るには友達になる必要があります")
 		}
+		*/
 	}
 
 	result, err := s.collection.InsertOne(ctx, message)
@@ -416,6 +420,40 @@ func (s *MessageService) MarkMessageAsRead(ctx context.Context, messageID, recip
 	return nil
 }
 
+// UpdateMessageStatus メッセージのステータスを更新
+func (s *MessageService) UpdateMessageStatus(ctx context.Context, messageID primitive.ObjectID, status MessageStatus) error {
+	now := time.Now()
+	
+	filter := bson.M{"_id": messageID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":    status,
+			"updatedAt": now,
+		},
+	}
+	
+	// ステータスに応じて追加フィールドを設定
+	switch status {
+	case MessageStatusSent:
+		update["$set"].(bson.M)["sentAt"] = now
+	case MessageStatusDelivered:
+		update["$set"].(bson.M)["deliveredAt"] = now
+	case MessageStatusRead:
+		update["$set"].(bson.M)["readAt"] = now
+	}
+	
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	
+	if result.MatchedCount == 0 {
+		return mongo.ErrNoDocuments
+	}
+	
+	return nil
+}
+
 // CreateIndexes メッセージコレクションのインデックスを作成
 func (s *MessageService) CreateIndexes(ctx context.Context) error {
 	indexes := []mongo.IndexModel{
@@ -501,4 +539,49 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 	}
 
 	return messagesWithSender, total, nil
+}
+
+// GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
+func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
+	var messages []Message
+	
+	// 送信者が送信したメッセージで、送信済み以上の状態のメッセージを取得
+	filter := bson.M{
+		"senderId": senderID,
+		"status": bson.M{"$in": []MessageStatus{
+			MessageStatusSent,
+			MessageStatusDelivered,
+			MessageStatusRead,
+		}},
+	}
+
+	// 総数を取得
+	total, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ページネーション設定
+	skip := int64((page - 1) * limit)
+	limitInt64 := int64(limit)
+	
+	cursor, err := s.collection.Find(ctx, filter, &options.FindOptions{
+		Sort:  bson.D{{Key: "sentAt", Value: -1}}, // 送信日時の降順
+		Skip:  &skip,
+		Limit: &limitInt64,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	if err = cursor.All(ctx, &messages); err != nil {
+		return nil, 0, err
+	}
+
+	if messages == nil {
+		messages = []Message{}
+	}
+
+	return messages, total, nil
 }

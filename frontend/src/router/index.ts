@@ -24,6 +24,12 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/recipient-select',
+      name: 'recipient-select',
+      component: () => import('../views/RecipientSelectView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/compose',
       name: 'message-compose',
       component: () => import('../views/MessageComposeView.vue'),
@@ -38,7 +44,7 @@ const router = createRouter({
     {
       path: '/schedule',
       name: 'schedule-wizard',
-      component: () => import('../views/ScheduleView.vue'),
+      component: () => import('../views/ScheduleWizardView.vue'),
       meta: { requiresAuth: true }
     },
     {
