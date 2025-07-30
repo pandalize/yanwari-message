@@ -60,11 +60,14 @@ export const useMessageStore = defineStore('messages', () => {
         updatedAt: response.data.updatedAt
       }
 
-      // 下書き一覧を更新
+      // 下書き一覧を更新（更新されたアイテムを削除して先頭に追加）
       const index = drafts.value.findIndex(d => d.id === messageId)
       if (index !== -1) {
-        drafts.value[index] = updatedDraft
+        // 既存のアイテムを削除
+        drafts.value.splice(index, 1)
       }
+      // 更新されたアイテムを先頭に追加（最新順）
+      drafts.value.unshift(updatedDraft)
 
       // 現在の下書きも更新
       if (currentDraft.value?.id === messageId) {
@@ -88,7 +91,33 @@ export const useMessageStore = defineStore('messages', () => {
 
     try {
       const response = await messageService.getDrafts(page, limit)
-      drafts.value = response.data.messages
+      // 送信予定・送信済み以外の下書きのみ表示
+      const filteredDrafts = response.data.messages.filter((draft: MessageDraft) => 
+        draft.status === 'draft' || draft.status === 'processing'
+      )
+      
+      // 更新日時順（最新が先頭）にソート
+      drafts.value = filteredDrafts.sort((a, b) => {
+        // updatedAt が優先、なければ createdAt を使用
+        const dateA = new Date(a.updatedAt || a.createdAt || '1970-01-01')
+        const dateB = new Date(b.updatedAt || b.createdAt || '1970-01-01')
+        const result = dateB.getTime() - dateA.getTime()
+        
+        console.log('Sorting drafts:', {
+          a: { id: a.id, updatedAt: a.updatedAt, createdAt: a.createdAt, dateA: dateA.toISOString() },
+          b: { id: b.id, updatedAt: b.updatedAt, createdAt: b.createdAt, dateB: dateB.toISOString() },
+          result
+        })
+        
+        return result
+      })
+      
+      console.log('Drafts sorted by date (newest first):', drafts.value.map(d => ({
+        id: d.id,
+        text: d.originalText.substring(0, 50),
+        updatedAt: d.updatedAt,
+        createdAt: d.createdAt
+      })))
     } catch (err: any) {
       error.value = err.response?.data?.error || '下書きの取得に失敗しました'
     } finally {
@@ -123,22 +152,31 @@ export const useMessageStore = defineStore('messages', () => {
   }
 
   const deleteDraft = async (messageId: string): Promise<boolean> => {
+    console.log('ストアのdeleteDraftが呼ばれました:', messageId)
     isLoading.value = true
     error.value = ''
 
     try {
+      console.log('messageService.deleteDraftを実行中...')
       await messageService.deleteDraft(messageId)
+      console.log('messageService.deleteDraft完了')
       
       // 下書き一覧から削除
+      const beforeCount = drafts.value.length
       drafts.value = drafts.value.filter(d => d.id !== messageId)
+      const afterCount = drafts.value.length
+      console.log(`下書き一覧から削除: ${beforeCount} → ${afterCount}`)
       
       // 現在の下書きもクリア
       if (currentDraft.value?.id === messageId) {
         currentDraft.value = null
+        console.log('現在の下書きもクリアしました')
       }
 
+      console.log('削除処理完了')
       return true
     } catch (err: any) {
+      console.error('削除処理でエラー:', err)
       error.value = err.response?.data?.error || 'メッセージの削除に失敗しました'
       return false
     } finally {
@@ -152,6 +190,21 @@ export const useMessageStore = defineStore('messages', () => {
 
   const clearCurrentDraft = () => {
     currentDraft.value = null
+  }
+
+  const sortDraftsByDate = () => {
+    drafts.value = drafts.value.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || '1970-01-01')
+      const dateB = new Date(b.updatedAt || b.createdAt || '1970-01-01')
+      return dateB.getTime() - dateA.getTime()
+    })
+    
+    console.log('Manual sort applied. Drafts order:', drafts.value.map(d => ({
+      id: d.id,
+      text: d.originalText.substring(0, 30),
+      updatedAt: d.updatedAt,
+      createdAt: d.createdAt
+    })))
   }
 
   const clearError = () => {
@@ -176,6 +229,7 @@ export const useMessageStore = defineStore('messages', () => {
     deleteDraft,
     setCurrentDraft,
     clearCurrentDraft,
+    sortDraftsByDate,
     clearError
   }
 })

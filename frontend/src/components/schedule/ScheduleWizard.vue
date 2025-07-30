@@ -178,6 +178,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useMessageStore } from '@/stores/messages'
 import scheduleService, { 
   type ScheduleSuggestionResponse,
   type ScheduleSuggestionRequest 
@@ -185,6 +186,7 @@ import scheduleService, {
 
 const router = useRouter()
 const route = useRoute()
+const messageStore = useMessageStore()
 
 // ルートパラメータから取得
 const messageId = ref('')
@@ -474,6 +476,9 @@ const sendImmediately = async () => {
       scheduledAt: now.toISOString()
     })
     
+    // 下書き一覧を更新（送信済みメッセージは下書きから除外される）
+    await messageStore.loadDrafts()
+    
     successMessage.value = 'メッセージを送信しました！'
     setTimeout(() => {
       router.push('/inbox')
@@ -554,6 +559,9 @@ const scheduleMessage = async () => {
       messageId: messageId.value,
       scheduledAt
     })
+    
+    // 下書き一覧を更新（予約済みメッセージは下書きから除外される）
+    await messageStore.loadDrafts()
     
     successMessage.value = 'スケジュールを設定しました！'
     console.log('Attempting to navigate to /history in 1.5 seconds...')

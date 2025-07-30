@@ -19,60 +19,67 @@
     <!-- 送信予定セクション -->
     <div class="section">
       <h2 class="section-title">送信予定</h2>
-      <div class="message-container">
+      <MessageContainer 
+        width="100%" 
+        min-height="200px"
+        margin-bottom="var(--spacing-2xl)"
+      >
         <div v-if="filteredScheduledMessages.length === 0" class="empty-state">
           送信予定のメッセージがありません
         </div>
-        <div 
+        <MessageListItem 
           v-for="message in filteredScheduledMessages" 
           :key="message.id" 
-          class="message-item clickable"
+          :clickable="true"
+          min-height="60px"
+          padding="var(--spacing-lg)"
           @click="showScheduleDetail(message.id)"
         >
-          <div class="message-left">
+          <template #left>
             <div class="recipient-name">{{ message.recipientName }}</div>
-          </div>
-          <div class="message-center">
+          </template>
+          <template #center>
             <div class="message-time">{{ formatDateTime(message.scheduledAt) }}</div>
-          </div>
-          <div class="message-right">
+          </template>
+          <template #right>
             <div class="action-buttons">
-              <button class="edit-btn" @click.stop="editMessage(message.id)">
-                編集
-              </button>
-              <button class="cancel-btn" @click.stop="cancelSchedule(message.id)">
-                キャンセル
-              </button>
+              <SmallButton @click.stop="editMessage(message.id)" text="編集" title="メッセージを編集" />
+              <SmallButton @click.stop="cancelSchedule(message.id)" text="キャンセル" title="送信をキャンセル" />
             </div>
-          </div>
-        </div>
-      </div>
+          </template>
+        </MessageListItem>
+      </MessageContainer>
     </div>
 
     <!-- 送信済セクション -->
     <div class="section">
       <h2 class="section-title">送信済</h2>
-      <div class="message-container">
+      <MessageContainer 
+        width="100%" 
+        min-height="200px"
+      >
         <div v-if="filteredSentMessages.length === 0" class="empty-state">
           送信済みのメッセージがありません
         </div>
-        <div 
+        <MessageListItem 
           v-for="message in filteredSentMessages" 
           :key="message.id" 
-          class="message-item clickable"
+          :clickable="true"
+          min-height="60px"
+          padding="var(--spacing-lg)"
           @click="showSentMessageDetail(message.id)"
         >
-          <div class="message-left">
+          <template #left>
             <div class="recipient-name">{{ message.recipientName }}</div>
-          </div>
-          <div class="message-center">
+          </template>
+          <template #center>
             <div class="message-time">{{ formatDateTime(message.sentAt) }}</div>
-          </div>
-          <div class="message-right">
+          </template>
+          <template #right>
             <div v-if="message.isRead" class="read-badge">既読</div>
-          </div>
-        </div>
-      </div>
+          </template>
+        </MessageListItem>
+      </MessageContainer>
     </div>
     
     <!-- メッセージ詳細モーダル -->
@@ -132,6 +139,9 @@ import { useRouter } from 'vue-router'
 import { messageService, getUserInfo, clearUserCache } from '@/services/messageService'
 import scheduleService from '@/services/scheduleService'
 import { apiService } from '@/services/api'
+import SmallButton from '@/components/common/SmallButton.vue'
+import MessageContainer from '@/components/common/MessageContainer.vue'
+import MessageListItem from '@/components/common/MessageListItem.vue'
 
 interface HistoryMessage {
   id: string
@@ -685,14 +695,6 @@ onUnmounted(() => {
   font-family: var(--font-family-main);
 }
 
-/* メッセージコンテナ */
-.message-container {
-  background: var(--background-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  min-height: 200px;
-}
 
 .empty-state {
   padding: var(--spacing-2xl) var(--spacing-lg);
@@ -702,41 +704,6 @@ onUnmounted(() => {
   font-family: var(--font-family-main);
 }
 
-.message-item {
-  display: flex;
-  align-items: center;
-  padding: var(--spacing-lg) var(--spacing-lg);
-  border-bottom: 1px solid var(--background-muted);
-  min-height: 60px;
-  transition: background-color 0.2s ease;
-}
-
-.message-item:hover {
-  background: var(--background-secondary);
-}
-
-.message-item.clickable {
-  cursor: pointer;
-}
-
-.message-item:last-child {
-  border-bottom: none;
-}
-
-.message-left {
-  flex: 1;
-  min-width: 200px;
-}
-
-.message-center {
-  flex: 1;
-  text-align: center;
-}
-
-.message-right {
-  flex: 0 0 160px;
-  text-align: right;
-}
 
 .recipient-name {
   font-size: var(--font-size-md);
@@ -753,23 +720,6 @@ onUnmounted(() => {
   font-family: var(--font-family-main);
 }
 
-.edit-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--primary-color-light);
-  border: 1px solid var(--primary-color);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-weight: 500;
-  font-family: var(--font-family-main);
-  transition: all 0.2s ease;
-}
-
-.edit-btn:hover {
-  background: var(--primary-color);
-  border-color: var(--primary-color-dark);
-}
 
 .action-buttons {
   display: flex;
@@ -777,23 +727,6 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
-.cancel-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--error-color);
-  border: 1px solid var(--error-color);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-sm);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-weight: 500;
-  font-family: var(--font-family-main);
-  transition: all 0.2s ease;
-}
-
-.cancel-btn:hover {
-  background: var(--error-color);
-  opacity: 0.8;
-}
 
 
 .read-badge {

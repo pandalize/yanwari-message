@@ -216,7 +216,9 @@ const proceedToSchedule = async () => {
     })
 
     if (success) {
-      const recipientEmail = messageStore.currentDraft?.recipientEmail || ''
+      // クエリパラメータから受信者情報を取得、フォールバックでcurrentDraftから取得
+      const recipientEmail = route.query.recipientEmail as string || messageStore.currentDraft?.recipientEmail || ''
+      const recipientName = route.query.recipientName as string || recipientEmail.split('@')[0]
       console.log('Navigating to schedule wizard with recipient:', recipientEmail)
       
       // 予約配信画面に遷移（必要な情報をすべてクエリパラメータで渡す）
@@ -277,6 +279,7 @@ onMounted(() => {
   border: 3px solid var(--border-color);
   border-radius: 10px;
   background: var(--neutral-color);
+  margin: 0 auto;
 }
 
 .message-loading {
@@ -324,6 +327,9 @@ onMounted(() => {
 /* メインコンテンツ */
 .main-content {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .page-title {
@@ -351,11 +357,14 @@ onMounted(() => {
 /* メッセージコンテナ */
 .message-container {
   width: 700px;
-  min-height: 100px;
+  min-height: 120px;
   border: 3px solid var(--border-color);
   border-radius: 10px;
   background: var(--neutral-color);
   padding: var(--spacing-xl);
+  cursor: default;
+  transition: all 0.3s ease;
+  overflow-y: auto;
 }
 
 .message-text {
@@ -363,6 +372,10 @@ onMounted(() => {
   font-size: var(--font-size-base);
   font-family: var(--font-family-main);
   line-height: var(--line-height-normal);
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  min-height: 1.5em;
 }
 
 /* トーン選択肢 */
@@ -429,6 +442,10 @@ onMounted(() => {
   font-family: var(--font-family-main);
   line-height: var(--line-height-normal);
   margin: 0;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  min-height: 1.5em;
 }
 
 /* アクションセクション */
@@ -480,14 +497,13 @@ onMounted(() => {
   }
   
   .message-container {
-    width: 100%;
     max-width: 1000px;
-    height: 350px;
+    min-height: 200px;
+    padding: var(--spacing-2xl);
   }
   
   .message-text {
     font-size: var(--font-size-lg);
-    padding: var(--spacing-2xl);
   }
   
   .tone-options {

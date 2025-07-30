@@ -4,7 +4,14 @@
     <h1 class="page-title">送信</h1>
 
     <!-- 受信者情報表示 -->
-    <div v-if="recipientInfo" class="recipient-info">
+    <MessageContainer 
+      v-if="recipientInfo" 
+      width="700px" 
+      min-height="auto" 
+      padding="20px"
+      margin-bottom="32px"
+      class="recipient-info"
+    >
       <h3 class="recipient-label">送信先:</h3>
       <div class="recipient-display">
         <div class="recipient-avatar">
@@ -14,22 +21,51 @@
           <span class="recipient-name">{{ recipientInfo.name }}</span>
           <span class="recipient-email">{{ recipientInfo.email }}</span>
         </div>
-        <button @click="changeRecipient" class="change-recipient-btn">変更</button>
+        <SmallButton @click="changeRecipient" text="変更" title="送信先を変更" />
       </div>
-    </div>
+    </MessageContainer>
 
     <!-- 新規作成セクション -->
     <section class="compose-section">
       <h2 class="section-title">メッセージ作成</h2>
       
       <!-- メッセージ入力エリア -->
-      <div class="message-input-container">
-        <textarea
-          v-model="messageText"
-          placeholder="メッセージを入力 / 変換前のメッセージ&#10;送りたい理由も教えてね"
-          class="message-textarea"
-          maxlength="1000"
-        ></textarea>
+      <div class="input-sections">
+        <!-- メッセージ内容 -->
+        <div class="input-section">
+          <h3 class="input-label">メッセージ内容</h3>
+          <MessageContainer 
+            width="700px" 
+            height="200px"
+            margin-bottom="var(--spacing-lg)"
+            class="message-input-container"
+          >
+            <textarea
+              v-model="messageText"
+              placeholder="送りたいメッセージを入力してください"
+              class="message-textarea"
+              maxlength="500"
+            ></textarea>
+          </MessageContainer>
+        </div>
+
+        <!-- 送信理由 -->
+        <div class="input-section">
+          <h3 class="input-label">送信理由・背景</h3>
+          <MessageContainer 
+            width="700px" 
+            height="150px"
+            margin-bottom="var(--spacing-2xl)"
+            class="reason-input-container"
+          >
+            <textarea
+              v-model="reasonText"
+              placeholder="このメッセージを送る理由や背景を教えてください（任意）"
+              class="reason-textarea"
+              maxlength="500"
+            ></textarea>
+          </MessageContainer>
+        </div>
       </div>
 
       <!-- アクションボタン -->
@@ -40,16 +76,15 @@
           :disabled="isLoading || !messageText.trim()"
         >
           <span v-if="isLoading && currentAction === 'draft'">保存中...</span>
-          <span v-else>下書きに入れる</span>
+          <span v-else-if="messageStore.currentDraft?.id">下書きを更新</span>
+          <span v-else>下書きに追加</span>
         </button>
         <button 
           class="action-btn transform-btn" 
           @click="transformTone"
-          :disabled="isLoading || !messageText.trim() || !recipientInfo?.email"
+          :disabled="isLoading || !messageText.trim()"
         >
           <span v-if="isLoading && currentAction === 'transform'">処理中...</span>
-          <span v-else-if="!messageText.trim()">メッセージを入力してください</span>
-          <span v-else-if="!recipientInfo?.email">送信先を選択してください</span>
           <span v-else>トーン変換を行う</span>
         </button>
       </div>
@@ -58,7 +93,11 @@
     <!-- 下書きセクション -->
     <section class="drafts-section">
       <h2 class="section-title">下書き</h2>
-      <div class="drafts-container">
+      <MessageContainer 
+        width="700px" 
+        min-height="100px"
+        class="drafts-container"
+      >
         <div v-if="messageStore.isLoading" class="loading-state">
           <div class="loading-spinner"></div>
           <span>下書きを読み込み中...</span>
@@ -71,59 +110,52 @@
         </div>
         
         <div v-else class="drafts-list">
-          <div 
+          <MessageListItem 
             v-for="draft in messageStore.drafts" 
             :key="draft.id"
-            class="draft-item"
+            :clickable="true"
+            height="100px"
+            padding="var(--spacing-xl)"
             @click="loadDraft(draft)"
           >
-            <div class="draft-content">
+            <template #content>
               <div class="draft-text">
                 {{ draft.originalText.length > 100 ? draft.originalText.substring(0, 100) + '...' : draft.originalText }}
               </div>
               <div class="draft-meta">
-                <span class="draft-recipient" v-if="draft.recipientEmail">
-                  宛先: {{ draft.recipientEmail }}
-                </span>
                 <span class="draft-date">
-                  {{ formatDate(draft.updatedAt || draft.createdAt) }}
+                  {{ formatDate(draft.updatedAt || draft.createdAt || '') }}
                 </span>
               </div>
-            </div>
-            <div class="draft-actions">
-              <button 
-                @click.stop="editDraft(draft)"
-                class="draft-action-btn edit-btn"
-                title="編集"
-              >
-                ✏️
-              </button>
-              <button 
+            </template>
+            <template #actions>
+              <SmallButton 
                 @click.stop="deleteDraftConfirm(draft)"
-                class="draft-action-btn delete-btn"
+                text="削除"
                 title="削除"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
+              />
+            </template>
+          </MessageListItem>
         </div>
-      </div>
+      </MessageContainer>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessageStore } from '@/stores/messages'
-import { getUserInfo } from '@/services/messageService'
 import type { MessageDraft } from '@/services/messageService'
+import SmallButton from '@/components/common/SmallButton.vue'
+import MessageContainer from '@/components/common/MessageContainer.vue'
+import MessageListItem from '@/components/common/MessageListItem.vue'
 
 const router = useRouter()
 const route = useRoute()
 const messageStore = useMessageStore()
 const messageText = ref('')
+const reasonText = ref('')
 const isLoading = ref(false)
 const currentAction = ref('')
 const recipientInfo = ref<any>(null)
@@ -133,7 +165,6 @@ const changeRecipient = () => {
   router.push('/recipient-select')
 }
 
-<<<<<<< HEAD
 // 日付フォーマット関数
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -155,51 +186,87 @@ const formatDate = (dateString: string) => {
 
 // 下書きを読み込んでテキストエリアに表示
 const loadDraft = async (draft: MessageDraft) => {
-  messageText.value = draft.originalText
+  // 組み合わせられたテキストを分離
+  const text = draft.originalText
+  const reasonSeparator = '\n\n【送信理由・背景】\n'
   
-  // 受信者情報も設定
+  if (text.includes(reasonSeparator)) {
+    const parts = text.split(reasonSeparator)
+    messageText.value = parts[0]
+    reasonText.value = parts[1] || ''
+  } else {
+    // 古い形式の下書きの場合は全てメッセージテキストに入れる
+    messageText.value = text
+    reasonText.value = ''
+  }
+  
+  // 受信者情報を復元
   if (draft.recipientEmail) {
-    try {
-      const userInfo = await getUserInfo(draft.recipientEmail)
-      recipientInfo.value = {
-        email: draft.recipientEmail,
-        name: userInfo.name
-      }
-    } catch (error) {
-      console.warn('受信者情報の取得に失敗:', error)
-      recipientInfo.value = {
-        email: draft.recipientEmail,
-        name: draft.recipientEmail.split('@')[0]
-      }
+    recipientInfo.value = {
+      email: draft.recipientEmail,
+      name: draft.recipientEmail.split('@')[0] // デフォルト名
     }
+    console.log('下書きから受信者情報を復元:', recipientInfo.value)
   }
   
   // 現在の下書きとして設定
   messageStore.setCurrentDraft(draft)
+  
+  // 画面を一番上にスクロール
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
 }
 
-// 下書きを編集モードで開く
-const editDraft = (draft: MessageDraft) => {
-  loadDraft(draft)
-}
 
 // 下書き削除の確認
 const deleteDraftConfirm = (draft: MessageDraft) => {
+  console.log('削除ボタンがクリックされました:', draft)
+  console.log('draft.id:', draft.id)
+  console.log('draft.originalText:', draft.originalText.substring(0, 30))
+  
+  if (!draft.id) {
+    console.error('draft.idが存在しません！')
+    alert('削除対象のIDが見つかりません')
+    return
+  }
+  
   if (confirm(`「${draft.originalText.substring(0, 50)}...」を削除しますか？`)) {
+    console.log('削除が確認されました、deleteDraftを実行します')
     deleteDraft(draft)
+  } else {
+    console.log('削除がキャンセルされました')
   }
 }
 
 // 下書きを削除
 const deleteDraft = async (draft: MessageDraft) => {
+  console.log('deleteDraft関数が呼ばれました:', draft.id)
+  
   try {
+    console.log('messageStore.deleteDraftを実行中...')
     const success = await messageStore.deleteDraft(draft.id!)
+    console.log('messageStore.deleteDraft実行結果:', success)
+    
     if (success) {
       // 削除した下書きが現在編集中の場合、テキストエリアをクリア
       if (messageStore.currentDraft?.id === draft.id) {
         messageText.value = ''
+        reasonText.value = ''
         recipientInfo.value = null
+        // currentDraftをクリアして新規作成状態に戻す
+        messageStore.clearCurrentDraft()
+        
+        console.log('削除した下書きが現在編集中だったため、編集状態をリセットしました')
       }
+      
+      // 下書きが全て削除された場合の処理
+      if (messageStore.drafts.length === 0) {
+        console.log('全ての下書きが削除されました')
+      }
+      
+      console.log('下書き削除完了:', draft.id)
     }
   } catch (error) {
     console.error('下書きの削除に失敗:', error)
@@ -216,6 +283,8 @@ onMounted(async () => {
   // 下書き一覧を読み込み
   try {
     await messageStore.loadDrafts()
+    // 確実に日付順でソートする
+    messageStore.sortDraftsByDate()
     console.log('下書き一覧読み込み完了:', messageStore.drafts.length, '件')
   } catch (error) {
     console.error('下書き一覧の読み込みに失敗:', error)
@@ -255,9 +324,22 @@ onMounted(async () => {
   })
 })
 
+// 画面がアクティブになった時（他の画面から戻ってきた時）に下書きをリロード
+onActivated(async () => {
+  console.log('MessageCompose activated - reloading drafts')
+  try {
+    await messageStore.loadDrafts()
+    // 確実に日付順でソートする
+    messageStore.sortDraftsByDate()
+    console.log('下書き再読み込み完了:', messageStore.drafts.length, '件')
+  } catch (error) {
+    console.error('下書き再読み込みに失敗:', error)
+  }
+})
+
 const saveDraft = async () => {
   if (!messageText.value.trim()) {
-    alert('メッセージを入力してください')
+    alert('メッセージ内容を入力してください')
     return
   }
 
@@ -265,15 +347,42 @@ const saveDraft = async () => {
   currentAction.value = 'draft'
 
   try {
-    // 下書き保存API呼び出し
-    const success = await messageStore.createDraft({
-      originalText: messageText.value,
-      recipientEmail: recipientInfo.value?.email || ''
-    })
+    let success = false
+    
+    // 既存の下書きがある場合は更新、ない場合は新規作成
+    if (messageStore.currentDraft?.id) {
+      // 既存の下書きを更新
+      console.log('既存の下書きを更新:', messageStore.currentDraft.id)
+      const combinedText = reasonText.value.trim() 
+        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
+        : messageText.value
+      success = await messageStore.updateDraft(messageStore.currentDraft.id, {
+        originalText: combinedText
+      })
+      
+      if (success) {
+        alert('下書きを更新しました')
+      }
+    } else {
+      // 新しい下書きを作成
+      console.log('新しい下書きを作成')
+      const combinedText = reasonText.value.trim() 
+        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
+        : messageText.value
+      success = await messageStore.createDraft({
+        originalText: combinedText
+      })
+      
+      if (success) {
+        alert('下書きを保存しました')
+      }
+    }
     
     if (success) {
-      alert('下書きを保存しました')
       messageText.value = '' // 入力欄をクリア
+      reasonText.value = '' // 理由欄もクリア
+      // currentDraftをクリアして新規作成状態に戻す
+      messageStore.clearCurrentDraft()
       // 下書き一覧は自動的にストアで更新される
     }
   } catch (error) {
@@ -287,50 +396,102 @@ const saveDraft = async () => {
 
 const transformTone = async () => {
   if (!messageText.value.trim()) {
-    alert('メッセージを入力してください')
+    alert('メッセージ内容を入力してください')
     return
   }
 
   if (!recipientInfo.value?.email) {
-    alert('送信先を選択してください')
+    // 受信者情報がない場合は受信者選択画面に移動
+    if (confirm('送信先が選択されていません。受信者選択画面に移動しますか？')) {
+      // 現在の内容を一時保存してから受信者選択画面に移動
+      const combinedText = reasonText.value.trim() 
+        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
+        : messageText.value
+      
+      // クエリパラメータで現在の内容を渡す
+      router.push({
+        path: '/recipient-select',
+        query: {
+          returnText: combinedText,
+          currentDraftId: messageStore.currentDraft?.id || ''
+        }
+      })
+    }
     return
+  }
+
+  if (!recipientInfo.value?.name) {
+    recipientInfo.value.name = recipientInfo.value.email.split('@')[0]
   }
 
   isLoading.value = true
   currentAction.value = 'transform'
 
   try {
+    const combinedText = reasonText.value.trim() 
+      ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
+      : messageText.value
+    
     console.log('トーン変換開始:', {
       messageText: messageText.value,
+      reasonText: reasonText.value,
+      combinedText: combinedText,
       recipientEmail: recipientInfo.value.email,
       recipientName: recipientInfo.value.name
     })
 
-    // まず下書きを作成
-    const success = await messageStore.createDraft({
-      originalText: messageText.value,
-      recipientEmail: recipientInfo.value.email
-    })
+    let success = false
+    let targetDraftId = ''
 
-    console.log('下書き作成結果:', {
+    // 既存の下書きがあるかチェック
+    if (messageStore.currentDraft?.id) {
+      // 既存の下書きを更新（recipientEmailは更新しない）
+      console.log('既存の下書きを更新:', messageStore.currentDraft.id)
+      success = await messageStore.updateDraft(messageStore.currentDraft.id, {
+        originalText: combinedText
+      })
+      targetDraftId = messageStore.currentDraft.id
+    } else {
+      // 新しい下書きを作成
+      console.log('新しい下書きを作成')
+      success = await messageStore.createDraft({
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value.email
+      })
+      targetDraftId = messageStore.currentDraft?.id || ''
+    }
+
+    console.log('下書き処理結果:', {
       success,
+      targetDraftId,
       currentDraft: messageStore.currentDraft,
       error: messageStore.error
     })
 
-    if (success && messageStore.currentDraft) {
-      console.log('トーン変換ページに遷移中:', messageStore.currentDraft.id)
-      // トーン変換ページに遷移（下書きIDを渡す）
+    if (success && targetDraftId) {
+      console.log('トーン変換ページに遷移中:', targetDraftId)
+      // トーン変換ページに遷移（下書きIDと受信者情報を渡す）
       await router.push({
         name: 'tone-transform',
-        params: { id: messageStore.currentDraft.id }
+        params: { id: targetDraftId },
+        query: {
+          recipientEmail: recipientInfo.value.email,
+          recipientName: recipientInfo.value.name
+        }
       })
     } else {
-      throw new Error(messageStore.error || '下書きの作成に失敗しました')
+      throw new Error(messageStore.error || '下書きの処理に失敗しました')
     }
   } catch (error) {
-    console.error('トーン変換エラー:', error)
-    alert(`トーン変換の開始に失敗しました: ${error.message || error}`)
+    console.error('トーン変換エラー詳細:', {
+      error,
+      errorMessage: (error as any)?.message,
+      errorResponse: (error as any)?.response,
+      currentDraft: messageStore.currentDraft,
+      messageText: messageText.value,
+      recipientInfo: recipientInfo.value
+    })
+    alert(`トーン変換の開始に失敗しました: ${(error as any)?.message || String(error)}`)
   } finally {
     isLoading.value = false
     currentAction.value = ''
@@ -345,6 +506,9 @@ const transformTone = async () => {
   margin: 0 auto;
   background: var(--background-primary);
   font-family: var(--font-family-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .page-title {
@@ -355,14 +519,6 @@ const transformTone = async () => {
   margin: 0 0 var(--spacing-lg) 0;
 }
 
-/* 受信者情報表示 */
-.recipient-info {
-  background: var(--background-primary);
-  border: 2px solid var(--primary-color);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 32px;
-}
 
 .recipient-label {
   font-size: 16px;
@@ -409,22 +565,6 @@ const transformTone = async () => {
   color: var(--text-secondary);
 }
 
-.change-recipient-btn {
-  padding: 8px 16px;
-  background: var(--primary-color-light);
-  border: 1px solid var(--primary-color);
-  border-radius: 6px;
-  font-size: 14px;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.change-recipient-btn:hover {
-  background: var(--primary-color);
-  border-color: var(--primary-color-dark);
-}
 
 /* 新規作成セクション */
 .compose-section {
@@ -439,20 +579,35 @@ const transformTone = async () => {
   margin: 0 0 var(--spacing-lg) 0;
 }
 
-/* メッセージ入力エリア */
-.message-input-container {
-  width: 700px;
-  height: 299px;
-  margin-bottom: var(--spacing-2xl);
+
+/* 入力セクション */
+.input-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-.message-textarea {
+.input-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-label {
+  font-size: var(--font-size-md);
+  color: var(--text-primary);
+  font-family: var(--font-family-main);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-sm) 0;
+}
+
+.message-textarea,
+.reason-textarea {
   width: 100%;
   height: 100%;
   padding: var(--spacing-xl);
-  border: 3px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--neutral-color);
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-primary);
   font-size: var(--font-size-base);
   font-family: var(--font-family-main);
@@ -463,14 +618,16 @@ const transformTone = async () => {
   box-sizing: border-box;
 }
 
-.message-textarea::placeholder {
+.message-textarea::placeholder,
+.reason-textarea::placeholder {
   color: var(--text-primary);
   font-size: var(--font-size-base);
   font-family: var(--font-family-main);
   line-height: var(--line-height-normal);
 }
 
-.message-textarea:focus {
+.message-textarea:focus,
+.reason-textarea:focus {
   border-color: var(--border-color-focus);
 }
 
@@ -479,6 +636,8 @@ const transformTone = async () => {
   display: flex;
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-2xl);
+  justify-content: center;
+  width: 700px;
 }
 
 .action-btn {
@@ -518,94 +677,36 @@ const transformTone = async () => {
   margin-bottom: var(--spacing-3xl);
 }
 
-.drafts-container {
-  width: 700px;
-  min-height: 227px;
-  border: 3px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--neutral-color);
-  padding: var(--spacing-xl);
-}
 
 .drafts-list {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
 }
 
-.draft-item {
-  display: flex;
-  align-items: center;
-  padding: var(--spacing-lg);
-  background: var(--background-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.draft-item:hover {
-  border-color: var(--primary-color);
-  background: var(--primary-color-light);
-}
-
-.draft-content {
-  flex: 1;
-  margin-right: var(--spacing-lg);
-}
 
 .draft-text {
   font-size: var(--font-size-base);
   color: var(--text-primary);
   margin-bottom: var(--spacing-sm);
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .draft-meta {
-  display: flex;
-  gap: var(--spacing-md);
   font-size: var(--font-size-sm);
   color: var(--text-secondary);
-}
-
-.draft-recipient {
-  font-weight: 500;
 }
 
 .draft-date {
   color: var(--text-muted);
 }
 
-.draft-actions {
-  display: flex;
-  gap: var(--spacing-sm);
-}
 
-.draft-action-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 50%;
-  background: var(--neutral-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: all 0.2s ease;
-}
-
-.draft-action-btn:hover {
-  transform: scale(1.1);
-}
-
-.edit-btn:hover {
-  background: var(--primary-color-light);
-}
-
-.delete-btn:hover {
-  background: #ffebee;
-}
 
 .loading-state,
 .empty-state {
@@ -613,9 +714,10 @@ const transformTone = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-3xl);
+  padding: var(--spacing-3xl) var(--spacing-xl);
   text-align: center;
   color: var(--text-secondary);
+  margin: var(--spacing-lg) 0;
 }
 
 .loading-spinner {
@@ -672,21 +774,19 @@ const transformTone = async () => {
   
   .draft-item {
     flex-direction: column;
-    align-items: stretch;
-    gap: var(--spacing-md);
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
   }
   
-  .draft-content {
-    margin-right: 0;
+  .draft-content,
+  .draft-actions {
+    flex: none;
+    width: 100%;
   }
   
   .draft-actions {
-    align-self: flex-end;
-  }
-  
-  .draft-meta {
-    flex-direction: column;
-    gap: var(--spacing-xs);
+    justify-content: flex-end;
   }
 }
 </style>

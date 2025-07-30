@@ -208,8 +208,15 @@ class MessageService {
   }
 
   async deleteDraft(messageId: string): Promise<{ message: string }> {
-    const response = await apiService.delete(`/messages/${messageId}`)
-    return response.data
+    console.log('messageService.deleteDraftを実行:', messageId)
+    try {
+      const response = await apiService.delete(`/messages/${messageId}`)
+      console.log('API削除レスポンス:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('API削除エラー:', error)
+      throw error
+    }
   }
 
   async getSentMessages(page = 1, limit = 20): Promise<{ 
