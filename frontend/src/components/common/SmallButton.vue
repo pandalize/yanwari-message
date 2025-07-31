@@ -1,6 +1,6 @@
 <template>
   <button 
-    @click="$emit('click')"
+    @click="handleClick"
     class="small-btn"
     :title="title"
   >
@@ -19,9 +19,14 @@ withDefaults(defineProps<Props>(), {
   title: 'ボタン'
 })
 
-defineEmits<{
+const emit = defineEmits<{
   click: []
 }>()
+
+const handleClick = (event: Event) => {
+  event.stopPropagation()
+  emit('click')
+}
 </script>
 
 <style scoped>

@@ -129,11 +129,13 @@
               </div>
             </template>
             <template #actions>
-              <SmallButton 
+              <button 
                 @click.stop="deleteDraftConfirm(draft)"
-                text="削除"
+                class="delete-button"
                 title="削除"
-              />
+              >
+                削除
+              </button>
             </template>
           </MessageListItem>
         </div>
@@ -788,5 +790,17 @@ const transformTone = async () => {
   .draft-actions {
     justify-content: flex-end;
   }
+}
+
+.delete-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
 }
 </style>
