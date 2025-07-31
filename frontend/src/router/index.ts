@@ -101,6 +101,12 @@ const router = createRouter({
       component: () => import('../views/TestHistoryView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/test-treemap',
+      name: 'test-treemap',
+      component: () => import('../views/TreemapTestView.vue'),
+      meta: { requiresAuth: false }
+    },
   ],
 })
 

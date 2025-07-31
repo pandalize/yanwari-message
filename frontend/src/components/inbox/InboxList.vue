@@ -1,134 +1,258 @@
 <template>
   <div class="inbox-list">
-    <div class="inbox-header">
-      <h2>📫 受信トレイ</h2>
-      <div class="header-actions">
-        <div class="unread-count" v-if="inboxStore.unreadCount > 0">
-          <span class="count-badge">{{ inboxStore.unreadCount }}</span>
-          <span>件の未読</span>
-        </div>
-        <button @click="inboxStore.refresh()" :disabled="inboxStore.isLoading" class="refresh-btn">
-          <span class="refresh-icon" :class="{ spinning: inboxStore.isLoading }">🔄</span>
-          更新
+    <!-- ページタイトル -->
+    <div class="page-title">
+      <h1>受信</h1>
+    </div>
+
+    <!-- メイン表示エリア -->
+    <div class="main-display-area">
+      <!-- 右上の表示切替ボタン -->
+      <div class="view-toggle-container">
+        <button 
+          @click="toggleViewMode()" 
+          class="view-toggle-btn"
+        >
+          {{ viewMode === 'treemap' ? '一覧' : 'ツリーマップ' }}
         </button>
+      </div>
+
+      <!-- メインコンテンツエリア -->
+      <div class="main-content">
+        <!-- ローディング状態 -->
+        <div v-if="isLoading && messages.length === 0" class="loading-state">
+          <div class="spinner"></div>
+          <p>メッセージを読み込み中...</p>
+        </div>
+
+        <!-- エラー状態 -->
+        <div v-else-if="error" class="error-state">
+          <p>❌ {{ error }}</p>
+          <button @click="refreshMessages()" class="retry-btn">再試行</button>
+        </div>
+
+        <!-- メッセージ一覧モード -->
+        <div v-else-if="viewMode === 'list' && messages.length > 0" class="messages-list-view">
+          <div 
+            v-for="message in messages" 
+            :key="message.id"
+            @click="selectMessage(message)"
+            class="message-list-item"
+            :class="{ 
+              'unread': message.status !== 'read',
+              'read': message.status === 'read',
+              'selected': selectedMessage?.id === message.id
+            }"
+          >
+            <div class="message-preview">
+              <div class="sender-name">{{ message.senderName || message.senderEmail || '不明' }}</div>
+              <div class="message-snippet">{{ (message.finalText || message.originalText || '').substring(0, 50) }}...</div>
+            </div>
+            <div class="message-time">{{ formatSentTime(message.sentAt) }}</div>
+          </div>
+
+          <!-- ページネーション -->
+          <div class="pagination" v-if="totalPages > 1">
+            <button 
+              @click="prevPage()" 
+              :disabled="!hasPrevPage || isLoading"
+              class="page-btn"
+            >
+              ← 前へ
+            </button>
+            
+            <span class="page-info">
+              {{ currentPage }} / {{ totalPages }} ページ
+            </span>
+            
+            <button 
+              @click="nextPage()" 
+              :disabled="!hasNextPage || isLoading"
+              class="page-btn"
+            >
+              次へ →
+            </button>
+          </div>
+        </div>
+
+        <!-- ツリーマップモード -->
+        <div v-else-if="viewMode === 'treemap'" class="treemap-container">
+          <TreemapView
+            :messages="allMessages"
+            @message-selected="selectMessage"
+          />
+          
+          <div v-if="!isLoadingAll && allMessages.length < totalMessages" class="load-more-section">
+            <button 
+              @click="loadAllMessages" 
+              :disabled="isLoadingAll"
+              class="load-more-btn"
+            >
+              {{ isLoadingAll ? '全データ読み込み中...' : `全 ${totalMessages} 件のデータを読み込む` }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 空の状態 -->
+        <div v-else class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>受信メッセージはありません</h3>
+          <p>まだメッセージを受信していません。</p>
+        </div>
       </div>
     </div>
 
-    <!-- ローディング状態 -->
-    <div v-if="inboxStore.isLoading" class="loading-state">
-      <div class="spinner"></div>
-      <p>メッセージを読み込み中...</p>
-    </div>
-
-    <!-- エラー状態 -->
-    <div v-else-if="inboxStore.error" class="error-state">
-      <p>❌ {{ inboxStore.error }}</p>
-      <button @click="inboxStore.refresh()" class="retry-btn">再試行</button>
-    </div>
-
-    <!-- メッセージ一覧 -->
-    <div v-else-if="inboxStore.messages.length > 0" class="messages-container">
-      <div 
-        v-for="message in inboxStore.messages" 
-        :key="message.id"
-        @click="openMessage(message)"
-        class="message-item"
-        :class="{ 
-          'unread': message.status !== 'read',
-          'read': message.status === 'read'
-        }"
-      >
-        <div class="message-header">
-          <div class="sender-info">
-            <span class="sender-icon">{{ getSenderInitial(message) }}</span>
-            <div class="sender-details">
-              <span class="sender-name">{{ message.senderName || '名前未設定' }}</span>
-              <span class="sender-email">{{ message.senderEmail || 'unknown@example.com' }}</span>
-            </div>
-          </div>
-          <div class="message-meta">
-            <span class="sent-time">{{ formatSentTime(message.sentAt) }}</span>
-          </div>
+    <!-- 選択したメッセージエリア -->
+    <div v-if="selectedMessage" class="selected-message-area">
+      <h3>選択したメッセージ</h3>
+      <div class="selected-message-content">
+        <div class="message-info">
+          <div class="sender">{{ selectedMessage.senderName || selectedMessage.senderEmail || '不明' }}</div>
+          <div class="sent-time">{{ formatSentTime(selectedMessage.sentAt) }}</div>
         </div>
-
-        <div class="message-content">
-          <div class="message-text">
-            {{ message.finalText || message.originalText }}
-          </div>
+        <div class="message-text">
+          {{ selectedMessage.finalText || selectedMessage.originalText }}
         </div>
-
-        <div class="message-actions" v-if="message.status !== 'read'">
+        <div class="message-actions">
           <button 
-            @click.stop="markAsRead(message.id)"
+            v-if="selectedMessage.status !== 'read'"
+            @click="markAsRead(selectedMessage.id)"
             class="mark-read-btn"
-            :disabled="isMarkingRead === message.id"
+            :disabled="isMarkingRead === selectedMessage.id"
           >
-            {{ isMarkingRead === message.id ? '既読中...' : '既読にする' }}
+            {{ isMarkingRead === selectedMessage.id ? '既読中...' : '既読にする' }}
           </button>
         </div>
       </div>
+    </div>
 
-      <!-- ページネーション -->
-      <div class="pagination" v-if="inboxStore.totalPages > 1">
-        <button 
-          @click="inboxStore.prevPage()" 
-          :disabled="!inboxStore.hasPrevPage || inboxStore.isLoading"
-          class="page-btn"
-        >
-          ← 前へ
-        </button>
-        
-        <span class="page-info">
-          {{ inboxStore.currentPage }} / {{ inboxStore.totalPages }} ページ
-          ({{ inboxStore.totalMessages }} 件)
-        </span>
-        
-        <button 
-          @click="inboxStore.nextPage()" 
-          :disabled="!inboxStore.hasNextPage || inboxStore.isLoading"
-          class="page-btn"
-        >
-          次へ →
-        </button>
+    <!-- 評価エリア -->
+    <div v-if="selectedMessage" class="rating-area">
+      <div class="rating-bar">
+        <div class="emoji-left">😢</div>
+        <div class="rating-circles">
+          <button
+            v-for="rating in 5"
+            :key="rating"
+            @click="rateMessage(rating)"
+            class="rating-circle"
+            :class="{ 'active': selectedMessage.rating === rating }"
+          />
+        </div>
+        <div class="emoji-right">😊</div>
       </div>
     </div>
-
-    <!-- 空の状態 -->
-    <div v-else class="empty-state">
-      <div class="empty-icon">📭</div>
-      <h3>受信メッセージはありません</h3>
-      <p>まだメッセージを受信していません。<br>誰かからやんわり伝言が届くのを待ちましょう！</p>
-    </div>
-
-    <!-- メッセージ詳細モーダル -->
-    <MessageDetailModal 
-      v-if="selectedMessage"
-      :message="selectedMessage"
-      @close="selectedMessage = null"
-      @marked-as-read="handleMarkedAsRead"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useInboxStore } from '../../stores/inbox'
-import { inboxService, type ReceivedMessage } from '../../services/inboxService'
-import MessageDetailModal from './MessageDetailModal.vue'
+import { ref, onMounted, computed } from 'vue'
+import { ratingService, type InboxMessageWithRating } from '../../services/ratingService'
+import TreemapView from '../visualization/TreemapView.vue'
 
-const inboxStore = useInboxStore()
-const selectedMessage = ref<ReceivedMessage | null>(null)
+// State
+const viewMode = ref<'list' | 'treemap'>('list')
+const messages = ref<InboxMessageWithRating[]>([])
+const allMessages = ref<InboxMessageWithRating[]>([])
+const selectedMessage = ref<InboxMessageWithRating | null>(null)
 const isMarkingRead = ref<string | null>(null)
+const isLoading = ref<boolean>(false)
+const isLoadingAll = ref<boolean>(false)
+const error = ref<string>('')
 
-// メッセージを開く
-const openMessage = (message: ReceivedMessage) => {
+// Pagination
+const currentPage = ref<number>(1)
+const limit = ref<number>(20)
+const totalMessages = ref<number>(0)
+const totalPages = computed(() => Math.ceil(totalMessages.value / limit.value))
+const hasPrevPage = computed(() => currentPage.value > 1)
+const hasNextPage = computed(() => currentPage.value < totalPages.value)
+const unreadCount = computed(() => messages.value.filter(m => m.status !== 'read').length)
+
+// Methods
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'list' ? 'treemap' : 'list'
+  if (viewMode.value === 'treemap' && allMessages.value.length === 0) {
+    loadAllMessages()
+  }
+}
+
+const selectMessage = (message: InboxMessageWithRating) => {
   selectedMessage.value = message
   
   // 未読の場合は自動的に既読にする
   if (message.status !== 'read') {
-    markAsRead(message.id, false) // モーダル内で既読処理するのでここでは無音で実行
+    markAsRead(message.id, false)
   }
 }
+
+const rateMessage = async (rating: number) => {
+  if (!selectedMessage.value) return
+  
+  try {
+    if (selectedMessage.value.rating === rating) {
+      // 同じ評価をクリックした場合は削除
+      await ratingService.deleteMessageRating(selectedMessage.value.id)
+      selectedMessage.value.rating = undefined
+      selectedMessage.value.ratingId = undefined
+    } else {
+      // 新しい評価を設定
+      const result = await ratingService.rateMessage(selectedMessage.value.id, rating)
+      selectedMessage.value.rating = rating
+      selectedMessage.value.ratingId = result.id
+    }
+    
+    // メッセージリストも更新
+    const messageInList = messages.value.find(m => m.id === selectedMessage.value?.id)
+    if (messageInList) {
+      messageInList.rating = selectedMessage.value.rating
+      messageInList.ratingId = selectedMessage.value.ratingId
+    }
+  } catch (error) {
+    console.error('評価エラー:', error)
+  }
+}
+
+
+const fetchMessages = async () => {
+  isLoading.value = true
+  error.value = ''
+  
+  try {
+    const response = await ratingService.getInboxWithRatings(currentPage.value, limit.value)
+    messages.value = response.messages
+    totalMessages.value = response.pagination.total
+    
+    // ツリーマップ用データも更新（初回のみ）
+    if (currentPage.value === 1 && allMessages.value.length === 0) {
+      allMessages.value = response.messages
+    }
+  } catch (err: any) {
+    console.error('メッセージ取得エラー:', err)
+    error.value = err.response?.data?.error || 'メッセージの取得に失敗しました'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const refreshMessages = () => {
+  fetchMessages()
+}
+
+const prevPage = () => {
+  if (hasPrevPage.value && !isLoading.value) {
+    currentPage.value--
+    fetchMessages()
+  }
+}
+
+const nextPage = () => {
+  if (hasNextPage.value && !isLoading.value) {
+    currentPage.value++
+    fetchMessages()
+  }
+}
+
 
 // 既読にする
 const markAsRead = async (messageId: string, showFeedback = true) => {
@@ -137,9 +261,18 @@ const markAsRead = async (messageId: string, showFeedback = true) => {
   isMarkingRead.value = messageId
   
   try {
-    await inboxStore.markAsRead(messageId)
+    // TODO: 既読APIの実装が必要
+    // await messageService.markAsRead(messageId)
+    
+    // 仮の実装: ローカル状態を更新
+    const message = messages.value.find(m => m.id === messageId)
+    if (message) {
+      message.status = 'read'
+      message.readAt = new Date().toISOString()
+    }
+    
     if (showFeedback) {
-      // 既読成功の視覚フィードバック（必要に応じて）
+      console.log('既読にしました')
     }
   } catch (error) {
     console.error('既読処理エラー:', error)
@@ -148,18 +281,56 @@ const markAsRead = async (messageId: string, showFeedback = true) => {
   }
 }
 
-// 既読処理完了時のハンドラ
-const handleMarkedAsRead = (messageId: string) => {
-  // 必要に応じて追加の処理
+
+// ツリーマップ用メソッド
+const loadAllMessages = async () => {
+  isLoadingAll.value = true
+  error.value = ''
+  
+  try {
+    let allData: InboxMessageWithRating[] = []
+    let page = 1
+    const pageLimit = 100 // 一度に多めに取得
+    
+    while (true) {
+      const response = await ratingService.getInboxWithRatings(page, pageLimit)
+      allData = allData.concat(response.messages)
+      
+      if (response.messages.length < pageLimit || allData.length >= response.pagination.total) {
+        break
+      }
+      page++
+    }
+    
+    allMessages.value = allData
+  } catch (err: any) {
+    console.error('全メッセージ取得エラー:', err)
+    error.value = err.response?.data?.error || '全メッセージの取得に失敗しました'
+  } finally {
+    isLoadingAll.value = false
+  }
 }
+
 
 // ヘルパー関数
 const formatSentTime = (sentAt?: string) => {
-  return sentAt ? inboxService.formatSentTime(sentAt) : ''
+  if (!sentAt) return ''
+  
+  const date = new Date(sentAt)
+  const now = new Date()
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  
+  if (diffInHours < 24) {
+    return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+  } else if (diffInHours < 7 * 24) {
+    return date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
+  } else {
+    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' })
+  }
 }
 
 // 送信者のイニシャルを取得
-const getSenderInitial = (message: ReceivedMessage) => {
+const getSenderInitial = (message: InboxMessageWithRating) => {
   if (message.senderName) {
     return message.senderName.charAt(0).toUpperCase()
   } else if (message.senderEmail) {
@@ -170,115 +341,294 @@ const getSenderInitial = (message: ReceivedMessage) => {
 
 // 初期化
 onMounted(() => {
-  inboxStore.fetchMessages()
+  fetchMessages()
+  // 初期データをツリーマップ用にも設定
+  allMessages.value = messages.value
 })
 </script>
 
 <style scoped>
 .inbox-list {
-  background: var(--background-muted);
-  min-height: 100vh;
-  padding: var(--spacing-3xl) 5%;
+  background: #f8f9fa;
+  height: 100vh;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
 }
 
-@media (min-width: 768px) {
-  .inbox-list {
-    padding: var(--spacing-3xl) 10%;
-  }
+/* ページタイトル */
+.page-title {
+  text-align: left;
+  flex-shrink: 0;
 }
 
-@media (min-width: 1200px) {
-  .inbox-list {
-    padding: var(--spacing-3xl) 15%;
-  }
+.page-title h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
 }
 
-@media (min-width: 1600px) {
-  .inbox-list {
-    padding: var(--spacing-3xl) 20%;
-  }
+/* メイン表示エリア */
+.main-display-area {
+  position: relative;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  height: 40vh;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
 }
 
-.inbox-header {
+/* 表示切替ボタン */
+.view-toggle-container {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+}
+
+.view-toggle-btn {
+  background: white;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  background: #f3f4f6;
+  border-color: #9CA3AF;
+}
+
+/* メインコンテンツエリア */
+.main-content {
+  flex: 1;
+  padding-top: 3rem; /* ボタンのスペースを確保 */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* メッセージ一覧表示 */
+.messages-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.message-list-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.inbox-header h2 {
-  margin: 0;
-  color: #1a1a1a;
-  font-size: 1.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.message-list-item:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.message-list-item.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
 }
 
-.unread-count {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #fff3e0;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  color: #f57c00;
-  font-weight: 500;
+.message-list-item.unread {
+  border-left: 4px solid #3b82f6;
+  background: #f0f9ff;
 }
 
-.count-badge {
-  background: #ff6b6b;
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+.message-preview {
+  flex: 1;
+}
+
+.sender-name {
+  font-weight: 600;
+  color: #111827;
   font-size: 0.875rem;
-  font-weight: 700;
-  min-width: 1.5rem;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(255, 107, 107, 0.2);
+  margin-bottom: 0.25rem;
 }
 
-.refresh-btn {
+.message-snippet {
+  color: #6b7280;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.message-time {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+/* ツリーマップコンテナ */
+.treemap-container {
+  flex: 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* 選択したメッセージエリア */
+.selected-message-area {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  flex-shrink: 0;
+  height: 25vh;
+  overflow-y: auto;
+}
+
+.selected-message-area h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.selected-message-content {
   display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message-info {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  background: #4285f4;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sender {
+  font-weight: 600;
+  color: #111827;
+}
+
+.sent-time {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.message-text {
+  color: #374151;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.message-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mark-read-btn {
+  background: #10b981;
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(66, 133, 244, 0.2);
+  transition: all 0.2s ease;
 }
 
-.refresh-btn:hover:not(:disabled) {
-  background: #3367d6;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+.mark-read-btn:hover:not(:disabled) {
+  background: #059669;
 }
 
-.refresh-btn:disabled {
-  background: #e0e0e0;
-  color: #9e9e9e;
+.mark-read-btn:disabled {
+  background: #d1d5db;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-.refresh-icon.spinning {
+/* 評価エリア */
+.rating-area {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 15vh;
+  align-items: center;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.emoji-left,
+.emoji-right {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.rating-circles {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.rating-circle {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #d1d5db;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-circle:hover {
+  border-color: #92C9FF;
+  transform: scale(1.1);
+}
+
+.rating-circle.active {
+  background: #92C9FF;
+  border-color: #92C9FF;
+  transform: scale(1.2);
+}
+
+/* 共通スタイル */
+.loading-state, .error-state, .empty-state {
+  text-align: center;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -286,208 +636,19 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-.loading-state {
-  text-align: center;
-  padding: 5rem 2rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4285f4;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1.5rem;
-}
-
-.loading-state p {
-  color: #757575;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.error-state {
-  text-align: center;
-  padding: 5rem 2rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.error-state p {
-  color: #d32f2f;
-  font-size: 1.125rem;
-  margin-bottom: 1.5rem;
-  font-weight: 500;
-}
-
 .retry-btn {
-  padding: 0.75rem 1.5rem;
-  background: #d32f2f;
+  background: #ef4444;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(211, 47, 47, 0.2);
+  margin-top: 1rem;
 }
 
-.retry-btn:hover {
-  background: #b71c1c;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3);
-}
-
-.messages-container {
-  space-y: 1rem;
-}
-
-.message-item {
-  background: white;
-  border: none;
-  border-radius: 16px;
-  padding: 1.75rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.empty-state .empty-icon {
+  font-size: 3rem;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  position: relative;
-  overflow: hidden;
-}
-
-.message-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-.message-item.unread {
-  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
-  box-shadow: 0 2px 12px rgba(66, 133, 244, 0.15);
-}
-
-.message-item.unread::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: #4285f4;
-}
-
-.message-item.read {
-  background: white;
-  opacity: 0.85;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.sender-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.sender-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: white;
-  flex-shrink: 0;
-}
-
-.sender-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.sender-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 1rem;
-}
-
-.sender-email {
-  font-size: 0.875rem;
-  color: #757575;
-}
-
-.message-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-}
-
-
-.sent-time {
-  color: #9e9e9e;
-  font-size: 0.875rem;
-  font-weight: 400;
-}
-
-.message-content {
-  margin-bottom: 1rem;
-  padding-left: 3.25rem;
-}
-
-.message-text {
-  color: #424242;
-  font-size: 1rem;
-  line-height: 1.6;
-  margin-bottom: 0.75rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-
-.message-actions {
-  text-align: right;
-  padding-left: 3.25rem;
-}
-
-.mark-read-btn {
-  padding: 0.625rem 1.25rem;
-  background: #34a853;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(52, 168, 83, 0.2);
-}
-
-.mark-read-btn:hover:not(:disabled) {
-  background: #2d8e47;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(52, 168, 83, 0.3);
-}
-
-.mark-read-btn:disabled {
-  background: #e0e0e0;
-  color: #9e9e9e;
-  cursor: not-allowed;
-  box-shadow: none;
 }
 
 .pagination {
@@ -495,152 +656,98 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  margin-top: 3rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-top: 1rem;
+  padding: 1rem;
 }
 
 .page-btn {
-  padding: 0.75rem 1.5rem;
   background: white;
-  color: #4285f4;
-  border: 2px solid #4285f4;
-  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
+  font-size: 0.875rem;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #4285f4;
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(66, 133, 244, 0.2);
+  background: #f9fafb;
 }
 
 .page-btn:disabled {
-  background: #f5f5f5;
-  color: #bdbdbd;
-  border-color: #e0e0e0;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .page-info {
-  color: #757575;
+  color: #6b7280;
   font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0 1rem;
 }
 
-.empty-state {
+.load-more-section {
   text-align: center;
-  padding: 5rem 2rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.empty-icon {
-  font-size: 5rem;
-  margin-bottom: 1.5rem;
-  filter: grayscale(20%);
+.load-more-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 
-.empty-state h3 {
-  margin: 1rem 0;
-  color: #1a1a1a;
-  font-size: 1.5rem;
-  font-weight: 600;
+.load-more-btn:hover:not(:disabled) {
+  background: #2563eb;
 }
 
-.empty-state p {
-  line-height: 1.8;
-  color: #757575;
-  font-size: 1rem;
-  max-width: 400px;
-  margin: 0 auto;
+.load-more-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* モバイル表示 */
-@media (max-width: 767px) {
-  
-  .inbox-header {
-    flex-direction: column;
-    gap: var(--spacing-lg);
-    align-items: stretch;
-    padding: var(--spacing-lg);
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .inbox-list {
+    padding: 0.5rem;
+    gap: 0.5rem;
   }
   
-  .header-actions {
-    justify-content: space-between;
+  .page-title h1 {
+    font-size: 1.25rem;
   }
   
-  .message-item {
-    padding: var(--spacing-lg);
+  .main-display-area {
+    height: 35vh;
   }
   
-  .message-header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    align-items: stretch;
+  .selected-message-area {
+    height: 30vh;
+    padding: 0.75rem;
   }
   
-  .message-meta {
-    justify-content: space-between;
+  .rating-area {
+    height: 12vh;
+    padding: 0.5rem;
   }
   
-  .sender-icon {
-    width: 32px;
-    height: 32px;
+  .rating-bar {
+    gap: 1rem;
   }
   
-  .message-content {
-    padding-left: 0;
-    margin-top: var(--spacing-sm);
-  }
-  
-  .message-actions {
-    padding-left: 0;
-  }
-  
-  .pagination {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-}
-
-/* 小さいモバイル表示 */
-@media (max-width: 479px) {
-  
-  .inbox-header {
-    padding: var(--spacing-md);
-  }
-  
-  .inbox-header h2 {
+  .emoji-left,
+  .emoji-right {
     font-size: 1.5rem;
   }
   
-  .message-item {
-    padding: var(--spacing-md);
+  .rating-circles {
+    gap: 0.75rem;
   }
   
-  .sender-details {
-    gap: 0.125rem;
-  }
-  
-  .sender-name {
-    font-size: 0.875rem;
-  }
-  
-  .sender-email {
-    font-size: 0.75rem;
-  }
-  
-  .message-text {
-    font-size: 0.875rem;
-    -webkit-line-clamp: 2;
+  .rating-circle {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

@@ -166,6 +166,7 @@ func main() {
 	userSettingsService := models.NewUserSettingsService(db.Database, userService)
 	friendRequestService := models.NewFriendRequestService(db.Database)
 	friendshipService := models.NewFriendshipService(db.Database)
+	messageRatingService := models.NewMessageRatingService(db.Database)
 	
 	// ユーザー設定インデックス作成
 	if err := userSettingsService.CreateIndexes(ctx); err != nil {
@@ -180,6 +181,7 @@ func main() {
 	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService, deliveryService)
 	settingsHandler := handlers.NewSettingsHandler(userService, userSettingsService)
 	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
+	messageRatingHandler := handlers.NewMessageRatingHandler(messageRatingService, messageService)
 
 	// JWTミドルウェア
 	jwtMiddleware := handlers.JWTMiddleware()
@@ -201,6 +203,9 @@ func main() {
 
 		// メッセージ関連エンドポイント
 		messageHandler.RegisterRoutes(v1, jwtMiddleware)
+
+		// メッセージ評価関連エンドポイント
+		messageRatingHandler.RegisterRoutes(v1, jwtMiddleware)
 
 		// 友達申請・友達関連エンドポイント
 		friendRequestHandler.RegisterRoutes(v1, jwtMiddleware)
