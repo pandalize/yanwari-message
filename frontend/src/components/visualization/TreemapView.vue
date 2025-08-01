@@ -104,7 +104,7 @@
                 font-weight="500"
                 pointer-events="none"
               >
-                {{ item.rating ? '★'.repeat(Math.min(item.rating, Math.floor(item.width / 8))) : (item.isUnread ? '📬' : '?') }}
+                {{ item.rating ? '★'.repeat(Math.min(item.rating, Math.floor(item.width / 8))) : (item.isUnread ? '未読' : '未評価') }}
               </text>
             </g>
           </g>
@@ -191,9 +191,15 @@ const groupMessages = () => {
       ratingGroups.get(ratingKey)!.push(message)
     })
 
-    // 評価レベルのノードを作成
+    // 評価レベルのノードを作成（ソート順を定義）
+    const ratingOrder = ['未読', '未評価', '★5', '★4', '★3', '★2', '★1']
     const ratingChildren: TreemapNode[] = []
-    ratingGroups.forEach((ratingMessages, ratingName) => {
+    
+    // 定義された順序で処理
+    ratingOrder.forEach(ratingName => {
+      if (!ratingGroups.has(ratingName)) return
+      
+      const ratingMessages = ratingGroups.get(ratingName)!
       // 評価に基づく重み付けを計算
       const ratingWeight = getRatingWeight(ratingName)
 
@@ -232,6 +238,22 @@ const groupMessages = () => {
       color: getSenderColor(senderName)
     })
   })
+
+  // 送信者を優先順位に基づいてソート（最高優先度の評価を持つ送信者を先に）
+  const getSenderPriority = (sender: TreemapNode): number => {
+    const children = sender.children || []
+    if (children.some(c => c.name === '未読')) return 10
+    if (children.some(c => c.name === '未評価')) return 8
+    if (children.some(c => c.name === '★5')) return 6
+    if (children.some(c => c.name === '★4')) return 5
+    if (children.some(c => c.name === '★3')) return 4
+    if (children.some(c => c.name === '★2')) return 3
+    if (children.some(c => c.name === '★1')) return 2
+    return 1
+  }
+  
+  // 送信者を優先順位でソート
+  rootChildren.sort((a, b) => getSenderPriority(b) - getSenderPriority(a))
 
   return {
     id: 'root',
@@ -391,13 +413,13 @@ const squarify = (children: TreemapNode[], x: number, y: number, width: number, 
 
 // 評価に基づく重み付け関数
 const getRatingWeight = (ratingName: string): number => {
-  if (ratingName === '未読') return 5      // 未読は最大
-  if (ratingName === '★5') return 5        // 星5は最大
+  if (ratingName === '未読') return 4      // 未読は★5と同じサイズ
+  if (ratingName === '未評価') return 4   // 未評価も★5と同じサイズ
+  if (ratingName === '★5') return 5        // 星5
   if (ratingName === '★4') return 4        // 星4
   if (ratingName === '★3') return 3        // 星3
   if (ratingName === '★2') return 2        // 星2
   if (ratingName === '★1') return 1        // 星1は最小
-  if (ratingName === '未評価') return 3    // 未評価は中程度
   return 1                                  // デフォルト
 }
 

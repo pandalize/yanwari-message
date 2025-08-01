@@ -93,53 +93,61 @@
       </div>
     </div>
 
-    <!-- 選択したメッセージエリア -->
-    <div v-if="selectedMessage" class="selected-message-area">
-      <h3>選択したメッセージ</h3>
-      <div class="selected-message-content">
-        <div class="message-info">
-          <div class="sender">{{ selectedMessage.senderName || selectedMessage.senderEmail || '不明' }}</div>
-          <div class="time-info">
-            <div class="sent-time">
-              <span class="time-label">送信:</span>
-              {{ formatDetailedTime(selectedMessage.sentAt) }}
-            </div>
-            <div v-if="selectedMessage.status !== 'read'" class="unread-status">
-              <span class="time-label">状態:</span>
-              <span class="unread-badge">未読</span>
+    <!-- メッセージ選択時のポップアップ -->
+    <div v-if="selectedMessage" class="message-popup-overlay" @click="closePopup">
+      <div class="message-popup" @click.stop>
+        <!-- ポップアップヘッダー -->
+        <div class="popup-header">
+          <h3>メッセージ詳細</h3>
+          <button @click="closePopup" class="close-btn">×</button>
+        </div>
+        
+        <!-- メッセージ内容 -->
+        <div class="popup-content">
+          <div class="message-info">
+            <div class="sender">{{ selectedMessage.senderName || selectedMessage.senderEmail || '不明' }}</div>
+            <div class="time-info">
+              <div class="sent-time">
+                <span class="time-label">送信:</span>
+                {{ formatDetailedTime(selectedMessage.sentAt) }}
+              </div>
+              <div v-if="selectedMessage.status !== 'read'" class="unread-status">
+                <span class="time-label">状態:</span>
+                <span class="unread-badge">未読</span>
+              </div>
             </div>
           </div>
+          <div class="message-text">
+            {{ selectedMessage.finalText || selectedMessage.originalText }}
+          </div>
+          <div class="message-actions">
+            <button 
+              v-if="selectedMessage.status !== 'read'"
+              @click="markAsRead(selectedMessage.id)"
+              class="mark-read-btn"
+              :disabled="isMarkingRead === selectedMessage.id"
+            >
+              {{ isMarkingRead === selectedMessage.id ? '既読中...' : '既読にする' }}
+            </button>
+          </div>
         </div>
-        <div class="message-text">
-          {{ selectedMessage.finalText || selectedMessage.originalText }}
+        
+        <!-- 評価エリア -->
+        <div class="rating-area">
+          <div class="rating-bar">
+            <div class="emoji-left">😢</div>
+            <div class="rating-circles">
+              <button
+                v-for="rating in 5"
+                :key="rating"
+                @click="rateMessage(rating)"
+                class="rating-circle"
+                :class="{ 'active': selectedMessage.rating === rating }"
+              />
+            </div>
+            <div class="emoji-right">😊</div>
+          </div>
         </div>
-        <div class="message-actions">
-          <button 
-            v-if="selectedMessage.status !== 'read'"
-            @click="markAsRead(selectedMessage.id)"
-            class="mark-read-btn"
-            :disabled="isMarkingRead === selectedMessage.id"
-          >
-            {{ isMarkingRead === selectedMessage.id ? '既読中...' : '既読にする' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 評価エリア -->
-    <div v-if="selectedMessage" class="rating-area">
-      <div class="rating-bar">
-        <div class="emoji-left">😢</div>
-        <div class="rating-circles">
-          <button
-            v-for="rating in 5"
-            :key="rating"
-            @click="rateMessage(rating)"
-            class="rating-circle"
-            :class="{ 'active': selectedMessage.rating === rating }"
-          />
-        </div>
-        <div class="emoji-right">😊</div>
       </div>
     </div>
   </div>
@@ -336,6 +344,11 @@ const selectMessage = (message: InboxMessageWithRating): void => {
   }
 }
 
+// ポップアップを閉じる
+const closePopup = (): void => {
+  selectedMessage.value = null
+}
+
 // メッセージ評価
 const rateMessage = async (rating: number): Promise<void> => {
   if (!selectedMessage.value) return
@@ -527,11 +540,11 @@ onUnmounted(() => {
 .inbox-list {
   background: #f8f9fa;
   height: 100vh;
-  padding: 0.75rem; /* パディングを縮小 */
+  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem; /* gapを縮小 */
-  overflow: hidden; /* 既に設定済み */
+  gap: 1rem;
+  overflow: hidden;
 }
 
 /* ページタイトル */
@@ -547,19 +560,19 @@ onUnmounted(() => {
   margin: 0;
 }
 
-/* メイン表示エリア */
+/* メイン表示エリア - 画面全体に拡大 */
 .main-display-area {
   position: relative;
   background: white;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  height: 40vh; /* 高さを40vhに拡大 */
+  height: calc(100vh - 8rem); /* 画面全体の高さから余白を引いた高さ */
   padding: 1rem;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: 90%; /* 幅を90%に拡大 */
-  margin: 0 auto; /* 中央配置 */
+  width: 100%; /* 画面全体の幅 */
+  margin: 0;
 }
 
 /* 表示設定 */
@@ -690,30 +703,80 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* 選択したメッセージエリア */
-.selected-message-area {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 0.75rem; /* パディングを縮小 */
-  flex-shrink: 0;
-  height: 25vh; /* 高さを25vhに拡大 */
-  overflow-y: auto; /* 内部スクロールは保持 */
-  width: 90%; /* 幅を90%に拡大 */
-  margin: 0 auto; /* 中央配置 */
+/* ポップアップのオーバーレイ */
+.message-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 2rem;
 }
 
-.selected-message-area h3 {
-  margin: 0 0 0.75rem 0;
-  font-size: 1rem;
+/* ポップアップ本体 */
+.message-popup {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ポップアップヘッダー */
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #111827;
 }
 
-.selected-message-content {
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 0.25rem;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* ポップアップコンテンツ */
+.popup-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .message-info {
@@ -795,19 +858,15 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-/* 評価エリア */
+/* 評価エリア（ポップアップ内） */
 .rating-area {
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 0.75rem; /* パディングを縮小 */
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 1.5rem;
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  height: 12vh; /* 高さを12vhに調整 */
   align-items: center;
-  width: 90%; /* 幅を90%に拡大 */
-  margin: 0 auto; /* 中央配置 */
 }
 
 .rating-bar {
@@ -960,18 +1019,7 @@ onUnmounted(() => {
   }
   
   .main-display-area {
-    height: 35vh; /* モバイル版メイン表示エリア */
-    width: 95%; /* モバイルではさらに幅を拡大 */
-  }
-  
-  .selected-message-area {
-    height: 22vh; /* モバイル版選択メッセージエリア */
-    width: 95%; /* モバイルではさらに幅を拡大 */
-  }
-  
-  .rating-area {
-    height: 10vh; /* モバイル版評価エリア */
-    width: 95%; /* モバイルではさらに幅を拡大 */
+    height: calc(100vh - 6rem); /* モバイル版でも画面全体 */
   }
   
   .display-control {
@@ -985,9 +1033,24 @@ onUnmounted(() => {
     min-width: 120px;
   }
   
-  .selected-message-area {
-    height: 30vh;
-    padding: 0.75rem;
+  .message-popup-overlay {
+    padding: 1rem;
+  }
+  
+  .message-popup {
+    max-height: 90vh;
+  }
+  
+  .popup-header {
+    padding: 1rem;
+  }
+  
+  .popup-header h3 {
+    font-size: 1.125rem;
+  }
+  
+  .popup-content {
+    padding: 1rem;
   }
   
   .message-info {
@@ -1005,22 +1068,26 @@ onUnmounted(() => {
     min-width: 1.5rem;
   }
   
+  .rating-area {
+    padding: 1rem;
+  }
+  
   .rating-bar {
-    gap: 0.75rem; /* モバイルでさらにコンパクト */
+    gap: 0.75rem;
   }
   
   .emoji-left,
   .emoji-right {
-    font-size: 1.25rem; /* モバイルでさらに小さく */
+    font-size: 1.25rem;
   }
   
   .rating-circles {
-    gap: 0.5rem; /* モバイルでさらにコンパクト */
+    gap: 0.5rem;
   }
   
   .rating-circle {
-    width: 28px; /* モバイルでさらに小さく */
-    height: 28px; /* モバイルでさらに小さく */
+    width: 28px;
+    height: 28px;
   }
 }
 </style>
