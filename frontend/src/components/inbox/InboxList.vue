@@ -7,34 +7,33 @@
 
     <!-- メイン表示エリア -->
     <div class="main-display-area">
-      <!-- 右上の表示切替ボタン -->
-      <div class="view-toggle-container">
-        <button 
-          @click="toggleViewMode()" 
-          class="view-toggle-btn"
-        >
-          {{ viewMode === 'treemap' ? '一覧' : 'ツリーマップ' }}
-        </button>
+      <!-- 右上の表示設定 -->
+      <div class="display-control">
+        <select v-model="displayMode" @change="onDisplayModeChange">
+          <option value="treemap">ツリーマップ</option>
+          <option value="list-desc">一覧（新しい順）</option>
+          <option value="list-asc">一覧（古い順）</option>
+        </select>
       </div>
 
       <!-- メインコンテンツエリア -->
       <div class="main-content">
         <!-- ローディング状態 -->
-        <div v-if="isLoading && messages.length === 0" class="loading-state">
+        <div v-if="isLoadingData && inboxMessages.length === 0" class="loading-state">
           <div class="spinner"></div>
           <p>メッセージを読み込み中...</p>
         </div>
 
         <!-- エラー状態 -->
-        <div v-else-if="error" class="error-state">
-          <p>❌ {{ error }}</p>
-          <button @click="refreshMessages()" class="retry-btn">再試行</button>
+        <div v-else-if="dataError" class="error-state">
+          <p>❌ {{ dataError }}</p>
+          <button @click="refreshInboxData()" class="retry-btn">再試行</button>
         </div>
 
         <!-- メッセージ一覧モード -->
-        <div v-else-if="viewMode === 'list' && messages.length > 0" class="messages-list-view">
+        <div v-else-if="viewMode === 'list' && inboxMessages.length > 0" class="messages-list-view">
           <div 
-            v-for="message in messages" 
+            v-for="message in paginatedListData" 
             :key="message.id"
             @click="selectMessage(message)"
             class="message-list-item"
@@ -51,7 +50,8 @@
             <div class="message-time">{{ formatSentTime(message.sentAt) }}</div>
           </div>
 
-          <!-- ページネーション -->
+          <!-- ページネーション（制限なし版では非表示） -->
+          <!-- 
           <div class="pagination" v-if="totalPages > 1">
             <button 
               @click="prevPage()" 
@@ -73,24 +73,15 @@
               次へ →
             </button>
           </div>
+          -->
         </div>
 
         <!-- ツリーマップモード -->
         <div v-else-if="viewMode === 'treemap'" class="treemap-container">
           <TreemapView
-            :messages="allMessages"
+            :messages="treemapData"
             @message-selected="selectMessage"
           />
-          
-          <div v-if="!isLoadingAll && allMessages.length < totalMessages" class="load-more-section">
-            <button 
-              @click="loadAllMessages" 
-              :disabled="isLoadingAll"
-              class="load-more-btn"
-            >
-              {{ isLoadingAll ? '全データ読み込み中...' : `全 ${totalMessages} 件のデータを読み込む` }}
-            </button>
-          </div>
         </div>
 
         <!-- 空の状態 -->
@@ -108,7 +99,16 @@
       <div class="selected-message-content">
         <div class="message-info">
           <div class="sender">{{ selectedMessage.senderName || selectedMessage.senderEmail || '不明' }}</div>
-          <div class="sent-time">{{ formatSentTime(selectedMessage.sentAt) }}</div>
+          <div class="time-info">
+            <div class="sent-time">
+              <span class="time-label">送信:</span>
+              {{ formatDetailedTime(selectedMessage.sentAt) }}
+            </div>
+            <div v-if="selectedMessage.status !== 'read'" class="unread-status">
+              <span class="time-label">状態:</span>
+              <span class="unread-badge">未読</span>
+            </div>
+          </div>
         </div>
         <div class="message-text">
           {{ selectedMessage.finalText || selectedMessage.originalText }}
@@ -146,38 +146,188 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ratingService, type InboxMessageWithRating } from '../../services/ratingService'
 import TreemapView from '../visualization/TreemapView.vue'
 
-// State
-const viewMode = ref<'list' | 'treemap'>('list')
-const messages = ref<InboxMessageWithRating[]>([])
-const allMessages = ref<InboxMessageWithRating[]>([])
-const selectedMessage = ref<InboxMessageWithRating | null>(null)
-const isMarkingRead = ref<string | null>(null)
-const isLoading = ref<boolean>(false)
-const isLoadingAll = ref<boolean>(false)
-const error = ref<string>('')
+// ================================================
+// 1. データ層（Data Layer）
+// ================================================
 
-// Pagination
-const currentPage = ref<number>(1)
-const limit = ref<number>(20)
-const totalMessages = ref<number>(0)
-const totalPages = computed(() => Math.ceil(totalMessages.value / limit.value))
-const hasPrevPage = computed(() => currentPage.value > 1)
-const hasNextPage = computed(() => currentPage.value < totalPages.value)
-const unreadCount = computed(() => messages.value.filter(m => m.status !== 'read').length)
+// 生データの状態管理
+const inboxMessages = ref<InboxMessageWithRating[]>([])
+const isLoadingData = ref<boolean>(false)
+const dataError = ref<string>('')
 
-// Methods
-const toggleViewMode = () => {
-  viewMode.value = viewMode.value === 'list' ? 'treemap' : 'list'
-  if (viewMode.value === 'treemap' && allMessages.value.length === 0) {
-    loadAllMessages()
+// データ取得関数
+const fetchInboxData = async (): Promise<void> => {
+  // 重複リクエストの防止
+  if (isLoadingData.value) {
+    console.log('⏸️ fetchInboxData: 既に実行中のため中断')
+    return
+  }
+  
+  console.log('🔄 fetchInboxData: データ取得開始')
+  isLoadingData.value = true
+  dataError.value = ''
+  
+  try {
+    let allData: InboxMessageWithRating[] = []
+    let page = 1
+    const pageLimit = 100 // 一度に多めに取得
+    
+    // 全ページのデータを取得
+    while (true) {
+      console.log(`📡 API取得: ページ ${page}, 上限 ${pageLimit}`)
+      const response = await ratingService.getInboxWithRatings(page, pageLimit)
+      console.log(`📦 API応答: ${response.messages.length}件取得, 総数 ${response.pagination.total}`)
+      
+      allData = allData.concat(response.messages)
+      console.log(`📊 累積データ: ${allData.length}件`)
+      
+      if (response.messages.length < pageLimit || allData.length >= response.pagination.total) {
+        console.log('✅ 全データ取得完了')
+        break
+      }
+      page++
+    }
+    
+    // データの一意性をチェック・保証
+    const uniqueIds = new Set(allData.map(m => m.id))
+    if (uniqueIds.size !== allData.length) {
+      console.warn(`⚠️ 重複データ検出: 総数 ${allData.length}, ユニーク ${uniqueIds.size}`)
+      
+      // 重複を削除（最新のデータを保持）
+      const uniqueMessages = Array.from(
+        new Map(allData.map(m => [m.id, m])).values()
+      )
+      allData = uniqueMessages
+      console.log(`🔧 重複削除後: ${allData.length}件`)
+    } else {
+      console.log(`✅ データ一意性確認: ${uniqueIds.size}件すべてユニーク`)
+    }
+    
+    // 生データを保存
+    inboxMessages.value = allData
+    console.log(`💾 保存完了: inboxMessages = ${inboxMessages.value.length}件`)
+    
+  } catch (err: any) {
+    console.error('❌ 受信データ取得エラー:', err)
+    dataError.value = err.response?.data?.error || 'メッセージの取得に失敗しました'
+  } finally {
+    isLoadingData.value = false
+    console.log('🔄 fetchInboxData: 処理完了')
   }
 }
 
-const selectMessage = (message: InboxMessageWithRating) => {
+// データリフレッシュ関数
+const refreshInboxData = (): void => {
+  fetchInboxData()
+}
+
+// ================================================
+// 2. 表示層（Display Layer）
+// ================================================
+
+// 表示モード設定
+const displayMode = ref<'list-desc' | 'list-asc' | 'treemap'>('treemap')
+const selectedMessage = ref<InboxMessageWithRating | null>(null)
+const isMarkingRead = ref<string | null>(null)
+
+// ページネーション設定（一覧表示用）
+const currentPage = ref<number>(1)
+const limit = ref<number>(100) // 20件 → 100件に増加（または制限なしにする場合は非常に大きな数値）
+
+// 便利な計算プロパティ
+const unreadCount = computed(() => inboxMessages.value.filter(m => m.status !== 'read').length)
+const totalPages = computed(() => Math.ceil(inboxMessages.value.length / limit.value))
+const hasPrevPage = computed(() => currentPage.value > 1)
+const hasNextPage = computed(() => currentPage.value < totalPages.value)
+
+// 表示決定の計算プロパティ
+const viewMode = computed(() => displayMode.value === 'treemap' ? 'treemap' : 'list')
+const sortOrder = computed(() => {
+  if (displayMode.value === 'list-asc') return 'asc'
+  return 'desc'
+})
+
+// ツリーマップ表示用データ（生データをそのまま使用）
+const treemapData = computed(() => {
+  const data = inboxMessages.value
+  console.log(`🗺️ ツリーマップデータ: ${data.length}件 (元データ: ${inboxMessages.value.length}件)`)
+  return data
+})
+
+// 一覧表示用データ（ソート済み）
+const listData = computed(() => {
+  const source = inboxMessages.value
+  console.log(`📋 一覧ソート前: ${source.length}件 (ソートモード: ${sortOrder.value})`)
+  
+  const sorted = [...source].sort((a, b) => {
+    const dateA = new Date(a.sentAt || a.createdAt).getTime()
+    const dateB = new Date(b.sentAt || b.createdAt).getTime()
+    
+    return sortOrder.value === 'desc' ? dateB - dateA : dateA - dateB
+  })
+  
+  console.log(`📋 一覧ソート後: ${sorted.length}件`)
+  return sorted
+})
+
+// ページネーション済み一覧データ（制限なし版）
+const paginatedListData = computed(() => {
+  const source = listData.value
+  
+  // 制限なしで全件表示
+  console.log(`📄 一覧表示: 全 ${source.length}件を表示（ページネーション無効）`)
+  return source
+  
+  // ページネーション有効版（コメントアウト）
+  /*
+  const startIndex = (currentPage.value - 1) * limit.value
+  const endIndex = startIndex + limit.value
+  const paginated = source.slice(startIndex, endIndex)
+  
+  console.log(`📄 ページネーション: 元 ${source.length}件 → ${startIndex}-${endIndex} → 表示 ${paginated.length}件 (ページ ${currentPage.value}/${totalPages.value})`)
+  return paginated
+  */
+})
+
+// 現在の表示モードに応じたデータを返す
+const currentDisplayData = computed(() => {
+  switch (viewMode.value) {
+    case 'treemap':
+      return treemapData.value
+    case 'list':
+      return paginatedListData.value
+    default:
+      return []
+  }
+})
+
+// ================================================
+// 3. ユーザーアクション層（User Action Layer）
+// ================================================
+
+// 表示モード変更
+const onDisplayModeChange = (): void => {
+  console.log(`🔄 表示モード変更: ${displayMode.value} (viewMode: ${viewMode.value})`)
+  
+  // 表示モード切り替え時は現在のページを1に戻す
+  const oldPage = currentPage.value
+  currentPage.value = 1
+  console.log(`📄 ページリセット: ${oldPage} → ${currentPage.value}`)
+  
+  // 現在の状態をログ出力
+  console.log(`📊 現在の状態:`)
+  console.log(`  - inboxMessages: ${inboxMessages.value.length}件`)
+  console.log(`  - treemapData: ${treemapData.value.length}件`)
+  console.log(`  - listData: ${listData.value.length}件`)
+  console.log(`  - paginatedListData: ${paginatedListData.value.length}件`)
+}
+
+// メッセージ選択
+const selectMessage = (message: InboxMessageWithRating): void => {
   selectedMessage.value = message
   
   // 未読の場合は自動的に既読にする
@@ -186,7 +336,8 @@ const selectMessage = (message: InboxMessageWithRating) => {
   }
 }
 
-const rateMessage = async (rating: number) => {
+// メッセージ評価
+const rateMessage = async (rating: number): Promise<void> => {
   if (!selectedMessage.value) return
   
   try {
@@ -202,73 +353,59 @@ const rateMessage = async (rating: number) => {
       selectedMessage.value.ratingId = result.id
     }
     
-    // メッセージリストも更新
-    const messageInList = messages.value.find(m => m.id === selectedMessage.value?.id)
+    // 元データ（inboxMessages）を更新
+    const messageInList = inboxMessages.value.find(m => m.id === selectedMessage.value?.id)
     if (messageInList) {
+      const oldRating = messageInList.rating
       messageInList.rating = selectedMessage.value.rating
       messageInList.ratingId = selectedMessage.value.ratingId
+      console.log(`⭐ 評価更新: ID ${selectedMessage.value.id} - ${oldRating} → ${selectedMessage.value.rating}`)
+    } else {
+      console.warn(`⚠️ 評価対象メッセージが見つからない: ID ${selectedMessage.value?.id}`)
     }
+
+    // リアクティブ更新を強制するため、配列の参照を更新
+    const oldLength = inboxMessages.value.length
+    inboxMessages.value = [...inboxMessages.value]
+    console.log(`🔄 配列参照更新: ${oldLength}件 → ${inboxMessages.value.length}件`)
   } catch (error) {
     console.error('評価エラー:', error)
   }
 }
 
 
-const fetchMessages = async () => {
-  isLoading.value = true
-  error.value = ''
-  
-  try {
-    const response = await ratingService.getInboxWithRatings(currentPage.value, limit.value)
-    messages.value = response.messages
-    totalMessages.value = response.pagination.total
-    
-    // ツリーマップ用データも更新（初回のみ）
-    if (currentPage.value === 1 && allMessages.value.length === 0) {
-      allMessages.value = response.messages
-    }
-  } catch (err: any) {
-    console.error('メッセージ取得エラー:', err)
-    error.value = err.response?.data?.error || 'メッセージの取得に失敗しました'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const refreshMessages = () => {
-  fetchMessages()
-}
-
-const prevPage = () => {
-  if (hasPrevPage.value && !isLoading.value) {
+// ページネーション操作
+const prevPage = (): void => {
+  if (hasPrevPage.value) {
     currentPage.value--
-    fetchMessages()
   }
 }
 
-const nextPage = () => {
-  if (hasNextPage.value && !isLoading.value) {
+const nextPage = (): void => {
+  if (hasNextPage.value) {
     currentPage.value++
-    fetchMessages()
   }
 }
 
-
-// 既読にする
-const markAsRead = async (messageId: string, showFeedback = true) => {
+// 既読処理
+const markAsRead = async (messageId: string, showFeedback = true): Promise<void> => {
   if (isMarkingRead.value === messageId) return
   
   isMarkingRead.value = messageId
   
   try {
-    // TODO: 既読APIの実装が必要
-    // await messageService.markAsRead(messageId)
+    // APIを呼び出して既読状態を更新
+    await ratingService.markAsRead(messageId)
     
-    // 仮の実装: ローカル状態を更新
-    const message = messages.value.find(m => m.id === messageId)
+    // 元データ（inboxMessages）を更新
+    const message = inboxMessages.value.find(m => m.id === messageId)
     if (message) {
+      const oldStatus = message.status
       message.status = 'read'
       message.readAt = new Date().toISOString()
+      console.log(`📖 既読更新: ID ${messageId} - ${oldStatus} → read`)
+    } else {
+      console.warn(`⚠️ 既読対象メッセージが見つからない: ID ${messageId}`)
     }
     
     if (showFeedback) {
@@ -276,43 +413,17 @@ const markAsRead = async (messageId: string, showFeedback = true) => {
     }
   } catch (error) {
     console.error('既読処理エラー:', error)
+    // エラーが発生した場合はユーザーに通知
+    alert('既読処理に失敗しました。もう一度お試しください。')
   } finally {
     isMarkingRead.value = null
   }
 }
 
 
-// ツリーマップ用メソッド
-const loadAllMessages = async () => {
-  isLoadingAll.value = true
-  error.value = ''
-  
-  try {
-    let allData: InboxMessageWithRating[] = []
-    let page = 1
-    const pageLimit = 100 // 一度に多めに取得
-    
-    while (true) {
-      const response = await ratingService.getInboxWithRatings(page, pageLimit)
-      allData = allData.concat(response.messages)
-      
-      if (response.messages.length < pageLimit || allData.length >= response.pagination.total) {
-        break
-      }
-      page++
-    }
-    
-    allMessages.value = allData
-  } catch (err: any) {
-    console.error('全メッセージ取得エラー:', err)
-    error.value = err.response?.data?.error || '全メッセージの取得に失敗しました'
-  } finally {
-    isLoadingAll.value = false
-  }
-}
-
-
-// ヘルパー関数
+// ================================================
+// 4. ヘルパー関数（Helper Functions）
+// ================================================
 const formatSentTime = (sentAt?: string) => {
   if (!sentAt) return ''
   
@@ -329,6 +440,41 @@ const formatSentTime = (sentAt?: string) => {
   }
 }
 
+const formatDetailedTime = (dateString?: string) => {
+  if (!dateString) return '不明'
+  
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffInMinutes = (now.getTime() - date.getTime()) / (1000 * 60)
+  const diffInHours = diffInMinutes / 60
+  const diffInDays = diffInHours / 24
+  
+  // 相対時間表示
+  let relativeTime = ''
+  if (diffInMinutes < 1) {
+    relativeTime = '今'
+  } else if (diffInMinutes < 60) {
+    relativeTime = `${Math.floor(diffInMinutes)}分前`
+  } else if (diffInHours < 24) {
+    relativeTime = `${Math.floor(diffInHours)}時間前`
+  } else if (diffInDays < 7) {
+    relativeTime = `${Math.floor(diffInDays)}日前`
+  } else {
+    relativeTime = '1週間以上前'
+  }
+  
+  // 詳細な日時
+  const detailedTime = date.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+  
+  return `${detailedTime} (${relativeTime})`
+}
+
 // 送信者のイニシャルを取得
 const getSenderInitial = (message: InboxMessageWithRating) => {
   if (message.senderName) {
@@ -339,11 +485,41 @@ const getSenderInitial = (message: InboxMessageWithRating) => {
   return '?'
 }
 
-// 初期化
+// ================================================
+// 5. 初期化（Initialization）
+// ================================================
+
+// データ変更の監視
+watch(
+  () => inboxMessages.value.length,
+  (newLength, oldLength) => {
+    console.log(`👀 inboxMessages変更監視: ${oldLength} → ${newLength}件`)
+  }
+)
+
+watch(
+  () => displayMode.value,
+  (newMode, oldMode) => {
+    console.log(`👀 displayMode変更監視: ${oldMode} → ${newMode}`)
+  }
+)
+
 onMounted(() => {
-  fetchMessages()
-  // 初期データをツリーマップ用にも設定
-  allMessages.value = messages.value
+  console.log('🚀 コンポーネント初期化開始')
+  
+  // ページスクロールを無効化
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
+  
+  // アプリ起動時にデータを取得
+  fetchInboxData()
+})
+
+onUnmounted(() => {
+  // ページスクロールを復元
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
+  console.log('🔄 コンポーネント終了 - スクロール復元')
 })
 </script>
 
@@ -351,11 +527,11 @@ onMounted(() => {
 .inbox-list {
   background: #f8f9fa;
   height: 100vh;
-  padding: 1rem;
+  padding: 0.75rem; /* パディングを縮小 */
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  overflow: hidden;
+  gap: 0.75rem; /* gapを縮小 */
+  overflow: hidden; /* 既に設定済み */
 }
 
 /* ページタイトル */
@@ -377,34 +553,43 @@ onMounted(() => {
   background: white;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  height: 40vh;
+  height: 40vh; /* 高さを40vhに拡大 */
   padding: 1rem;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  width: 90%; /* 幅を90%に拡大 */
+  margin: 0 auto; /* 中央配置 */
 }
 
-/* 表示切替ボタン */
-.view-toggle-container {
+/* 表示設定 */
+.display-control {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  z-index: 10;
+  z-index: 20;
 }
 
-.view-toggle-btn {
-  background: white;
+.display-control select {
+  padding: 0.5rem 1rem;
   border: 2px solid #d1d5db;
   border-radius: 8px;
-  padding: 0.5rem 1rem;
   font-size: 0.875rem;
+  background: white;
   cursor: pointer;
+  min-width: 140px;
   transition: all 0.2s ease;
 }
 
-.view-toggle-btn:hover {
+.display-control select:hover {
   background: #f3f4f6;
   border-color: #9CA3AF;
+}
+
+.display-control select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 /* メインコンテンツエリア */
@@ -423,18 +608,40 @@ onMounted(() => {
   gap: 0.5rem;
   flex: 1;
   overflow-y: auto;
+  /* スクロールバーのスタイリング */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.messages-list-view::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-list-view::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.messages-list-view::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.messages-list-view::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .message-list-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem; /* 縦パディングを減少 */
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  min-height: 60px; /* 最小高さを設定 */
 }
 
 .message-list-item:hover {
@@ -488,10 +695,12 @@ onMounted(() => {
   background: white;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem; /* パディングを縮小 */
   flex-shrink: 0;
-  height: 25vh;
-  overflow-y: auto;
+  height: 25vh; /* 高さを25vhに拡大 */
+  overflow-y: auto; /* 内部スクロールは保持 */
+  width: 90%; /* 幅を90%に拡大 */
+  margin: 0 auto; /* 中央配置 */
 }
 
 .selected-message-area h3 {
@@ -510,19 +719,49 @@ onMounted(() => {
 .message-info {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding-bottom: 0.5rem;
+  align-items: flex-start;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #e5e7eb;
+  gap: 1rem;
 }
 
 .sender {
   font-weight: 600;
   color: #111827;
+  flex-shrink: 0;
 }
 
-.sent-time {
+.time-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: right;
+  font-size: 0.75rem;
+  min-width: 0;
+}
+
+.sent-time,
+.read-time,
+.unread-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   color: #6b7280;
-  font-size: 0.875rem;
+}
+
+.time-label {
+  font-weight: 500;
+  color: #9ca3af;
+  min-width: 2rem;
+}
+
+.unread-badge {
+  background: #ef4444;
+  color: white;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
 }
 
 .message-text {
@@ -561,37 +800,39 @@ onMounted(() => {
   background: white;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem; /* パディングを縮小 */
   display: flex;
   justify-content: center;
   flex-shrink: 0;
-  height: 15vh;
+  height: 12vh; /* 高さを12vhに調整 */
   align-items: center;
+  width: 90%; /* 幅を90%に拡大 */
+  margin: 0 auto; /* 中央配置 */
 }
 
 .rating-bar {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem; /* gapを縮小 */
   width: 100%;
   justify-content: center;
 }
 
 .emoji-left,
 .emoji-right {
-  font-size: 2rem;
+  font-size: 1.75rem; /* フォントサイズを縮小 */
   flex-shrink: 0;
 }
 
 .rating-circles {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem; /* gapを縮小 */
   align-items: center;
 }
 
 .rating-circle {
-  width: 40px;
-  height: 40px;
+  width: 36px; /* サイズを縮小 */
+  height: 36px; /* サイズを縮小 */
   border: 2px solid #d1d5db;
   border-radius: 50%;
   background: white;
@@ -719,7 +960,29 @@ onMounted(() => {
   }
   
   .main-display-area {
-    height: 35vh;
+    height: 35vh; /* モバイル版メイン表示エリア */
+    width: 95%; /* モバイルではさらに幅を拡大 */
+  }
+  
+  .selected-message-area {
+    height: 22vh; /* モバイル版選択メッセージエリア */
+    width: 95%; /* モバイルではさらに幅を拡大 */
+  }
+  
+  .rating-area {
+    height: 10vh; /* モバイル版評価エリア */
+    width: 95%; /* モバイルではさらに幅を拡大 */
+  }
+  
+  .display-control {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  
+  .display-control select {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    min-width: 120px;
   }
   
   .selected-message-area {
@@ -727,27 +990,37 @@ onMounted(() => {
     padding: 0.75rem;
   }
   
-  .rating-area {
-    height: 12vh;
-    padding: 0.5rem;
+  .message-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .time-info {
+    text-align: left;
+    font-size: 0.7rem;
+  }
+  
+  .time-label {
+    min-width: 1.5rem;
   }
   
   .rating-bar {
-    gap: 1rem;
+    gap: 0.75rem; /* モバイルでさらにコンパクト */
   }
   
   .emoji-left,
   .emoji-right {
-    font-size: 1.5rem;
+    font-size: 1.25rem; /* モバイルでさらに小さく */
   }
   
   .rating-circles {
-    gap: 0.75rem;
+    gap: 0.5rem; /* モバイルでさらにコンパクト */
   }
   
   .rating-circle {
-    width: 32px;
-    height: 32px;
+    width: 28px; /* モバイルでさらに小さく */
+    height: 28px; /* モバイルでさらに小さく */
   }
 }
 </style>

@@ -94,6 +94,13 @@ class RatingService {
     // rateMessage は内部的に作成または更新を行う
     return this.rateMessage(messageId, rating)
   }
+
+  // メッセージを既読にする
+  async markAsRead(messageId: string): Promise<void> {
+    const response = await apiService.post(`/messages/${messageId}/read`)
+    // バックエンドは200ステータスで{"message": "..."}を返すため、エラーチェックは不要
+    // レスポンスが正常でない場合は apiService 側で例外が投げられる
+  }
 }
 
 export const ratingService = new RatingService()
