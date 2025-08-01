@@ -354,7 +354,7 @@ func (h *FriendRequestHandler) GetFriends(c *gin.Context) {
 
 // RemoveFriendInput は友達削除のリクエストボディ
 type RemoveFriendInput struct {
-	FriendID string `json:"friend_id" binding:"required"`
+	FriendEmail string `json:"friend_email" binding:"required,email"`
 }
 
 // RemoveFriend は友達を削除するハンドラー
@@ -385,17 +385,18 @@ func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 		return
 	}
 	
-	friendObjID, err := primitive.ObjectIDFromHex(input.FriendID)
+	// 友達のメールアドレスからユーザーIDを取得
+	ctx := c.Request.Context()
+	friendUser, err := h.userService.GetUserByEmail(ctx, input.FriendEmail)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効な友達IDです",
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "指定されたユーザーが見つかりません",
 		})
 		return
 	}
 	
 	// 友達関係を削除
-	ctx := c.Request.Context()
-	err = h.friendshipService.Delete(ctx, userObjID, friendObjID)
+	err = h.friendshipService.Delete(ctx, userObjID, friendUser.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "友達削除に失敗しました",
