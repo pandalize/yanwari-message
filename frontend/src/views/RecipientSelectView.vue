@@ -156,7 +156,7 @@ const selectManualRecipient = () => {
 const loadFriends = async () => {
   isLoadingFriends.value = true
   try {
-    await friendsStore.loadFriends()
+    await friendsStore.fetchFriends()
     friends.value = friendsStore.friends
   } catch (err) {
     console.error('友達一覧の取得に失敗:', err)

@@ -1217,12 +1217,17 @@ Week 9: feature/message-system-integration  # 全機能統合
     - 友達一覧API: GET /api/v1/friends/ 正常レスポンス確認
     - 送信申請一覧API: GET /api/v1/friend-requests/sent 既存データ取得成功
     - 8つのAPIエンドポイント全て正常動作確認済み
-  - **友達一覧取得問題の調査・解決**（2025年8月1日 23:02）:
-    - **問題**: 友達一覧が空として表示される問題発生
-    - **原因**: JWTトークンの有効期限切れ（15分間）
-    - **解決**: 新しいJWTトークン取得により友達データ正常取得確認
-    - **結果**: hnn-a@gmail.com との友達関係が正常に存在・MongoDB aggregation動作確認済み
-    - **友達データ詳細**: friendship_id: 688cc882b17b00c8e969d744, created_at: 2025-08-01T14:00:34.005Z
+  - **友達一覧取得問題の調査・解決**（2025年8月1日 23:02 → 23:17 完全解決）:
+    - **第1の問題**: 友達一覧が空として表示される問題発生
+      - **原因**: JWTトークンの有効期限切れ（15分間）
+      - **解決**: 新しいJWTトークン取得により友達データ正常取得確認
+      - **結果**: hnn-a@gmail.com との友達関係が正常に存在・MongoDB aggregation動作確認済み
+      - **友達データ詳細**: friendship_id: 688cc882b17b00c8e969d744, created_at: 2025-08-01T14:00:34.005Z
+    - **第2の問題**: 送信画面で「友達一覧の取得に失敗しました」エラー表示
+      - **原因**: RecipientSelectView.vueで存在しない`loadFriends`メソッドを呼び出し
+      - **解決**: `friendsStore.loadFriends()` → `friendsStore.fetchFriends()` に修正
+      - **影響範囲**: 受信者選択画面での友達一覧読み込み処理
+      - **修正ファイル**: frontend/src/views/RecipientSelectView.vue:159
 
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
