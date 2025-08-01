@@ -817,6 +817,27 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **MongoDB統合**: friend_requests・friendships コレクション・インデックス作成・永続化完了
   - **ブランチ**: feature/friend-request-system でコミット・プッシュ完了
 
+- ✅ **友達申請システムのJWT認証エラー修正・API統合完了**（fujinoyuki, 2025年8月1日 22:45）
+  - **問題解決**: JWTミドルウェアの重複適用問題を完全解決
+    - JWT認証が全エンドポイントで重複して実行されていた問題を修正
+    - 認証済みチェック機能を追加して重複実行を防止
+    - ユーザーIDを文字列として統一保存するように修正
+  - **設定ハンドラーの統一**: SettingsHandlerにRegisterRoutesメソッドを追加
+    - 他のハンドラーと同じパターンに統一
+    - main.goでの設定エンドポイント登録を統一
+    - コードの一貫性・保守性を向上
+  - **全友達申請APIの動作確認完了**:
+    - POST /api/v1/friend-requests/send (友達申請送信) ✅
+    - GET /api/v1/friend-requests/received (受信申請一覧) ✅
+    - GET /api/v1/friend-requests/sent (送信申請一覧) ✅
+    - POST /api/v1/friend-requests/:id/accept (申請承諾) ✅
+    - POST /api/v1/friend-requests/:id/reject (申請拒否) ✅
+    - POST /api/v1/friend-requests/:id/cancel (申請キャンセル) ✅
+    - GET /api/v1/friends/ (友達一覧取得) ✅
+    - DELETE /api/v1/friends/remove (友達削除) ✅
+  - **テスト結果**: JWT認証・セキュリティ・権限チェック・データ整合性すべて正常動作確認済み
+  - **commit**: 1d9b0a3 feature/friend-request-system ブランチにプッシュ完了
+
 - ✅ **友達申請APIハンドラー修正・バックエンドテスト開始**（2025年7月26日 14:30）
   - **問題**: friend_requests.goで`database.GetDB()`未定義エラー・依存性注入パターン不適合
   - **修正内容**:
