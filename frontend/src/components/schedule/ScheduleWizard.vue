@@ -151,7 +151,7 @@
       </button>
       <button 
         class="btn btn-primary" 
-        @click="scheduleMessage"
+        @click="handleScheduleClick"
         :disabled="!canSchedule || isScheduling"
       >
         {{ isScheduling ? '設定中...' : 'この時刻に送信する' }}
@@ -370,12 +370,17 @@ const initializeFromRoute = () => {
 
 // 統一された選択メソッド
 const selectScheduleOption = (optionId: string, aiIndex?: number) => {
+  // 既にスケジュール処理中の場合は無視
+  if (isScheduling.value) {
+    return
+  }
+  
   // 他の選択をクリア
   selectedDate.value = null
   
   if (optionId === 'immediate') {
     selectedOption.value = { id: 'immediate', type: 'immediate' }
-    sendImmediately()
+    // 即座送信は選択のみ行い、実際の送信は「この時刻に送信する」ボタンで行う
   } else if (optionId.startsWith('ai-') && aiIndex !== undefined) {
     const aiOption = suggestion.value?.suggested_options?.[aiIndex]
     selectedOption.value = {
@@ -464,33 +469,7 @@ const loadAISuggestion = async () => {
   }
 }
 
-// 即座送信
-const sendImmediately = async () => {
-  isScheduling.value = true
-  error.value = ''
-  
-  try {
-    const now = new Date()
-    await scheduleService.createSchedule({
-      messageId: messageId.value,
-      scheduledAt: now.toISOString()
-    })
-    
-    // 下書き一覧を更新（送信済みメッセージは下書きから除外される）
-    await messageStore.loadDrafts()
-    
-    successMessage.value = 'メッセージを送信しました！'
-    setTimeout(() => {
-      router.push('/inbox')
-    }, 2000)
-    
-  } catch (err: any) {
-    console.error('即座送信エラー:', err)
-    error.value = 'メッセージの送信に失敗しました'
-  } finally {
-    isScheduling.value = false
-  }
-}
+// 即座送信（削除 - scheduleMessage統合）
 
 // 戻るボタン
 const goBack = () => {
@@ -506,6 +485,12 @@ const goBack = () => {
 
 // スケジュール設定
 const scheduleMessage = async () => {
+  // 重複実行防止
+  if (isScheduling.value) {
+    console.log('スケジュール処理中のため、重複実行を防止しました')
+    return
+  }
+  
   if (!selectedOption.value) {
     error.value = '送信時間を選択してください'
     return
@@ -513,6 +498,7 @@ const scheduleMessage = async () => {
   
   isScheduling.value = true
   error.value = ''
+  successMessage.value = ''
   
   try {
     let scheduledAt: string
@@ -555,22 +541,28 @@ const scheduleMessage = async () => {
       throw new Error('無効な選択です')
     }
     
+    console.log('スケジュール作成開始:', { messageId: messageId.value, scheduledAt })
+    
     await scheduleService.createSchedule({
       messageId: messageId.value,
       scheduledAt
     })
     
+    console.log('スケジュール作成完了')
+    
     // 下書き一覧を更新（予約済みメッセージは下書きから除外される）
     await messageStore.loadDrafts()
     
-    successMessage.value = 'スケジュールを設定しました！'
-    console.log('Attempting to navigate to /history in 1.5 seconds...')
+    const isImmediate = selectedOption.value.type === 'immediate'
+    successMessage.value = isImmediate ? 'メッセージを送信しました！' : 'スケジュールを設定しました！'
+    
     setTimeout(() => {
-      console.log('Executing router.push("/history")')
-      router.push('/history').then(() => {
-        console.log('Navigation to /history successful')
+      const targetPath = isImmediate ? '/inbox' : '/history'
+      console.log(`ナビゲーション実行: ${targetPath}`)
+      router.push(targetPath).then(() => {
+        console.log(`ナビゲーション成功: ${targetPath}`)
       }).catch((error) => {
-        console.error('Navigation to /history failed:', error)
+        console.error(`ナビゲーションエラー: ${targetPath}`, error)
       })
     }, 1500)
     
@@ -580,6 +572,21 @@ const scheduleMessage = async () => {
   } finally {
     isScheduling.value = false
   }
+}
+
+// ボタンクリックハンドラー（デバウンス処理付き）
+let scheduleClickTimeout: NodeJS.Timeout | null = null
+const handleScheduleClick = () => {
+  // 既存のタイムアウトをクリア
+  if (scheduleClickTimeout) {
+    clearTimeout(scheduleClickTimeout)
+  }
+  
+  // 300ms後に実行（重複クリック防止）
+  scheduleClickTimeout = setTimeout(() => {
+    scheduleMessage()
+    scheduleClickTimeout = null
+  }, 300)
 }
 
 // 初期化
