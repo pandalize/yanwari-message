@@ -264,3 +264,17 @@ func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
 		"message": "アカウントを削除しました",
 	})
 }
+
+// RegisterRoutes 設定関連のルートを登録
+func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
+	settings := v1.Group("/settings")
+	settings.Use(jwtMiddleware)
+	{
+		settings.GET("", h.GetSettings)                           // 設定取得
+		settings.PUT("/profile", h.UpdateProfile)                 // プロフィール更新
+		settings.PUT("/password", h.ChangePassword)               // パスワード変更
+		settings.PUT("/notifications", h.UpdateNotificationSettings) // 通知設定更新
+		settings.PUT("/messages", h.UpdateMessageSettings)       // メッセージ設定更新
+		settings.DELETE("/account", h.DeleteAccount)             // アカウント削除
+	}
+}

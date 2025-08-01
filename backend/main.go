@@ -196,31 +196,23 @@ func main() {
 			auth.POST("/logout", authHandler.Logout)       // ログアウト
 		}
 
-		// ユーザー関連エンドポイント
+		// ユーザー関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
 		userHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// メッセージ関連エンドポイント
+		// メッセージ関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
 		messageHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// 友達申請・友達関連エンドポイント
+		// 友達申請・友達関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
 		friendRequestHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// AIトーン変換関連エンドポイント
+		// AIトーン変換関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
 		transformHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// スケジュール関連エンドポイント
+		// スケジュール関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
 		scheduleHandler.RegisterRoutes(v1, jwtMiddleware)
 
-		// 設定関連エンドポイント
-		settings := v1.Group("/settings").Use(jwtMiddleware)
-		{
-			settings.GET("", settingsHandler.GetSettings)                           // 設定取得
-			settings.PUT("/profile", settingsHandler.UpdateProfile)                 // プロフィール更新
-			settings.PUT("/password", settingsHandler.ChangePassword)               // パスワード変更
-			settings.PUT("/notifications", settingsHandler.UpdateNotificationSettings) // 通知設定更新
-			settings.PUT("/messages", settingsHandler.UpdateMessageSettings)       // メッセージ設定更新
-			settings.DELETE("/account", settingsHandler.DeleteAccount)             // アカウント削除
-		}
+		// 設定関連エンドポイント（JWTミドルウェアは各ハンドラー内で適用）
+		settingsHandler.RegisterRoutes(v1, jwtMiddleware)
 	}
 
 	// HTTPサーバーの設定
