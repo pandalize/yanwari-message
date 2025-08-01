@@ -7,7 +7,7 @@
     <section class="friends-section">
       <h2 class="section-title">友達から選択</h2>
       
-      <div v-if="isLoadingFriends" class="loading-state">
+      <div v-if="friendsStore.loading" class="loading-state">
         <div class="spinner"></div>
         <p>友達一覧を読み込み中...</p>
       </div>
@@ -21,20 +21,20 @@
       
       <div v-else class="friends-grid">
         <div 
-          v-for="friend in friends" 
-          :key="friend.id" 
+          v-for="friendship in friends" 
+          :key="friendship.friend.id" 
           class="friend-card"
-          @click="selectRecipient(friend)"
-          :class="{ selected: selectedRecipient?.id === friend.id }"
+          @click="selectRecipient(friendship.friend)"
+          :class="{ selected: selectedRecipient?.id === friendship.friend.id }"
         >
           <div class="friend-avatar">
-            {{ friend.name.charAt(0).toUpperCase() }}
+            {{ friendship.friend.name.charAt(0).toUpperCase() }}
           </div>
           <div class="friend-info">
-            <h3 class="friend-name">{{ friend.name }}</h3>
-            <p class="friend-email">{{ friend.email }}</p>
+            <h3 class="friend-name">{{ friendship.friend.name }}</h3>
+            <p class="friend-email">{{ friendship.friend.email }}</p>
           </div>
-          <div class="select-indicator" v-if="selectedRecipient?.id === friend.id">
+          <div class="select-indicator" v-if="selectedRecipient?.id === friendship.friend.id">
             ✓
           </div>
         </div>
@@ -110,7 +110,6 @@ const friends = ref<any[]>([])
 const selectedRecipient = ref<any>(null)
 const manualEmail = ref('')
 const manualEmailSelected = ref<any>(null)
-const isLoadingFriends = ref(false)
 const error = ref('')
 
 // 計算プロパティ
@@ -154,15 +153,12 @@ const selectManualRecipient = () => {
 }
 
 const loadFriends = async () => {
-  isLoadingFriends.value = true
   try {
     await friendsStore.fetchFriends()
     friends.value = friendsStore.friends
   } catch (err) {
     console.error('友達一覧の取得に失敗:', err)
-    error.value = '友達一覧の取得に失敗しました'
-  } finally {
-    isLoadingFriends.value = false
+    error.value = friendsStore.error || '友達一覧の取得に失敗しました'
   }
 }
 
