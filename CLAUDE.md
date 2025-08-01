@@ -1228,6 +1228,15 @@ Week 9: feature/message-system-integration  # 全機能統合
       - **解決**: `friendsStore.loadFriends()` → `friendsStore.fetchFriends()` に修正
       - **影響範囲**: 受信者選択画面での友達一覧読み込み処理
       - **修正ファイル**: frontend/src/views/RecipientSelectView.vue:159
+    - **第3の問題**: 「友達一覧を読み込み中...」が継続する問題（2025年8月1日 23:21 → 23:25 解決確認）
+      - **原因1**: APIレスポンス構造の誤解釈（`friend.id` → `friendship.friend.id`）
+      - **原因2**: 重複したローディング状態管理（`isLoadingFriends` vs `friendsStore.loading`）
+      - **解決**: 
+        - 友達データアクセス方法を修正: `friendship.friend.name`等
+        - ローディング状態をstoreの状態に統一: `friendsStore.loading`使用
+        - 不要な`isLoadingFriends`変数削除・処理簡略化
+      - **修正ファイル**: frontend/src/views/RecipientSelectView.vue（v-for構造・loading表示）
+      - **✅ 解決確認**: ユーザーテストにより問題完全解決を確認済み
 
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
