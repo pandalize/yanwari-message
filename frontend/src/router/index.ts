@@ -14,13 +14,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/LoginView.vue'),
+      component: () => import('../views/FirebaseLoginView.vue'),
       meta: { requiresAuth: false }
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/RegisterView.vue'),
+      component: () => import('../views/FirebaseRegisterView.vue'),
       meta: { requiresAuth: false }
     },
     {
@@ -110,26 +110,34 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  console.log('Router navigation:', {
+  console.log('🔥 Router navigation:', {
     from: from.path,
     to: to.path,
     authenticated: authStore.isAuthenticated,
+    initializing: authStore.isInitializing,
     requiresAuth: to.meta.requiresAuth,
-    user: authStore.user,
     routeName: to.name
   })
   
+  // 初期化中は待機
+  if (authStore.isInitializing) {
+    console.log('🔥 Firebase認証初期化中 - 待機...')
+    await authStore.initializeAuth()
+    console.log('🔥 Firebase認証初期化完了 - ナビゲーション続行')
+  }
+  
+  // Firebase認証ルートガード
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log('Redirecting to login - authentication required')
+    console.log('🔥 Redirecting to login - authentication required')
     next('/login')
   } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
-    console.log('Redirecting to home - already authenticated')
+    console.log('🔥 Redirecting to home - already authenticated')
     next('/')
   } else {
-    console.log('Navigation allowed - proceeding to:', to.path)
+    console.log('🔥 Navigation allowed - proceeding to:', to.path)
     next()
   }
 })

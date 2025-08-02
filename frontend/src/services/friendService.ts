@@ -45,7 +45,7 @@ export interface FriendshipWithUser {
 
 // 友達申請送信のリクエスト
 export interface SendFriendRequestInput {
-  to_user_email: string
+  to_email: string
   message?: string
 }
 

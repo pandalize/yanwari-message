@@ -72,7 +72,7 @@ export const useFriendsStore = defineStore('friends', () => {
     loading.value = true
     error.value = null
     try {
-      await friendService.sendFriendRequest({ to_user_email: toUserEmail, message })
+      await friendService.sendFriendRequest({ to_email: toUserEmail, message })
       console.log('友達申請を送信しました')
       // 送信済み申請リストを更新
       await fetchSentRequests()

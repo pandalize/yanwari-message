@@ -67,7 +67,7 @@ const handleHistoryClick = () => {
       <div class="header-content">
         <h1>やんわり伝言</h1>
         <div class="auth-buttons">
-          <RouterLink to="/login" class="auth-btn">ログイン</RouterLink>
+          <RouterLink to="/login" class="auth-btn firebase">🔥 ログイン</RouterLink>
           <RouterLink to="/register" class="auth-btn primary">新規登録</RouterLink>
         </div>
       </div>
@@ -199,6 +199,17 @@ const handleHistoryClick = () => {
   background: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.auth-btn.firebase {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border: 1px solid #ff6b35;
+}
+
+.auth-btn.firebase:hover {
+  background: linear-gradient(135deg, #e85a31 0%, #e0841c 100%);
+  color: white;
 }
 
 .auth-btn.primary {

@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+
 // TransformHandler AIトーン変換ハンドラー
 type TransformHandler struct {
 	messageService  *models.MessageService
@@ -27,18 +28,35 @@ type TransformHandler struct {
 
 // NewTransformHandler トーン変換ハンドラーを作成
 func NewTransformHandler(messageService *models.MessageService) *TransformHandler {
+	fmt.Println("[TransformHandler] 初期化開始...")
+	
 	// トーン設定を読み込み
 	toneConfig, err := config.LoadToneConfig()
 	if err != nil {
-		// ログ出力（実運用では適切なロガーを使用）
-		fmt.Printf("警告: トーン設定の読み込みに失敗しました: %v\n", err)
+		// 詳細なエラーログ出力
+		fmt.Printf("❌ [TransformHandler] トーン設定の読み込みに失敗: %v\n", err)
+		fmt.Printf("❌ [TransformHandler] フォールバックモード（デフォルトプロンプト）で動作します\n")
+		toneConfig = nil
+	} else {
+		fmt.Printf("✅ [TransformHandler] トーン設定の読み込み成功\n")
 	}
 
-	return &TransformHandler{
+	// Anthropic API キーの確認
+	apiKey := os.Getenv("ANTHROPIC_API_KEY")
+	if apiKey == "" {
+		fmt.Printf("⚠️ [TransformHandler] ANTHROPIC_API_KEY環境変数が設定されていません\n")
+	} else {
+		fmt.Printf("✅ [TransformHandler] ANTHROPIC_API_KEY設定確認済み\n")
+	}
+
+	handler := &TransformHandler{
 		messageService:  messageService,
-		anthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
+		anthropicAPIKey: apiKey,
 		toneConfig:      toneConfig,
 	}
+	
+	fmt.Printf("✅ [TransformHandler] 初期化完了（YAMLファイル使用: %t）\n", toneConfig != nil)
+	return handler
 }
 
 // ToneTransformRequest トーン変換リクエスト
@@ -86,17 +104,12 @@ type Content struct {
 // TransformToTones メッセージを3つのトーンに変換
 // POST /api/v1/transform/tones
 func (h *TransformHandler) TransformToTones(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
-		return
-	}
+	currentUserID := currentUser.ID
 
 	var req ToneTransformRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -127,12 +140,16 @@ func (h *TransformHandler) TransformToTones(c *gin.Context) {
 	// 設定ファイルから利用可能なトーンを取得
 	var availableTones []string
 	if h.toneConfig != nil {
+		fmt.Printf("[Transform] YAML設定ファイルからトーン一覧を取得中...\n")
 		for toneName := range h.toneConfig.Tones {
 			availableTones = append(availableTones, toneName)
+			fmt.Printf("[Transform] - YAML設定トーン: %s\n", toneName)
 		}
+		fmt.Printf("✅ [Transform] YAML設定ファイル使用: %d個のトーン\n", len(availableTones))
 	} else {
 		// フォールバック: デフォルトトーン
 		availableTones = []string{"gentle", "constructive", "casual"}
+		fmt.Printf("⚠️ [Transform] フォールバックモード: デフォルトプロンプトを使用\n")
 	}
 
 	// 並行変換処理（詳細ログ付き）
@@ -215,15 +232,20 @@ func (h *TransformHandler) callAnthropicAPI(ctx context.Context, originalText, t
 
 	// 設定ファイルからプロンプトを生成
 	if h.toneConfig != nil {
+		fmt.Printf("[%s] YAML設定からプロンプト生成中...\n", tone)
 		var err error
 		prompt, err = h.toneConfig.GetPrompt(tone, originalText)
 		if err != nil {
+			fmt.Printf("[%s] プロンプト生成エラー: %v\n", tone, err)
 			return "", fmt.Errorf("プロンプト生成エラー: %w", err)
 		}
 		modelConfig = h.toneConfig.GetAIModelConfig()
+		fmt.Printf("[%s] ✅ YAML設定プロンプト生成成功 (Model: %s, MaxTokens: %d)\n", tone, modelConfig.Name, modelConfig.MaxTokens)
 	} else {
 		// フォールバック: デフォルトプロンプト
+		fmt.Printf("[%s] デフォルトプロンプト使用\n", tone)
 		prompt, modelConfig = h.getDefaultPrompt(originalText, tone)
+		fmt.Printf("[%s] ✅ デフォルトプロンプト生成成功 (Model: %s, MaxTokens: %d)\n", tone, modelConfig.Name, modelConfig.MaxTokens)
 	}
 
 	// リクエストボディを作成
@@ -371,9 +393,9 @@ func (h *TransformHandler) ReloadConfig(c *gin.Context) {
 }
 
 // RegisterRoutes トーン変換関連のルートを登録
-func (h *TransformHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
+func (h *TransformHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
 	transform := router.Group("/transform")
-	transform.Use(authMiddleware)
+	transform.Use(firebaseMiddleware)
 	{
 		transform.POST("/tones", h.TransformToTones)
 		transform.POST("/reload-config", h.ReloadConfig) // チューニング用

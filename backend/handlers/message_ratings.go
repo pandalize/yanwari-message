@@ -35,16 +35,12 @@ type RateMessageRequest struct {
 // POST /api/v1/messages/:id/rate
 func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
-		return
-	}
+	recipientID := recipient.ID
 
 	// メッセージIDの取得・バリデーション
 	messageIDStr := c.Param("id")
@@ -107,16 +103,12 @@ func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 // GET /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) GetMessageRating(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
-		return
-	}
+	recipientID := recipient.ID
 
 	// メッセージIDの取得・バリデーション
 	messageIDStr := c.Param("id")
@@ -190,16 +182,12 @@ type InboxMessageWithRating struct {
 // GET /api/v1/messages/inbox-with-ratings
 func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
-		return
-	}
+	recipientID := recipient.ID
 
 	// ページネーション
 	pageStr := c.DefaultQuery("page", "1")
@@ -241,8 +229,8 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	// レスポンス用データを構築
 	inboxMessages := make([]InboxMessageWithRating, len(messages))
 	for i, msg := range messages {
-		// 送信者情報の取得（getUserInfoヘルパーを使用）
-		senderInfo, err := models.GetUserInfo(c.Request.Context(), msg.SenderID)
+		// 送信者情報の取得（GetUserInfoByServiceヘルパーを使用）
+		senderInfo, err := models.GetUserInfoByService(c.Request.Context(), mrh.messageService.GetUserService(), msg.SenderID)
 		if err != nil {
 			// エラーログを出力するが処理は継続
 			senderInfo = &models.UserInfo{
@@ -292,16 +280,12 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 // DELETE /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) DeleteMessageRating(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
-		return
-	}
+	recipientID := recipient.ID
 
 	// メッセージIDの取得・バリデーション
 	messageIDStr := c.Param("id")
@@ -335,8 +319,8 @@ func convertTimeToDateTime(t *time.Time) *primitive.DateTime {
 }
 
 // RegisterMessageRatingRoutes メッセージ評価関連のルートを登録
-func (mrh *MessageRatingHandler) RegisterRoutes(rg *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
-	messages := rg.Group("/messages").Use(jwtMiddleware)
+func (mrh *MessageRatingHandler) RegisterRoutes(rg *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+	messages := rg.Group("/messages").Use(firebaseMiddleware)
 	{
 		// 個別メッセージの評価
 		messages.POST("/:id/rate", mrh.RateMessage)

@@ -13,7 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/argon2"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"yanwari-message-backend/models"
 )
@@ -519,6 +518,12 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // JWTMiddleware JWT認証ミドルウェア
 func JWTMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 既に認証済みかチェック（重複実行を防ぐ）
+		if userID, exists := c.Get("userID"); exists && userID != nil {
+			c.Next()
+			return
+		}
+		
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "認証ヘッダーが必要です"})
@@ -547,15 +552,8 @@ func JWTMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// ユーザーIDをコンテキストに設定
-		userID, err := primitive.ObjectIDFromHex(claims.UserID)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "無効なユーザーIDです"})
-			c.Abort()
-			return
-		}
-
-		c.Set("userID", userID)
+		// ユーザーIDをコンテキストに設定（文字列として保存）
+		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Next()
 	}

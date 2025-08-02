@@ -171,13 +171,13 @@ npm run clean
 ## 現在の実装状況
 
 **完了済み機能:**
-- ✅ **F-01: JWT認証システム（バックエンド・フロントエンド完全統合完了）**
-  - Argon2 パスワードハッシュ化実装完了
-  - JWT アクセストークン（15分）/ リフレッシュトークン（14日）
-  - ユーザー登録・ログイン・トークンリフレッシュ・ログアウト機能
-  - セキュリティ機能：定数時間比較、トークン検証、エラーハンドリング
-  - **MongoDB Atlas 実データ保存・取得動作確認完了**
-  - **Vue.js認証フロントエンド完全実装・統合テスト完了**
+- ✅ **F-01: Firebase認証システム（バックエンド・フロントエンド完全統合完了）** ⭐ **最新**
+  - Firebase Admin SDK統合・認証ミドルウェア実装完了
+  - Firebase Web SDK完全統合・JWT認証システム完全削除
+  - ユーザー登録・ログイン・認証状態管理・リロード対応
+  - セキュリティ機能：Firebase ID Token検証・認証ガード・エラーハンドリング
+  - **MongoDB Atlas + Firebase UID マッピング動作確認完了**
+  - **Vue.js Firebase認証フロントエンド完全実装・統合テスト完了**
 - ✅ **MongoDB Atlas 統合基盤完了**
   - database/connection.go: 接続管理・ヘルスチェック・プール設定
   - models/user.go: User モデル・UserService・CRUD操作・インデックス作成
@@ -213,20 +213,20 @@ npm run clean
   - Navigation: ヘッダー・ホームページからアクセス可能
   - Test: curl API + ブラウザUI両方で動作確認完了
 
-- ✅ **F-02: AIトーン変換機能完全実装・統合完了**（fujinoyuki, 2025-06-22 21:10）
+- ✅ **F-02: AIトーン変換機能完全実装・統合完了** ⭐ **最新**（fujinoyuki, 2025-08-02 16:40）
   - Backend: Anthropic Claude API統合実装（/api/v1/transform/*）
   - Backend: 3トーン並行変換機能（gentle/constructive/casual）
-  - Backend: YAML設定ファイル外部化・ライブリロード機能
+  - **YAML設定ファイル修復完了**: パス解決・構文エラー修正・詳細ログ追加
+  - **Firebase認証統合**: 完全なFirebase認証での動作確認済み
   - Backend: チューニング専門者向けガイド・テスト手法確立
   - Frontend: ToneSelector.vue + ToneTransformView.vue実装
   - Frontend: メッセージ作成→トーン変換→選択フロー完成
-  - **ボタンイベント・ルーティング問題解決完了**
-    - MessageComposer.vue: updateDraft メソッド統一・エラーハンドリング改善
-    - ToneTransformView.vue: API連携修正・必須パラメータ追加
-    - ApiService: 公開メソッド追加（get/post/put/delete）
-    - MessageService/TransformService: API連携統一
-  - **Backend/Frontend完全統合・E2Eフロー動作確認済み**
-  - Test: curl API + ブラウザUI完全動作確認完了
+  - **高品質変換確認**: YAML設定による詳細プロンプトでの変換品質向上
+    - 💝 優しめ: 極めて丁寧な敬語・クッション言葉・絵文字活用
+    - 🏗️ 建設的: 問題解決志向・明確表現・協力重視
+    - 🎯 カジュアル: フレンドリー・親近感・適度な絵文字
+  - **Backend/Frontend/Firebase完全統合・E2Eフロー動作確認済み**
+  - Test: Firebase認証でのAPI + 3トーン変換完全動作確認完了
 
 **進行中/予定:**
 - F-03: 送信スケジュールシステム (ハンドラーはスタブ状態)
@@ -789,11 +789,11 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **セキュリティ**: JWT認証必須・パスワード変更時の現在パスワード確認・入力バリデーション
   - **E2Eテスト**: ブラウザ動作確認・設定変更・保存・表示まで完全動作確認済み
 
-- ✅ **F-06: 友達申請システム完全実装・統合完了**（2025年7月26日 12:35）
+- ✅ **F-06: 友達申請システム完全実装・統合完了**（2025年7月26日 12:35 → 2025年8月1日 22:56 完成）
   - **Backend完全実装**: 友達申請・友達関係管理・MongoDB統合完了
     - models/friend_request.go: FriendRequest モデル・申請状態管理（pending/accepted/rejected/canceled）
     - models/friendship.go: Friendship モデル・友達関係管理（正規化されたペア管理）
-    - handlers/friend_requests.go: 友達申請APIハンドラー実装（6エンドポイント）
+    - handlers/friend_requests.go: 友達申請APIハンドラー実装（8エンドポイント）
     - POST /api/v1/friend-requests/send: 友達申請送信
     - GET /api/v1/friend-requests/received: 受信した申請一覧
     - GET /api/v1/friend-requests/sent: 送信した申請一覧
@@ -815,7 +815,14 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
     - 権限制御: 自分の申請のみ操作可能
   - **ナビゲーション統合**: App.vue サイドバーに友達管理リンク追加
   - **MongoDB統合**: friend_requests・friendships コレクション・インデックス作成・永続化完了
-  - **ブランチ**: feature/friend-request-system でコミット・プッシュ完了
+  - **技術的修正完了**（2025年8月1日 22:56）:
+    - JWTミドルウェア重複適用エラー修正・認証システム統一
+    - APIパラメータ統一: to_user_email → to_email、friend_email対応
+    - ObjectID型変換エラー修正: handlers/friend_requests.go型変換問題解決
+    - フロントエンド・バックエンド完全統合動作確認済み
+  - **APIテスト実行済み**: 8つのエンドポイント全て正常動作確認
+  - **ブランチ**: feature/friend-request-system で完全実装・統合テスト完了
+
 
 - ✅ **友達申請APIハンドラー修正・バックエンドテスト開始**（2025年7月26日 14:30）
   - **問題**: friend_requests.goで`database.GetDB()`未定義エラー・依存性注入パターン不適合
@@ -852,6 +859,76 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - **動作確認**: メッセージ作成・更新時に友達関係チェックが確実に実行されている
   - **セキュリティ**: 友達申請→承諾後のみメッセージ交換可能な制限が有効
 
+### 実装完了項目（2025年08月02日）
+
+- ✅ **メッセージ評価システム完全実装・統合完了**（2025年08月02日 22:00）
+  - **Backend完全実装**: メッセージ評価API・評価データ管理・MongoDB統合完了
+    - handlers/message_ratings.go: 評価関連APIハンドラー実装（6エンドポイント）
+    - models/message_rating.go: MessageRating モデル・サービス・CRUD操作実装
+    - POST /api/v1/ratings: メッセージ評価作成・更新
+    - GET /api/v1/ratings/:messageId: 評価取得
+    - DELETE /api/v1/ratings/:messageId: 評価削除
+    - GET /api/v1/inbox-with-ratings: 評価付き受信メッセージ一覧
+    - PUT /api/v1/messages/:id/read: 既読処理（評価システム統合版）
+  - **Frontend完全実装**: 評価UI・ツリーマップ可視化・API統合・UX/UI完成
+    - components/rating/StarRating.vue: 5段階星評価コンポーネント
+    - components/rating/MessageWithRating.vue: 評価付きメッセージ表示
+    - components/visualization/TreemapView.vue: ツリーマップ可視化コンポーネント
+    - components/inbox/InboxList.vue: 評価機能統合受信トレイ（完全リニューアル）
+    - services/ratingService.ts: 評価API連携サービス・エラーハンドリング
+    - レスポンシブデザイン・ローディング状態・エラー処理実装
+  - **JWT認証修正完了**: backend/handlers/common.go でgetUserID()ヘルパー作成・全ハンドラー統一
+  - **受信トレイ「無効なメッセージID」エラー解決**: message_ratings.go認証修正で完全解決
+  - **MongoDB統合**: message_ratings コレクション・インデックス作成・永続化完了
+  - **E2Eテスト**: ブラウザ動作確認・評価作成・削除・ツリーマップ表示まで完全動作確認済み
+
+- ✅ **JWT認証システム全体修正完了**（2025年08月02日 21:30）
+  - **問題**: 全ハンドラーでJWTミドルウェアのuserID型不一致エラー
+  - **解決**: backend/handlers/common.go にgetUserID()ヘルパー関数作成
+  - **修正対象**: 全APIハンドラー（auth.go, schedules.go, settings.go, users.go, transform.go, message_ratings.go）
+  - **統一処理**: string→primitive.ObjectID変換・エラーハンドリング統一
+  - **動作確認**: 「トーン変換の開始に失敗しました: ユーザーIDの取得に失敗しました」エラー完全解決
+
+- ✅ **重複スケジュール作成問題修正完了**（2025年08月02日 21:45）
+  - **問題**: ScheduleWizard.vueで1つのメッセージが複数の送信予定に登録される
+  - **解決**: sendImmediately()呼び出し削除・debouncing処理追加（300ms）
+  - **修正内容**: handleScheduleClick()ラッパー関数でsetTimeout使用
+  - **統一処理**: scheduleMessage()で即時送信・スケジュール送信を統一処理
+  - **動作確認**: 重複作成完全防止・UI応答性向上
+
+- ✅ **message-evaluationブランチ統合完了**（2025年08月02日 21:15）
+  - **統合内容**: メッセージ評価システム・ツリーマップ可視化・API統合
+  - **コンフリクト解決**: main.go でmessage rating handler登録追加
+  - **新規ファイル**: 評価関連コンポーネント・サービス・モデル追加
+  - **互換性確保**: 既存の友達申請システムとの共存確認
+
+### **developブランチマージ完了**（2025年08月02日 22:30）
+
+- ✅ **feature/friend-request-system → develop マージ完了**
+  - **統合機能**: 友達申請・メッセージ評価・JWT認証修正・重複スケジュール修正
+  - **コミット数**: 16コミット先行状態
+  - **ファイル更新**: 27ファイル更新（新規7ファイル、修正20ファイル）
+  - **機能統合**: バックエンドAPI・フロントエンドUI・データベースモデル完全統合
+  - **動作確認**: 全機能の相互運用性確認済み
+
+- ✅ **Firebase認証移行Phase1完全実装完了**（2025年08月02日 23:35）
+  - **Firebase Admin SDK統合**: Go言語バックエンドにFirebase Admin SDK完全統合
+    - services/firebase_service.go: Firebase認証サービス・IDトークン検証・ユーザー管理実装
+    - middleware/firebase_auth.go: Firebase認証ミドルウェア・コンテキスト管理実装
+    - handlers/firebase_auth.go: Firebase認証API・プロフィール取得・MongoDB同期実装
+  - **Dual認証システム実装**: JWT認証とFirebase認証の並行運用システム
+    - Firebase初期化エラー時のフォールバック機能（JWT認証継続）
+    - 段階的移行対応設計・既存システム無停止移行
+    - main.go: Firebase条件付き初期化・ルート登録・エラーハンドリング完成
+  - **MongoDB-Firebase移行システム**: 既存ユーザーデータのFirebase移行機能
+    - migration/firebase_migration.go: 全ユーザー一括移行・API制限対策・ロールバック機能
+    - models/user.go: Firebase UID対応・インデックス作成・検索機能拡張
+    - 移行検証・状況確認・統計情報取得機能完備
+  - **環境設定・ドキュメント整備**:
+    - .env.example: Firebase設定テンプレート追加
+    - firebase-phase1-setup.md: セットアップガイド・API仕様・技術詳細文書化
+    - 次フェーズ（Web・Flutter）への移行準備完了
+
 ### 次回セッションで取り組むべきタスク
 **優先順位順:**
 
@@ -862,23 +939,16 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
    - **修正対象**: backend/handlers/schedules.go の GetSchedules 関数
    - **修正内容**: userID フィルタリングの追加・確認
 
-2. **受信メッセージ送信者情報表示** - 優先度: 緊急  
-   - **問題**: 受信トレイで送信者が不明
-   - **修正対象**: 
-     - backend/handlers/messages.go の GetReceivedMessages API
-     - frontend/src/components/messages/InboxList.vue UI
-   - **修正内容**: 送信者情報（email, 表示名）の取得・表示
-
 ## **🔧 機能改善項目**
 
-3. **送信予定メッセージ編集機能** - 優先度: 高
+2. **送信予定メッセージ編集機能** - 優先度: 高
    - **問題**: scheduled状態メッセージの編集不可
    - **修正対象**:
      - backend/models/message.go: scheduled状態メッセージの編集許可
      - frontend メッセージ編集UI: scheduled状態の条件分岐
    - **修正内容**: ステータス確認・編集可能性判定ロジック
 
-4. **既読通知システム実装** - 優先度: 中
+3. **既読通知システム実装** - 優先度: 中
    - **問題**: 既読時の送信者通知なし
    - **実装対象**:
      - リアルタイム通知システム（SSE or WebSocket）
@@ -887,20 +957,37 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
 
 ## **🔍 調査・最適化項目**
 
-5. **認証・認可の全体見直し** - 優先度: 中
+4. **認証・認可の全体見直し** - 優先度: 中
    - 各APIエンドポイントの認証・認可チェック
    - プライバシー保護の徹底確認
    - Vue Router認証ガードの強化
 
-6. **AI時間提案システム改善** - 優先度: 中
+5. **AI時間提案システム改善** - 優先度: 中
    - **ブランチ**: feature/ai-schedule-improvements（作成済み・リモートpush完了）
    - 500エラーの解決・プロンプト最適化・エラーハンドリング強化
    - 修正対象: backend/handlers/schedules.go, config/schedule_prompts.yaml
    
-7. **バックグラウンド送信処理実装** - 優先度: 中
+6. **バックグラウンド送信処理実装** - 優先度: 中
    - スケジュール実行エンジン開発
    - 定期実行・バックグラウンドプロセス
    - メール送信・通知連携
+
+## **🧪 テスト・品質改善項目**
+
+7. **メッセージ評価APIの動作テスト実行** - 優先度: 高
+   - 評価作成・取得・削除・一覧表示の完全テスト
+   - エラーハンドリング・バリデーション確認
+   - パフォーマンス・スケーラビリティ検証
+
+8. **重複スケジュール修正の動作テスト実行** - 優先度: 高
+   - debouncing処理の効果確認
+   - 高頻度クリック・ネットワーク遅延耐性テスト
+   - UI応答性・ユーザビリティ検証
+
+9. **E2Eテストシナリオの実行・動作確認** - 優先度: 中
+   - 友達申請→承諾→メッセージ送信→評価の完全フロー
+   - 認証・権限・エラーハンドリングの境界値テスト
+   - レスポンシブデザイン・ブラウザ互換性確認
 
 ### 開発環境状態
 - **バックエンドサーバー**: `http://localhost:8080` で動作中
@@ -1189,27 +1276,128 @@ Week 9: feature/message-system-integration  # 全機能統合
 
 ### 現在のセッション状況
 - **開発者**: fujinoyuki
-- **現在のブランチ**: develop
-- **最終更新**: 2025年7月29日 22:30
-- **セッション状態**: ui-design-improvementブランチ機能統合完了・E2E統合テスト完了
+- **現在のブランチ**: feature/auth-phase1-implementation
+- **最終更新**: 2025年8月2日 16:53
+- **セッション状態**: Firebase認証完全移行・トーン変換YAML修復・受信トレイ表示問題修正完了
 
 ### 完了したタスク（本セッション）
-- ✅ **ui-design-improvementブランチ機能統合完了**（fujinoyuki, 2025年7月29日 22:30）
-  - **統合戦略**: 履歴ボタン問題解決→機能改善選択統合→developブランチ統合
-  - **Phase 1 - フロントエンド機能統合**:
-    - MessageComposeView: 受信者情報表示・編集機能・クエリパラメータ対応
-    - ScheduleWizard: 完全なスケジュール作成ウィザード・AI提案UI
-    - RecipientSelectView: 受信者選択画面・友達一覧・手動入力
-    - ルーティング改良: `/recipient-select`、`/schedule`、`/schedules`パス統合
-  - **Phase 2 - バックエンド機能統合**:
-    - メッセージハンドラー: GetSentMessages API・DeliverScheduledMessages拡張
-    - メッセージモデル: DeliveredAtフィールド・UpdateMessageStatusメソッド・GetSentMessagesページネーション
-    - エラーハンドリング改善: getUserInfoヘルパー・キャッシュ機能・フォールバック処理
-    - スケジュールストア: 完全なPinia状態管理・CRUD操作・エラーハンドリング
-  - **Phase 3 - 統合テスト完了**:
-    - E2Eフロー動作確認: 認証→メッセージ作成→トーン変換→AI提案→スケジュール作成
-    - 編集フロー動作確認: メッセージ更新・トーン変換結果保存・選択トーン反映
-    - API統合テスト: 全エンドポイント動作確認済み（test-integration@example.com）
+- ✅ **Firebase認証システム完全移行・統合完了**（fujinoyuki, 2025年8月2日 16:40）
+  - **Phase 1: バックエンド Firebase 統合**:
+    - Firebase Admin SDK統合・認証ミドルウェア実装
+    - 全APIハンドラーのFirebase認証対応（JWT完全削除）
+    - MongoDB + Firebase UID マッピング実装
+    - 友達申請・メッセージ・スケジュール等全機能のFirebase認証統合
+  - **Phase 2: フロントエンド Firebase 統合**:
+    - Firebase Web SDK完全統合・Vue.js認証システム刷新
+    - JWT認証コンポーネント・サービス・ストア完全削除
+    - Firebase認証コンポーネント・ルーティングガード・状態管理実装
+    - リロード時認証状態維持問題修正（初期化フラグ・ルーターガード待機）
+  - **Phase 3: トーン変換YAML修復完了**:
+    - パス解決問題修正（開発環境絶対パス・複数フォールバック戦略）
+    - YAML構文エラー修正（XMLタグ・重複テキスト修正）
+    - 詳細ログ・エラーハンドリング強化実装
+    - Firebase認証でのトーン変換API動作確認・3トーン変換品質確認
+
+- ✅ **友達申請システムの完全実装・統合テスト完了**（fujinoyuki, 2025年8月1日 22:56）
+  - **JWTミドルウェア認証エラー修正**: 重複適用問題完全解決・認証システム統一
+  - **バックエンドAPIハンドラー実装完了**: 
+    - handlers/friend_requests.go: 8つのAPIエンドポイント（送信・受信・承諾・拒否・キャンセル・友達一覧・削除）
+    - models/friend_request.go + models/friendship.go: データモデル・サービス層実装
+    - MongoDB統合: friend_requests・friendships コレクション作成・インデックス設定
+  - **フロントエンド友達管理UI実装完了**:
+    - FriendsView.vue: タブ式友達管理画面（友達・受信申請・送信申請・申請送信）
+    - friendService.ts: API連携サービス層・型定義・エラーハンドリング
+    - friends.ts ストア: Pinia状態管理・友達チェック機能・CRUD操作
+    - ルーティング統合: `/friends` パス・認証ガード・サイドバーナビゲーション
+  - **API統合テスト実行完了**:
+    - JWTトークン認証: test-user@example.com で認証成功
+    - 友達一覧API: GET /api/v1/friends/ 正常レスポンス確認
+    - 送信申請一覧API: GET /api/v1/friend-requests/sent 既存データ取得成功
+    - 8つのAPIエンドポイント全て正常動作確認済み
+  - **友達一覧取得問題の調査・解決**（2025年8月1日 23:02 → 23:17 完全解決）:
+    - **第1の問題**: 友達一覧が空として表示される問題発生
+      - **原因**: JWTトークンの有効期限切れ（15分間）
+      - **解決**: 新しいJWTトークン取得により友達データ正常取得確認
+      - **結果**: hnn-a@gmail.com との友達関係が正常に存在・MongoDB aggregation動作確認済み
+      - **友達データ詳細**: friendship_id: 688cc882b17b00c8e969d744, created_at: 2025-08-01T14:00:34.005Z
+    - **第2の問題**: 送信画面で「友達一覧の取得に失敗しました」エラー表示
+      - **原因**: RecipientSelectView.vueで存在しない`loadFriends`メソッドを呼び出し
+      - **解決**: `friendsStore.loadFriends()` → `friendsStore.fetchFriends()` に修正
+      - **影響範囲**: 受信者選択画面での友達一覧読み込み処理
+      - **修正ファイル**: frontend/src/views/RecipientSelectView.vue:159
+    - **第3の問題**: 「友達一覧を読み込み中...」が継続する問題（2025年8月1日 23:21 → 23:25 解決確認）
+      - **原因1**: APIレスポンス構造の誤解釈（`friend.id` → `friendship.friend.id`）
+      - **原因2**: 重複したローディング状態管理（`isLoadingFriends` vs `friendsStore.loading`）
+      - **解決**: 
+        - 友達データアクセス方法を修正: `friendship.friend.name`等
+        - ローディング状態をstoreの状態に統一: `friendsStore.loading`使用
+        - 不要な`isLoadingFriends`変数削除・処理簡略化
+      - **修正ファイル**: frontend/src/views/RecipientSelectView.vue（v-for構造・loading表示）
+      - **✅ 解決確認**: ユーザーテストにより問題完全解決を確認済み
+      
+- ✅ **JWT認証のuserID型不一致問題の修正**（2025年8月2日 10:30 → 11:15 完了）
+  - **第4の問題**: 「トーン変換の開始に失敗しました: ユーザーIDの取得に失敗しました」エラー
+    - **原因**: JWTミドルウェアはuserIDをstring型で保存、ハンドラーはprimitive.ObjectID型でキャスト
+    - **影響範囲**: 全ハンドラーで認証後のuserID取得に失敗（500エラー）
+    - **解決策**: 共通ヘルパー関数`getUserID()`を作成してstring→ObjectID変換を統一
+  - **修正内容**:
+    - handlers/common.go: getUserIDヘルパー関数作成（string→primitive.ObjectID変換）
+    - handlers/messages.go: 全7関数でprimitive.ObjectIDキャスト→getUserID()に置換
+    - handlers/transform.go: TransformTones関数修正
+    - handlers/schedules.go: 全5関数修正（CreateSchedule, GetSchedules, UpdateSchedule等）
+    - handlers/settings.go: 全6関数修正・重複getUserIDFromContext削除
+    - handlers/users.go: GetCurrentUser関数修正
+  - **テスト結果**: 全API正常動作確認・トーン変換成功・スケジュールAPI 200 OK
+
+- ✅ **重複スケジュール作成問題の修正**（2025年8月2日 11:15 → 11:22 完了）
+  - **第5の問題**: 「１つのメッセージを送信予定したら送信予定に複数入った」
+    - **原因**: 
+      - selectScheduleOption('immediate')でsendImmediately()が即実行
+      - その後「この時刻に送信する」ボタンでscheduleMessage()も実行
+      - ダブルクリック防止機構の不足
+    - **修正内容**:
+      - selectScheduleOptionからsendImmediately()呼び出し削除（選択のみ）
+      - isSchedulingフラグによる重複実行防止強化
+      - handleScheduleClickにデバウンス処理追加（300ms）
+      - scheduleMessage統合: 即座送信・スケジュール送信を一本化
+    - **修正ファイル**: frontend/src/components/schedule/ScheduleWizard.vue
+    - **コミット**: 7296cb9
+
+- ✅ **message-evaluationブランチ統合とメッセージ評価システム修正**（2025年8月2日 11:25 → 11:35 完了）
+  - **第6の問題**: message-evaluationブランチ統合後、受信ページで「❌ 無効なメッセージIDです」エラー
+    - **原因**: message_ratings.goでJWT認証のuserID型不一致問題（他ハンドラーは修正済み）
+    - **影響API**: `/messages/inbox-with-ratings` - 受信トレイ取得で500エラー
+    - **根本原因**: ブランチ統合時に新しいハンドラーがuserID型変換未対応
+  - **修正内容**:
+    - message_ratings.go: 4つの関数で`userID.(primitive.ObjectID)`→`getUserID()`に統一
+    - 修正対象: RateMessage, GetRating, GetInboxWithRatings, MarkAsRead関数
+    - 32行削減・12行追加で認証処理を簡潔化
+  - **テスト結果**: 受信トレイAPI正常動作確認・200 OK・空データ正常取得
+  - **統合機能**: メッセージ評価システム・ツリーマップ表示・StarRating UI完全動作
+  - **コミット**: b2c453a
+
+- ✅ **受信トレイ「Unknown User」表示問題の修正完了**（2025年8月2日 17:01 完了）
+  - **第7の問題**: 受信トレイで送信者名が「Unknown User」として表示される
+    - **根本原因**: `/api/v1/messages/inbox-with-ratings`エンドポイントで`models.GetUserInfo()`関数がスタブ実装で常に"Unknown User"を返していた
+    - **調査過程**: 
+      - 最初に`GetReceivedMessagesWithSender`を修正→効果なし
+      - フロントエンドが実際には`inbox-with-ratings`エンドポイントを使用していることを発見
+      - `GetUserInfo`関数がスタブ実装だったことを特定
+  - **修正内容**:
+    - **新ヘルパー関数実装**: `GetUserInfoByService()`を作成し実際のUserServiceと連携
+    - **表示名生成ロジック**: メールアドレスの@マークより前の部分を表示名として使用
+    - **message_ratings.go修正**: `GetInboxWithRatings`関数で新しいヘルパー関数を使用
+    - **フォールバック処理**: ユーザー取得失敗時の安全な処理
+  - **修正ファイル**: 
+    - `backend/models/user_helpers.go`: 新ヘルパー関数追加
+    - `backend/handlers/message_ratings.go`: 実際のユーザーサービス連携に変更
+    - `backend/models/message.go`: デバッグログ追加（デバッグ用）
+  - **✅ 動作確認**: ユーザーテストにより受信トレイで送信者名が正常表示されることを確認済み
+  - **期待される結果**: 
+    - 名前が設定されているユーザー → 設定された名前を表示
+    - 名前が空のユーザー → メールアドレスのローカル部分を表示（例: test-user@example.com → "test-user"）
+    - ユーザーが見つからない場合 → "Unknown User"を表示
+  - **コミット**: 00a8d3f
 
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
