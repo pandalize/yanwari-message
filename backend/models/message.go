@@ -585,3 +585,21 @@ func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive
 
 	return messages, total, nil
 }
+
+// GetMessageByID メッセージをIDで取得（評価システム用）
+func (s *MessageService) GetMessageByID(ctx context.Context, messageID primitive.ObjectID) (*Message, error) {
+	var message Message
+	
+	filter := bson.M{"_id": messageID}
+	err := s.collection.FindOne(ctx, filter).Decode(&message)
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
+}
+
+// GetReceivedMessagesWithPagination 受信メッセージ一覧をページネーション付きで取得（評価システム用）
+func (s *MessageService) GetReceivedMessagesWithPagination(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
+	return s.GetReceivedMessages(ctx, recipientID, page, limit)
+}
