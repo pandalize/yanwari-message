@@ -69,15 +69,9 @@ func NewScheduleHandler(scheduleService *models.ScheduleService, messageService 
 // CreateSchedule スケジュール作成
 // POST /api/v1/schedules
 func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -168,15 +162,9 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 // GetSchedules スケジュール一覧取得
 // GET /api/v1/schedules
 func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -218,15 +206,9 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 // UpdateSchedule スケジュール更新
 // PUT /api/v1/schedules/:id
 func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -294,15 +276,9 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 // SyncScheduleStatus スケジュールとメッセージのステータス同期
 // POST /api/v1/schedules/sync-status
 func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -333,15 +309,9 @@ func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
 // DeleteSchedule スケジュール削除
 // DELETE /api/v1/schedules/:id
 func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -367,15 +337,9 @@ func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
 // SuggestSchedule AI時間提案
 // POST /api/v1/schedule/suggest
 func (h *ScheduleHandler) SuggestSchedule(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 

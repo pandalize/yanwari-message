@@ -7,7 +7,6 @@ import (
 	"yanwari-message-backend/models"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // UserHandler ユーザーハンドラー
@@ -123,15 +122,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // GetCurrentUser 現在のログインユーザー情報を取得
 // GET /api/v1/users/me
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 

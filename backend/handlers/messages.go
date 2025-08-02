@@ -26,15 +26,9 @@ func NewMessageHandler(messageService *models.MessageService) *MessageHandler {
 // CreateDraft 下書きメッセージを作成
 // POST /api/v1/messages/draft
 func (h *MessageHandler) CreateDraft(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	senderID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	senderID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -63,15 +57,9 @@ func (h *MessageHandler) CreateDraft(c *gin.Context) {
 // UpdateMessage メッセージを更新
 // PUT /api/v1/messages/:id
 func (h *MessageHandler) UpdateMessage(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	senderID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	senderID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -107,15 +95,9 @@ func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 // GetMessage メッセージを取得
 // GET /api/v1/messages/:id
 func (h *MessageHandler) GetMessage(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -144,15 +126,9 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 // GetDrafts 下書き一覧を取得
 // GET /api/v1/messages/drafts
 func (h *MessageHandler) GetDrafts(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	currentUserID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	currentUserID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -204,15 +180,9 @@ func (h *MessageHandler) GetDrafts(c *gin.Context) {
 // DeleteMessage メッセージを削除
 // DELETE /api/v1/messages/:id
 func (h *MessageHandler) DeleteMessage(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	senderID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	senderID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -241,15 +211,9 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 // GetReceivedMessages 受信メッセージ一覧を取得
 // GET /api/v1/messages/received
 func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -290,15 +254,9 @@ func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
 // MarkMessageAsRead メッセージを既読にする
 // POST /api/v1/messages/:id/read
 func (h *MessageHandler) MarkMessageAsRead(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -352,15 +310,9 @@ func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
 // GET /api/v1/messages/sent
 func (h *MessageHandler) GetSentMessages(c *gin.Context) {
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-
-	senderID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	senderID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
