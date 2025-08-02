@@ -35,14 +35,9 @@ type RateMessageRequest struct {
 // POST /api/v1/messages/:id/rate
 func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -107,14 +102,9 @@ func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 // GET /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) GetMessageRating(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -190,14 +180,9 @@ type InboxMessageWithRating struct {
 // GET /api/v1/messages/inbox-with-ratings
 func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -292,14 +277,9 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 // DELETE /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) DeleteMessageRating(c *gin.Context) {
 	// 認証チェック
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
-		return
-	}
-	recipientID, ok := userID.(primitive.ObjectID)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザーIDの取得に失敗しました"})
+	recipientID, err := getUserID(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
