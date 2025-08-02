@@ -229,8 +229,8 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	// レスポンス用データを構築
 	inboxMessages := make([]InboxMessageWithRating, len(messages))
 	for i, msg := range messages {
-		// 送信者情報の取得（getUserInfoヘルパーを使用）
-		senderInfo, err := models.GetUserInfo(c.Request.Context(), msg.SenderID)
+		// 送信者情報の取得（GetUserInfoByServiceヘルパーを使用）
+		senderInfo, err := models.GetUserInfoByService(c.Request.Context(), mrh.messageService.GetUserService(), msg.SenderID)
 		if err != nil {
 			// エラーログを出力するが処理は継続
 			senderInfo = &models.UserInfo{

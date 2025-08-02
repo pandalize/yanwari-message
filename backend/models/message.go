@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -498,11 +499,15 @@ func (s *MessageService) CreateIndexes(ctx context.Context) error {
 
 // GetReceivedMessagesWithSender 送信者情報を含む受信メッセージ一覧を取得
 func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]MessageWithSender, int64, error) {
+	fmt.Printf("🔍 [GetReceivedMessagesWithSender] 開始: recipientID=%s, page=%d, limit=%d\n", recipientID.Hex(), page, limit)
+	
 	// まず通常のメッセージ一覧を取得
 	messages, total, err := s.GetReceivedMessages(ctx, recipientID, page, limit)
 	if err != nil {
+		fmt.Printf("❌ [GetReceivedMessagesWithSender] メッセージ取得エラー: %v\n", err)
 		return nil, 0, err
 	}
+	fmt.Printf("📋 [GetReceivedMessagesWithSender] 取得したメッセージ数: %d, 総数: %d\n", len(messages), total)
 
 	// 送信者IDのリストを作成
 	senderIDs := make([]primitive.ObjectID, 0)
@@ -515,14 +520,18 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 	}
 
 	// 送信者情報を一括取得
+	fmt.Printf("🔍 [GetReceivedMessagesWithSender] 送信者ID一覧: %v\n", senderIDs)
 	users, err := s.userService.GetUsersByIDs(ctx, senderIDs)
 	if err != nil {
+		fmt.Printf("❌ [GetReceivedMessagesWithSender] ユーザー取得エラー: %v\n", err)
 		return nil, 0, err
 	}
+	fmt.Printf("📋 [GetReceivedMessagesWithSender] 取得したユーザー数: %d\n", len(users))
 
 	// ユーザー情報をマップに変換
 	userMap := make(map[primitive.ObjectID]*User)
 	for _, user := range users {
+		fmt.Printf("👤 [GetReceivedMessagesWithSender] ユーザー: ID=%s, Email=%s, Name='%s'\n", user.ID.Hex(), user.Email, user.Name)
 		userMap[user.ID] = &user
 	}
 
@@ -531,18 +540,41 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 	for i, msg := range messages {
 		msgWithSender := MessageWithSender{
 			Message:     msg,
-			SenderEmail: "",
-			SenderName:  "",
+			SenderEmail: "Unknown User",
+			SenderName:  "Unknown User",
 		}
 		
 		if sender, ok := userMap[msg.SenderID]; ok {
 			msgWithSender.SenderEmail = sender.Email
-			msgWithSender.SenderName = sender.Name
+			// 名前が空の場合はメールアドレスから表示名を生成
+			if sender.Name != "" {
+				msgWithSender.SenderName = sender.Name
+			} else {
+				// メールアドレスの@マークより前の部分を表示名として使用
+				atIndex := len(sender.Email)
+				for j, char := range sender.Email {
+					if char == '@' {
+						atIndex = j
+						break
+					}
+				}
+				if atIndex > 0 {
+					msgWithSender.SenderName = sender.Email[:atIndex]
+				} else {
+					msgWithSender.SenderName = sender.Email
+				}
+			}
+		} else {
+			// ユーザーが見つからない場合はデフォルト値のまま（"Unknown User"）
+			fmt.Printf("⚠️ [GetReceivedMessagesWithSender] ユーザーが見つかりません: SenderID=%s\n", msg.SenderID.Hex())
 		}
 		
+		fmt.Printf("📤 [GetReceivedMessagesWithSender] 結果: MsgID=%s, SenderEmail='%s', SenderName='%s'\n", 
+			msg.ID.Hex(), msgWithSender.SenderEmail, msgWithSender.SenderName)
 		messagesWithSender[i] = msgWithSender
 	}
 
+	fmt.Printf("✅ [GetReceivedMessagesWithSender] 完了: %d件のメッセージを処理\n", len(messagesWithSender))
 	return messagesWithSender, total, nil
 }
 
