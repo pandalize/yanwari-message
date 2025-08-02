@@ -26,11 +26,11 @@
               :width="item.width"
               :height="item.height"
               :fill="item.color"
-              :stroke="item.isBorder ? (item.stroke || '#1f2937') : (item.selected ? '#2563eb' : '#ffffff')"
-              :stroke-width="item.isBorder ? (item.strokeWidth || 2) : (item.selected ? 3 : 1)"
-              :opacity="item.isBorder ? 0.1 : (item.opacity || 0.8)"
-              :class="item.isBorder ? 'treemap-border' : 'treemap-rect'"
-              @click="!item.isBorder && selectItem(item)"
+              :stroke="item.selected ? '#2563eb' : '#ffffff'"
+              :stroke-width="item.selected ? 3 : 1"
+              :opacity="item.opacity || 0.8"
+              class="treemap-rect"
+              @click="selectItem(item)"
             />
 
             <text
@@ -301,23 +301,6 @@ const calculateTreemap = (hierarchyData: TreemapNode) => {
       const child = node.children![index]
 
       if (child.children && child.children.length > 0) {
-        // 親ノードの境界線を描画
-        if (child.level <= 2) {
-          result.push({
-            id: `${child.id}-border`,
-            x: rect.x,
-            y: rect.y,
-            width: rect.width,
-            height: rect.height,
-            color: 'transparent',
-            stroke: child.level === 1 ? '#1f2937' : '#6b7280',
-            strokeWidth: child.level === 1 ? 3 : 2,
-            label: child.name,
-            level: child.level,
-            isBorder: true
-          })
-        }
-
         // 子ノードを再帰的にレイアウト
         const childRects = layoutHierarchy(child, rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4)
         result.push(...childRects)
@@ -684,11 +667,6 @@ watch(() => props.messages, () => {
   opacity: 1 !important;
 }
 
-/* 階層構造用のスタイル */
-.treemap-border {
-  pointer-events: none;
-  transition: all 0.2s ease;
-}
 
 .treemap-sender-label {
   text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);

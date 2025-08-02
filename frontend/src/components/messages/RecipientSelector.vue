@@ -22,9 +22,9 @@
       <input
         v-model="searchQuery"
         @input="handleSearch"
-        @focus="showSuggestions = true"
+        @focus="handleFocus"
         type="text"
-        placeholder="名前またはメールアドレスで検索..."
+        placeholder="友達リストから選択..."
         class="search-input"
         :class="{ 'has-suggestions': showSuggestions && suggestions.length > 0 }"
       />
@@ -53,20 +53,26 @@
       </div>
       
       <div v-else-if="searchQuery && suggestions.length === 0 && !isSearching" class="search-status">
-        該当するユーザーが見つかりません
+        該当する友達が見つかりません
+      </div>
+      
+      <div v-else-if="friendsList.length === 0 && !isSearching" class="search-status no-friends">
+        📋 友達がいません<br>
+        <small>友達申請を送信してメッセージを送れるようになります</small>
       </div>
     </div>
 
     <!-- ヒント -->
     <small class="selector-hint">
-      {{ selectedRecipient ? 'クリックして選択を変更できます' : 'ユーザーを検索して選択してください' }}
+      {{ selectedRecipient ? 'クリックして選択を変更できます' : '友達リストから選択してください' }}
     </small>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { userService, type User } from '@/services/userService'
+import { friendService } from '@/services/friendService'
 
 interface Props {
   modelValue?: User | null
@@ -90,23 +96,40 @@ const selectedRecipient = ref<User | null>(props.modelValue)
 const showSuggestions = ref(false)
 const isSearching = ref(false)
 const searchTimeout = ref<NodeJS.Timeout | null>(null)
+const friendsList = ref<Array<{ id: string; email: string; displayName?: string }>>([])
 
 // プロップスの変更を監視
 watch(() => props.modelValue, (newValue) => {
   selectedRecipient.value = newValue
 })
 
-// 検索処理
+// 友達リストを取得
+const loadFriends = async () => {
+  try {
+    const friends = await friendService.getFriends()
+    friendsList.value = friends.map(f => f.friend)
+  } catch (error) {
+    console.error('友達リスト取得エラー:', error)
+    friendsList.value = []
+  }
+}
+
+// 検索処理（友達の中から検索）
 const handleSearch = async () => {
-  const query = searchQuery.value.trim()
+  const query = searchQuery.value.trim().toLowerCase()
   
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value)
   }
 
   if (!query) {
-    suggestions.value = []
-    showSuggestions.value = false
+    // クエリが空の場合は全友達を表示
+    suggestions.value = friendsList.value.map(friend => ({
+      id: friend.id,
+      email: friend.email,
+      name: friend.displayName || friend.email
+    }))
+    showSuggestions.value = suggestions.value.length > 0
     return
   }
 
@@ -114,11 +137,22 @@ const handleSearch = async () => {
     isSearching.value = true
     
     try {
-      const response = await userService.searchUsers(query, 5)
-      suggestions.value = response.data.users
+      // 友達リストから検索
+      const filteredFriends = friendsList.value.filter(friend => {
+        const name = (friend.displayName || '').toLowerCase()
+        const email = friend.email.toLowerCase()
+        return name.includes(query) || email.includes(query)
+      })
+      
+      suggestions.value = filteredFriends.map(friend => ({
+        id: friend.id,
+        email: friend.email,
+        name: friend.displayName || friend.email
+      }))
+      
       showSuggestions.value = true
     } catch (error) {
-      console.error('ユーザー検索エラー:', error)
+      console.error('友達検索エラー:', error)
       suggestions.value = []
     } finally {
       isSearching.value = false
@@ -133,6 +167,19 @@ const selectRecipient = (user: User) => {
   suggestions.value = []
   showSuggestions.value = false
   emit('update:modelValue', user)
+}
+
+// フォーカス時の処理
+const handleFocus = () => {
+  // フォーカス時に友達リストを表示
+  if (friendsList.value.length > 0) {
+    suggestions.value = friendsList.value.map(friend => ({
+      id: friend.id,
+      email: friend.email,
+      name: friend.displayName || friend.email
+    }))
+    showSuggestions.value = true
+  }
 }
 
 // 選択をクリア
@@ -153,10 +200,11 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 // マウント時とアンマウント時の処理
-import { onMounted, onUnmounted } from 'vue'
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+  // 友達リストを読み込む
+  await loadFriends()
 })
 
 onUnmounted(() => {
@@ -306,6 +354,19 @@ onUnmounted(() => {
   border: 1px solid #ddd;
   border-top: none;
   border-radius: 0 0 4px 4px;
+}
+
+.search-status.no-friends {
+  background: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+  padding: 1rem;
+}
+
+.search-status.no-friends small {
+  color: #6c757d;
+  display: block;
+  margin-top: 0.5rem;
 }
 
 .selector-hint {
