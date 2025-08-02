@@ -39,8 +39,15 @@ cd yanwari-message
 
 2. **依存関係のインストール**
 ```bash
+# 全体の依存関係をインストール
 npm run install:all
+
+# または個別にインストール
+cd backend && go mod download && cd ..
+cd frontend && npm install && cd ..
 ```
+
+⚠️ **重要**: `npm run dev` を実行する前に、必ず依存関係のインストールを完了してください。
 
 3. **環境変数の設定**
 ```bash
@@ -53,6 +60,8 @@ PORT=8080
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/yanwari-message
 ANTHROPIC_API_KEY=your_anthropic_api_key_here  
 JWT_SECRET=your_jwt_secret_here
+# Firebase設定（必要に応じて）
+FIREBASE_PROJECT_ID=yanwari-message
 ```
 
 ## 🚦 使用方法
@@ -164,12 +173,82 @@ yanwari-message/
 
 MIT License
 
+## 🔧 トラブルシューティング
+
+### よくある問題と解決方法
+
+#### Firebase依存関係エラー
+```
+Failed to resolve import "firebase/app" from "src/services/firebase.ts"
+```
+
+**原因**: フロントエンドの依存関係がインストールされていない
+
+**解決方法**:
+```bash
+# フロントエンドの依存関係を再インストール
+cd frontend
+npm install
+cd ..
+
+# または全体をクリーンインストール
+npm run clean
+npm run install:all
+```
+
+#### サーバー接続エラー
+```
+curl: (7) Failed to connect to localhost port 8080
+```
+
+**原因**: バックエンドサーバーが起動していない
+
+**解決方法**:
+```bash
+# バックエンドサーバーを起動
+npm run dev:backend
+
+# または全体を起動
+npm run dev
+```
+
+#### MongoDB接続エラー
+
+**原因**: 環境変数の設定不備
+
+**解決方法**:
+1. `backend/.env` ファイルが存在することを確認
+2. `MONGODB_URI` が正しく設定されていることを確認
+3. MongoDB Atlas の IP アドレス制限を確認
+
+#### その他のセットアップ問題
+
+1. **Node.js バージョン確認**:
+   ```bash
+   node --version  # 18.0+ が必要
+   npm --version
+   ```
+
+2. **Go バージョン確認**:
+   ```bash
+   go version  # 1.23.0+ が必要
+   ```
+
+3. **依存関係の完全クリーンアップ**:
+   ```bash
+   npm run clean
+   rm -rf frontend/node_modules
+   rm -rf backend/vendor
+   npm run install:all
+   ```
+
 ## 🆘 サポート
 
 問題が発生した場合：
-1. `API_TEST_COMMANDS.md` でAPIの動作確認
-2. Issues ページで既知の問題を確認
-3. 新しい Issue を作成
+1. 上記のトラブルシューティングを確認
+2. `API_TEST_COMMANDS.md` でAPIの動作確認
+3. Issues ページで既知の問題を確認
+4. 新しい Issue を作成
 
 ---
 
