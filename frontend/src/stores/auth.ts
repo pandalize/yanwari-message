@@ -155,6 +155,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const updateUser = (updatedUserData: Partial<User>) => {
+    if (user.value) {
+      const newUser = { ...user.value, ...updatedUserData }
+      user.value = newUser
+      localStorage.setItem('user', JSON.stringify(newUser))
+      console.log('ユーザー情報を更新しました:', newUser)
+    }
+  }
+
   return {
     user: computed(() => user.value),
     isAuthenticated,
@@ -165,6 +174,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     refreshAuthToken,
-    clearAuth
+    clearAuth,
+    updateUser
   }
 })

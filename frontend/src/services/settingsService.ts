@@ -16,6 +16,7 @@ export interface NotificationSettings {
 export interface MessageSettings {
   defaultTone: 'gentle' | 'constructive' | 'casual'
   timeRestriction: 'none' | 'business_hours' | 'extended_hours'
+  autoSave: boolean
 }
 
 export interface UserSettings {
@@ -41,15 +42,20 @@ class SettingsService {
    * ユーザー設定を取得
    */
   async getSettings(): Promise<UserSettings> {
+    console.log('settingsService.getSettings 呼び出し')
+    
     const response = await apiService.get<{
       success: boolean
       data: UserSettings
     }>(this.baseUrl)
     
+    console.log('settingsService.getSettings レスポンス:', response.data)
+    
     if (!response.data.success) {
       throw new Error('設定の取得に失敗しました')
     }
     
+    console.log('settingsService.getSettings 取得データ:', response.data.data)
     return response.data.data
   }
 
@@ -57,56 +63,80 @@ class SettingsService {
    * プロフィールを更新
    */
   async updateProfile(data: UpdateProfileRequest): Promise<void> {
+    console.log('settingsService.updateProfile 呼び出し:', data)
+    
     const response = await apiService.put<{
       success: boolean
       message: string
     }>(`${this.baseUrl}/profile`, data)
     
+    console.log('settingsService.updateProfile レスポンス:', response.data)
+    
     if (!response.data.success) {
       throw new Error('プロフィールの更新に失敗しました')
     }
+    
+    console.log('settingsService.updateProfile 完了')
   }
 
   /**
    * パスワードを変更
    */
   async changePassword(data: ChangePasswordRequest): Promise<void> {
+    console.log('settingsService.changePassword 呼び出し')
+    
     const response = await apiService.put<{
       success: boolean
       message: string
     }>(`${this.baseUrl}/password`, data)
     
+    console.log('settingsService.changePassword レスポンス:', response.data)
+    
     if (!response.data.success) {
       throw new Error('パスワードの変更に失敗しました')
     }
+    
+    console.log('settingsService.changePassword 完了')
   }
 
   /**
    * 通知設定を更新
    */
   async updateNotificationSettings(settings: NotificationSettings): Promise<void> {
+    console.log('settingsService.updateNotificationSettings 呼び出し:', settings)
+    
     const response = await apiService.put<{
       success: boolean
       message: string
     }>(`${this.baseUrl}/notifications`, settings)
     
+    console.log('settingsService.updateNotificationSettings レスポンス:', response.data)
+    
     if (!response.data.success) {
       throw new Error('通知設定の更新に失敗しました')
     }
+    
+    console.log('settingsService.updateNotificationSettings 完了')
   }
 
   /**
    * メッセージ設定を更新
    */
   async updateMessageSettings(settings: MessageSettings): Promise<void> {
+    console.log('settingsService.updateMessageSettings 呼び出し:', settings)
+    
     const response = await apiService.put<{
       success: boolean
       message: string
     }>(`${this.baseUrl}/messages`, settings)
     
+    console.log('settingsService.updateMessageSettings レスポンス:', response.data)
+    
     if (!response.data.success) {
       throw new Error('メッセージ設定の更新に失敗しました')
     }
+    
+    console.log('settingsService.updateMessageSettings 完了')
   }
 
   /**
