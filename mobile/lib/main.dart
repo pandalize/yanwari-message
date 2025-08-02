@@ -9,18 +9,24 @@ import 'screens/auth_wrapper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Firebase初期化（実際のプロジェクト設定）
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyDMN2wUjE6NicanP0KP8ybnPgJZloMNOoI", // 実際のAPIキー
-      authDomain: "yanwari-message.firebaseapp.com",
-      projectId: "yanwari-message", // 実際のプロジェクトID
-      storageBucket: "yanwari-message.appspot.com",
-      messagingSenderId: "24525991821", // 実際のプロジェクト番号
-      appId: "1:24525991821:android:abc123def456789", // Android用AppID（仮）
-      iosBundleId: "com.example.yanwariMessageMobile",
-    ),
-  );
+  // Firebase初期化（エラーハンドリング付き）
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyDMN2wUjE6NicanP0KP8ybnPgJZloMNOoI",
+        authDomain: "yanwari-message.firebaseapp.com",
+        projectId: "yanwari-message",
+        storageBucket: "yanwari-message.appspot.com",
+        messagingSenderId: "24525991821",
+        appId: "1:24525991821:ios:abc123def456789", // iOS用AppID
+        iosBundleId: "com.example.yanwariMessageMobile",
+      ),
+    );
+    print('✅ Firebase初期化成功');
+  } catch (e) {
+    print('⚠️ Firebase初期化エラー: $e');
+    print('アプリはFirebaseなしで起動します');
+  }
   
   runApp(const YanwariApp());
 }

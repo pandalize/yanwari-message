@@ -235,8 +235,7 @@ class ApiService {
     required int rating,
     String? comment,
   }) async {
-    final response = await _dio.post('/ratings', data: {
-      'messageId': messageId,
+    final response = await _dio.post('/messages/$messageId/rate', data: {
       'rating': rating,
       if (comment != null) 'comment': comment,
     });
@@ -245,13 +244,13 @@ class ApiService {
 
   // メッセージ評価取得
   Future<Map<String, dynamic>> getMessageRating(String messageId) async {
-    final response = await _dio.get('/ratings/$messageId');
+    final response = await _dio.get('/messages/$messageId/rating');
     return response.data;
   }
 
   // 評価付き受信メッセージ一覧
   Future<Map<String, dynamic>> getInboxWithRatings() async {
-    final response = await _dio.get('/inbox-with-ratings');
+    final response = await _dio.get('/messages/inbox-with-ratings');
     return response.data;
   }
 

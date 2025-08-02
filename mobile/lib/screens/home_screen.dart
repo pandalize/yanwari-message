@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
 import 'message_compose_screen.dart';
+import 'inbox_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -171,9 +172,11 @@ class HomeScreen extends StatelessWidget {
                         subtitle: '受け取った\nメッセージを確認',
                         color: const Color(0xFF42A5F5),
                         onTap: () {
-                          // TODO: 受信トレイ画面に遷移
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('受信トレイ機能は準備中です')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const InboxScreen(),
+                            ),
                           );
                         },
                       ),
