@@ -40,9 +40,9 @@ type PromptData struct {
 
 // ScheduleConfig スケジュール設定全体の構造
 type ScheduleConfig struct {
-	SystemRole        string                       `yaml:"system_role"`
-	AIModel           AIModelConfig                `yaml:"ai_model"`
-	ScheduleAnalysis  ScheduleAnalysis             `yaml:"schedule_analysis"`
+	SystemRole         string                       `yaml:"system_role"`
+	AIModel            AIModelConfig                `yaml:"ai_model"`
+	ScheduleAnalysis   ScheduleAnalysis             `yaml:"schedule_analysis"`
 	DefaultSuggestions map[string]DefaultSuggestion `yaml:"default_suggestions"`
 	TimeConsiderations map[string]TimeConsideration `yaml:"time_considerations"`
 	DayConsiderations  map[string]DayConsideration  `yaml:"day_considerations"`
@@ -55,9 +55,9 @@ type ScheduleAnalysis struct {
 
 // DefaultSuggestion デフォルト提案設定
 type DefaultSuggestion struct {
-	
-	RecommendedTiming  string `yaml:"recommended_timing"`
-	Reasoning          string `yaml:"reasoning"`
+	// UrgencyLevel       string `yaml:"urgency_level"`
+	RecommendedTiming string `yaml:"recommended_timing"`
+	Reasoning         string `yaml:"reasoning"`
 }
 
 // TimeConsideration 時間帯別配慮事項
@@ -74,11 +74,15 @@ type DayConsideration struct {
 }
 
 // SchedulePromptData スケジュール分析テンプレート用データ
+// userContext, userPreferences追加
 type SchedulePromptData struct {
-	MessageText   string
-	SelectedTone  string
-	CurrentTime   string
-	DayOfWeek     string
+	MessageText  string
+	SelectedTone string
+	CurrentTime  string
+	DayOfWeek    string
+	// 追加
+	UserContext     string
+	UserPreferences string
 }
 
 var toneConfig *ToneConfig
@@ -92,7 +96,7 @@ func LoadToneConfig() (*ToneConfig, error) {
 
 	// 設定ファイルのパスを取得
 	configPath := getConfigPath()
-	
+
 	// ファイル読み込み
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -136,7 +140,7 @@ func (tc *ToneConfig) GetPrompt(toneName, originalText string) (string, error) {
 
 	// システムロールを追加して完全なプロンプトを作成
 	fullPrompt := tc.SystemRole + "\n\n" + result.String()
-	
+
 	return fullPrompt, nil
 }
 
@@ -160,14 +164,14 @@ func getConfigPath() string {
 	if customPath := os.Getenv("TONE_CONFIG_PATH"); customPath != "" {
 		return customPath
 	}
-	
+
 	// デフォルトパス: バイナリと同じディレクトリのconfig/tone_prompts.yaml
 	execPath, err := os.Executable()
 	if err != nil {
 		// フォールバック: 現在のディレクトリ
 		return filepath.Join("config", "tone_prompts.yaml")
 	}
-	
+
 	execDir := filepath.Dir(execPath)
 	return filepath.Join(execDir, "config", "tone_prompts.yaml")
 }
@@ -180,7 +184,7 @@ func LoadScheduleConfig() (*ScheduleConfig, error) {
 
 	// 設定ファイルのパスを取得
 	configPath := getScheduleConfigPath()
-	
+
 	// ファイル読み込み
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -198,7 +202,10 @@ func LoadScheduleConfig() (*ScheduleConfig, error) {
 }
 
 // GetSchedulePrompt スケジュール分析プロンプトを生成
-func (sc *ScheduleConfig) GetSchedulePrompt(messageText, selectedTone string) (string, error) {
+// 変更前の↓
+// func (sc *ScheduleConfig) GetSchedulePrompt(messageText, selectedTone string) (string, error) {
+// 変更↓　userContext, userPreferences追加
+func (sc *ScheduleConfig) GetSchedulePrompt(messageText, selectedTone, userContext, userPreferences string) (string, error) {
 	now := time.Now()
 	currentTime := now.Format("2006-01-02 15:04:05")
 	dayOfWeek := getDayOfWeekInJapanese(now.Weekday())
@@ -210,11 +217,14 @@ func (sc *ScheduleConfig) GetSchedulePrompt(messageText, selectedTone string) (s
 	}
 
 	// テンプレート実行用データ
+	// userContext, userPreferences追加
 	data := SchedulePromptData{
-		MessageText:  messageText,
-		SelectedTone: selectedTone,
-		CurrentTime:  currentTime,
-		DayOfWeek:    dayOfWeek,
+		MessageText:     messageText,
+		SelectedTone:    selectedTone,
+		CurrentTime:     currentTime,
+		DayOfWeek:       dayOfWeek,
+		UserContext:     userContext,
+		UserPreferences: userPreferences,
 	}
 
 	// テンプレート実行
@@ -225,7 +235,7 @@ func (sc *ScheduleConfig) GetSchedulePrompt(messageText, selectedTone string) (s
 
 	// システムロールを追加して完全なプロンプトを作成
 	fullPrompt := sc.SystemRole + "\n\n" + result.String()
-	
+
 	return fullPrompt, nil
 }
 
@@ -240,14 +250,14 @@ func getScheduleConfigPath() string {
 	if customPath := os.Getenv("SCHEDULE_CONFIG_PATH"); customPath != "" {
 		return customPath
 	}
-	
+
 	// デフォルトパス: バイナリと同じディレクトリのconfig/schedule_prompts.yaml
 	execPath, err := os.Executable()
 	if err != nil {
 		// フォールバック: 現在のディレクトリ
 		return filepath.Join("config", "schedule_prompts.yaml")
 	}
-	
+
 	execDir := filepath.Dir(execPath)
 	return filepath.Join(execDir, "config", "schedule_prompts.yaml")
 }
@@ -272,7 +282,7 @@ func ReloadConfig() error {
 	scheduleConfig = nil
 	_, err1 := LoadToneConfig()
 	_, err2 := LoadScheduleConfig()
-	
+
 	if err1 != nil {
 		return err1
 	}

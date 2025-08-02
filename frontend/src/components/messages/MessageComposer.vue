@@ -30,6 +30,22 @@
         </div>
       </div>
 
+      <!-- 補足状況説明 -->
+      <div class="form-group">
+        <label for="userContext">補足状況説明（任意）</label>
+        <textarea
+          id="userContext"
+          v-model="form.userContext"
+          placeholder="例：相手は現在、重要なプロジェクトで多忙な状況です。"
+          maxlength="500"
+          class="form-textarea"
+        ></textarea>
+        <div class="textarea-footer">
+          <small class="char-count">{{ form.userContext.length }}/500文字</small>
+        </div>
+        </div>
+
+
       <!-- アクションボタン -->
       <div class="form-actions">
         <button
@@ -116,7 +132,8 @@ const messageStore = useMessageStore()
 
 const form = reactive({
   recipient: null as User | null,
-  originalText: ''
+  originalText: '',
+  userContext: ''
 })
 
 const hasError = computed(() => {
@@ -161,14 +178,16 @@ const handleCreateDraft = async () => {
     console.log('Updating existing draft:', messageStore.currentDraft.id)
     success = await messageStore.updateDraft(messageStore.currentDraft.id, {
       originalText: form.originalText.trim(),
-      recipientEmail: form.recipient?.email
+      recipientEmail: form.recipient?.email,
+      userContext: form.userContext.trim()
     })
     draftId = messageStore.currentDraft.id
   } else {
     console.log('Creating new draft')
     success = await messageStore.createDraft({
       originalText: form.originalText.trim(),
-      recipientEmail: form.recipient?.email
+      recipientEmail: form.recipient?.email,
+      userContext: form.userContext.trim()
     })
     // 作成成功後、currentDraftが設定されるまで少し待つ
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -196,11 +215,13 @@ const saveDraft = async () => {
 
   const success = await messageStore.createDraft({
     originalText: form.originalText.trim(),
-    recipientEmail: form.recipient?.email
+    recipientEmail: form.recipient?.email,
+    userContext: form.userContext.trim()
   })
 
   if (success) {
     form.originalText = ''
+    form.userContext = ''
     form.recipient = null
     messageStore.clearCurrentDraft()
     messageStore.clearError()
@@ -210,6 +231,7 @@ const saveDraft = async () => {
 // 新しいメッセージ作成
 const startNewMessage = () => {
   form.originalText = ''
+  form.userContext = ''
   form.recipient = null
   messageStore.clearCurrentDraft()
   messageStore.clearError()
@@ -225,6 +247,7 @@ const proceedToToneSelection = () => {
 // 下書き読み込み
 const loadDraft = (draft: any) => {
   form.originalText = draft.originalText
+  form.userContext = draft.userContext || ''
   // recipientEmailがある場合は簡易的にUser形式に変換
   if (draft.recipientEmail) {
     form.recipient = {

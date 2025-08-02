@@ -16,6 +16,7 @@ export interface NotificationSettings {
 export interface MessageSettings {
   defaultTone: 'gentle' | 'constructive' | 'casual'
   timeRestriction: 'none' | 'business_hours' | 'extended_hours'
+  userPreferences?: string
 }
 
 export interface UserSettings {
@@ -34,7 +35,7 @@ export interface ChangePasswordRequest {
 }
 
 class SettingsService {
-  private readonly baseUrl = '/api/v1/settings'
+  private readonly baseUrl = '/settings'
 
   /**
    * ユーザー設定を取得

@@ -27,9 +27,11 @@ type Schedule struct {
 
 // ScheduleSuggestionRequest AI時間提案リクエスト
 type ScheduleSuggestionRequest struct {
-	MessageID    string `json:"messageId" binding:"required"`
-	MessageText  string `json:"messageText" binding:"required"`
-	SelectedTone string `json:"selectedTone" binding:"required"`
+	MessageID       string `json:"messageId" binding:"required"`
+	MessageText     string `json:"messageText" binding:"required"`
+	SelectedTone    string `json:"selectedTone" binding:"required"`
+	UserContext     string `json:"userContext,omitempty"`
+	UserPreferences string `json:"userPreferences,omitempty"`
 }
 
 // SuggestionOption AI提案オプション

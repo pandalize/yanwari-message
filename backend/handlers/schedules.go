@@ -335,7 +335,7 @@ func (h *ScheduleHandler) SuggestSchedule(c *gin.Context) {
 	}
 
 	// AI分析を実行
-	suggestion, err := h.callAnthropicScheduleAPI(c.Request.Context(), req.MessageText, req.SelectedTone)
+	suggestion, err := h.callAnthropicScheduleAPI(c.Request.Context(), req.MessageText, req.SelectedTone, req.UserContext, req.UserPreferences)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "AI分析に失敗しました", "details": err.Error()})
 		return
@@ -348,21 +348,21 @@ func (h *ScheduleHandler) SuggestSchedule(c *gin.Context) {
 }
 
 // callAnthropicScheduleAPI Anthropic Claude APIを呼び出してスケジュール提案を取得
-func (h *ScheduleHandler) callAnthropicScheduleAPI(ctx context.Context, messageText, selectedTone string) (*models.ScheduleSuggestionResponse, error) {
+func (h *ScheduleHandler) callAnthropicScheduleAPI(ctx context.Context, messageText, selectedTone, userContext, userPreferences string) (*models.ScheduleSuggestionResponse, error) {
 	var prompt string
 	var modelConfig config.AIModelConfig
 
 	// 設定ファイルからプロンプトを生成
 	if h.scheduleConfig != nil {
 		var err error
-		prompt, err = h.scheduleConfig.GetSchedulePrompt(messageText, selectedTone)
+		prompt, err = h.scheduleConfig.GetSchedulePrompt(messageText, selectedTone, userContext, userPreferences)
 		if err != nil {
 			return nil, fmt.Errorf("プロンプト生成エラー: %w", err)
 		}
 		modelConfig = h.scheduleConfig.GetScheduleAIModelConfig()
 	} else {
 		// フォールバック: デフォルトプロンプト
-		prompt, modelConfig = h.getDefaultSchedulePrompt(messageText, selectedTone)
+		prompt, modelConfig = h.getDefaultSchedulePrompt(messageText, selectedTone, userContext, userPreferences)
 	}
 
 	// リクエストボディを作成
@@ -426,7 +426,7 @@ func (h *ScheduleHandler) callAnthropicScheduleAPI(ctx context.Context, messageT
 }
 
 // getDefaultSchedulePrompt フォールバック用デフォルトプロンプト
-func (h *ScheduleHandler) getDefaultSchedulePrompt(messageText, selectedTone string) (string, config.AIModelConfig) {
+func (h *ScheduleHandler) getDefaultSchedulePrompt(messageText, selectedTone, userContext, userPreferences string) (string, config.AIModelConfig) {
 	now := time.Now()
 	currentTime := now.Format("2006-01-02 15:04:05")
 	dayOfWeek := getDayOfWeekInJapanese(now.Weekday())
@@ -435,14 +435,15 @@ func (h *ScheduleHandler) getDefaultSchedulePrompt(messageText, selectedTone str
 以下のメッセージを分析し、最適な送信タイミングを提案してください。
 
 メッセージ内容: "%s"
+補足状況説明: "%s"
 選択されたトーン: %s
 現在時刻: %s
 曜日: %s
+ユーザー設定: "%s"
 
 必ず以下のJSON形式で回答してください：
 {
   "message_type": "謝罪|お礼|依頼|報告|相談|確認|連絡|その他",
-  
   "recommended_timing": "今すぐ|1時間以内|当日中|翌朝|翌日中|来週",
   "reasoning": "推奨理由を日本語で100文字以内で説明",
   "suggested_options": [
@@ -453,7 +454,7 @@ func (h *ScheduleHandler) getDefaultSchedulePrompt(messageText, selectedTone str
       "delay_minutes": 0
     }
   ]
-}`, messageText, selectedTone, currentTime, dayOfWeek)
+}`, messageText, userContext, selectedTone, currentTime, dayOfWeek, userPreferences)
 
 	defaultConfig := config.AIModelConfig{
 		Name:      "claude-3-5-sonnet-20241022",

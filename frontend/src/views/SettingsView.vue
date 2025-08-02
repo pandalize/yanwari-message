@@ -189,6 +189,18 @@
               </select>
               <small class="form-hint">メッセージ送信可能な時間帯</small>
             </div>
+
+            <div class="form-group">
+              <label for="userPreferences">ユーザー設定（送信時間帯の希望や優先事項）</label>
+              <textarea
+                id="userPreferences"
+                v-model="messageSettings.userPreferences"
+                class="form-textarea"
+                placeholder="例：深夜や早朝の連絡は避け、平日の日中に送信してほしい。"
+                @change="updateMessageSettings"
+              ></textarea>
+              <small class="form-hint">AIが送信時間を提案する際に考慮します</small>
+            </div>
           </div>
         </div>
 
@@ -279,7 +291,8 @@ const notificationSettings = reactive({
 
 const messageSettings = reactive({
   defaultTone: 'gentle',
-  timeRestriction: 'none'
+  timeRestriction: 'none',
+  userPreferences: ''
 })
 
 // 状態管理
@@ -518,13 +531,20 @@ onMounted(async () => {
 }
 
 .form-input,
-.form-select {
+.form-select,
+.form-textarea {
   width: 100%;
   padding: 0.75rem;
   border: 2px solid #e1e5e9;
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.3s ease;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
 }
 
 .form-input:focus,

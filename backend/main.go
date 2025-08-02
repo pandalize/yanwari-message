@@ -206,7 +206,7 @@ func main() {
 		// 設定関連エンドポイント
 		settings := v1.Group("/settings").Use(jwtMiddleware)
 		{
-			settings.GET("", settingsHandler.GetSettings)                           // 設定取得
+			settings.GET("/", settingsHandler.GetSettings)                          // 設定取得
 			settings.PUT("/profile", settingsHandler.UpdateProfile)                 // プロフィール更新
 			settings.PUT("/password", settingsHandler.ChangePassword)               // パスワード変更
 			settings.PUT("/notifications", settingsHandler.UpdateNotificationSettings) // 通知設定更新
