@@ -9,15 +9,15 @@ import 'screens/auth_wrapper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Firebase初期化
+  // Firebase初期化（実際のプロジェクト設定）
   await Firebase.initializeApp(
     options: const FirebaseOptions(
-      apiKey: "AIzaSyDMN2wUjE6NicanP0KP8ybnPgJZloMNOoI",
+      apiKey: "AIzaSyDMN2wUjE6NicanP0KP8ybnPgJZloMNOoI", // 実際のAPIキー
       authDomain: "yanwari-message.firebaseapp.com",
-      projectId: "yanwari-message",
+      projectId: "yanwari-message", // 実際のプロジェクトID
       storageBucket: "yanwari-message.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:android:abcdef123456",
+      messagingSenderId: "24525991821", // 実際のプロジェクト番号
+      appId: "1:24525991821:android:abc123def456789", // Android用AppID（仮）
       iosBundleId: "com.example.yanwariMessageMobile",
     ),
   );
