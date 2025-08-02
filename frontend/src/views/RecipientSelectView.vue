@@ -7,7 +7,31 @@
     <section class="friends-section">
       <h2 class="section-title">友達から選択</h2>
       
-      <div v-if="isLoadingFriends" class="loading-state">
+      <!-- 友達検索 -->
+      <div class="search-section" v-if="friends.length > 0">
+        <div class="search-input-container">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="友達の名前、メールアドレス、IDで検索..."
+            class="search-input"
+            @input="handleSearchInput"
+          />
+          <button 
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="clear-search-btn"
+            title="検索をクリア"
+          >
+            ✕
+          </button>
+        </div>
+        <div v-if="searchQuery && filteredFriends.length === 0" class="no-results">
+          検索結果が見つかりません
+        </div>
+      </div>
+      
+      <div v-if="friendsStore.loading" class="loading-state">
         <div class="spinner"></div>
         <p>友達一覧を読み込み中...</p>
       </div>
@@ -21,60 +45,29 @@
       
       <div v-else class="friends-grid">
         <div 
-          v-for="friend in friends" 
-          :key="friend.id" 
+          v-for="friendship in filteredFriends" 
+          :key="friendship.friend.id" 
           class="friend-card"
-          @click="selectRecipient(friend)"
-          :class="{ selected: selectedRecipient?.id === friend.id }"
+          @click="selectRecipient(friendship.friend)"
+          :class="{ selected: selectedRecipient?.id === friendship.friend.id }"
         >
           <div class="friend-avatar">
-            {{ friend.name.charAt(0).toUpperCase() }}
+            {{ friendship.friend.name.charAt(0).toUpperCase() }}
           </div>
           <div class="friend-info">
-            <h3 class="friend-name">{{ friend.name }}</h3>
-            <p class="friend-email">{{ friend.email }}</p>
+            <h3 class="friend-name" v-html="highlightMatch(friendship.friend.name)"></h3>
+            <p class="friend-email" v-html="highlightMatch(friendship.friend.email)"></p>
+            <p v-if="friendship.friend.id && searchQuery" class="friend-id">
+              ID: <span v-html="highlightMatch(friendship.friend.id)"></span>
+            </p>
           </div>
-          <div class="select-indicator" v-if="selectedRecipient?.id === friend.id">
+          <div class="select-indicator" v-if="selectedRecipient?.id === friendship.friend.id">
             ✓
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 手動入力セクション -->
-    <section class="manual-input-section">
-      <h2 class="section-title">メールアドレスで指定</h2>
-      
-      <div class="email-input-container">
-        <input
-          v-model="manualEmail"
-          type="email"
-          placeholder="example@email.com"
-          class="email-input"
-          @input="onManualEmailInput"
-        />
-        <button 
-          @click="selectManualRecipient"
-          :disabled="!isValidEmail(manualEmail)"
-          class="select-email-btn"
-        >
-          選択
-        </button>
-      </div>
-      
-      <div v-if="manualEmailSelected" class="selected-manual">
-        <div class="manual-card selected">
-          <div class="friend-avatar manual">
-            @
-          </div>
-          <div class="friend-info">
-            <h3 class="friend-name">{{ manualEmailSelected.name }}</h3>
-            <p class="friend-email">{{ manualEmailSelected.email }}</p>
-          </div>
-          <div class="select-indicator">✓</div>
-        </div>
-      </div>
-    </section>
 
     <!-- アクションボタン -->
     <div class="action-buttons">
@@ -98,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFriendsStore } from '@/stores/friends'
 
@@ -108,61 +101,67 @@ const friendsStore = useFriendsStore()
 // 状態管理
 const friends = ref<any[]>([])
 const selectedRecipient = ref<any>(null)
-const manualEmail = ref('')
-const manualEmailSelected = ref<any>(null)
-const isLoadingFriends = ref(false)
 const error = ref('')
+const searchQuery = ref('')
 
 // 計算プロパティ
 const hasSelectedRecipient = computed(() => {
-  return selectedRecipient.value || manualEmailSelected.value
+  return selectedRecipient.value !== null
+})
+
+// 検索でフィルタリングされた友達リスト
+const filteredFriends = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return friends.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  return friends.value.filter(friendship => {
+    const friend = friendship.friend
+    const name = (friend.name || '').toLowerCase()
+    const email = (friend.email || '').toLowerCase()
+    const id = (friend.id || '').toLowerCase()
+    
+    return name.includes(query) || 
+           email.includes(query) || 
+           id.includes(query)
+  })
 })
 
 // メソッド
-const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
 const selectRecipient = (friend: any) => {
   selectedRecipient.value = friend
-  manualEmailSelected.value = null
-  manualEmail.value = ''
   error.value = ''
 }
 
-const onManualEmailInput = () => {
-  if (manualEmailSelected.value) {
-    manualEmailSelected.value = null
-  }
-  selectedRecipient.value = null
+// 検索入力時の処理
+const handleSearchInput = () => {
+  // デバウンス処理は不要（ローカル検索のため）
 }
 
-const selectManualRecipient = () => {
-  if (!isValidEmail(manualEmail.value)) {
-    error.value = '有効なメールアドレスを入力してください'
-    return
+// 検索をクリア
+const clearSearch = () => {
+  searchQuery.value = ''
+}
+
+// 検索キーワードをハイライト
+const highlightMatch = (text: string): string => {
+  if (!searchQuery.value.trim() || !text) {
+    return text
   }
   
-  manualEmailSelected.value = {
-    id: `manual-${Date.now()}`,
-    name: manualEmail.value.split('@')[0],
-    email: manualEmail.value
-  }
-  selectedRecipient.value = null
-  error.value = ''
+  const query = searchQuery.value.trim()
+  const regex = new RegExp(`(${query})`, 'gi')
+  return text.replace(regex, '<mark>$1</mark>')
 }
 
 const loadFriends = async () => {
-  isLoadingFriends.value = true
   try {
     await friendsStore.loadFriends()
     friends.value = friendsStore.friends
   } catch (err) {
     console.error('友達一覧の取得に失敗:', err)
     error.value = '友達一覧の取得に失敗しました'
-  } finally {
-    isLoadingFriends.value = false
   }
 }
 
@@ -171,9 +170,9 @@ const goBack = () => {
 }
 
 const proceedToCompose = () => {
-  const recipient = selectedRecipient.value || manualEmailSelected.value
+  const recipient = selectedRecipient.value
   if (!recipient) {
-    error.value = '送信先を選択してください'
+    error.value = '友達を選択してください'
     return
   }
   
@@ -181,8 +180,8 @@ const proceedToCompose = () => {
   router.push({
     name: 'message-compose',
     query: {
-      recipientEmail: recipient.email,
-      recipientName: recipient.name
+      recipientEmail: recipient.friend ? recipient.friend.email : recipient.email,
+      recipientName: recipient.friend ? recipient.friend.name : recipient.name
     }
   })
 }
@@ -220,8 +219,65 @@ onMounted(async () => {
   font-family: var(--font-family-main);
 }
 
-.friends-section, .manual-input-section {
+.friends-section {
   margin-bottom: 40px;
+}
+
+/* 検索セクション */
+.search-section {
+  margin-bottom: 24px;
+}
+
+.search-input-container {
+  position: relative;
+  max-width: 500px;
+}
+
+.search-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 50px 0 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: var(--font-size-md);
+  font-family: var(--font-family-main);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--gray-color);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  background: var(--gray-color-dark);
+  color: var(--text-primary);
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* ローディング・空状態 */
@@ -275,7 +331,7 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 
-.friend-card, .manual-card {
+.friend-card {
   display: flex;
   align-items: center;
   padding: 16px;
@@ -293,7 +349,7 @@ onMounted(async () => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.friend-card.selected, .manual-card.selected {
+.friend-card.selected {
   border-color: var(--primary-color);
   background: var(--primary-color-light);
 }
@@ -313,9 +369,6 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.friend-avatar.manual {
-  background: var(--secondary-color);
-}
 
 .friend-info {
   flex: 1;
@@ -334,6 +387,22 @@ onMounted(async () => {
   margin: 0;
 }
 
+.friend-id {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin: 4px 0 0 0;
+  font-family: monospace;
+}
+
+/* 検索ハイライト */
+:deep(mark) {
+  background: var(--primary-color-light);
+  color: var(--primary-color-dark);
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
 .select-indicator {
   position: absolute;
   top: 8px;
@@ -350,56 +419,6 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-/* 手動入力 */
-.email-input-container {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.email-input {
-  flex: 1;
-  max-width: 400px;
-  height: 48px;
-  padding: 0 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: var(--font-size-md);
-  font-family: var(--font-family-main);
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.email-input:focus {
-  border-color: var(--primary-color);
-}
-
-.select-email-btn {
-  height: 48px;
-  padding: 0 24px;
-  background: var(--primary-color);
-  color: var(--text-primary);
-  border: none;
-  border-radius: 8px;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.select-email-btn:disabled {
-  background: var(--border-color);
-  cursor: not-allowed;
-}
-
-.select-email-btn:not(:disabled):hover {
-  background: var(--primary-color-dark);
-}
-
-.selected-manual {
-  margin-top: 16px;
-}
 
 /* アクションボタン */
 .action-buttons {
@@ -465,9 +484,8 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
   
-  .email-input-container {
-    flex-direction: column;
-    align-items: stretch;
+  .search-input-container {
+    max-width: none;
   }
   
   .action-buttons {

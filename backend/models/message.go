@@ -107,9 +107,7 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		}
 		message.RecipientID = recipient.ID
 		
-		// TODO: 友達関係のチェック（一時的に無効化）
-		// 友達システムが完全に実装されるまで、この制限を解除
-		/*
+		// 友達関係のチェック
 		friendshipService := NewFriendshipService(s.db)
 		areFriends, err := friendshipService.AreFriends(ctx, senderID, recipient.ID)
 		if err != nil {
@@ -118,7 +116,6 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 		if !areFriends {
 			return nil, errors.New("メッセージを送るには友達になる必要があります")
 		}
-		*/
 	}
 
 	result, err := s.collection.InsertOne(ctx, message)
