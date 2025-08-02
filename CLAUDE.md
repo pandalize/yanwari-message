@@ -1266,6 +1266,19 @@ Week 9: feature/message-system-integration  # 全機能統合
     - **修正ファイル**: frontend/src/components/schedule/ScheduleWizard.vue
     - **コミット**: 7296cb9
 
+- ✅ **message-evaluationブランチ統合とメッセージ評価システム修正**（2025年8月2日 11:25 → 11:35 完了）
+  - **第6の問題**: message-evaluationブランチ統合後、受信ページで「❌ 無効なメッセージIDです」エラー
+    - **原因**: message_ratings.goでJWT認証のuserID型不一致問題（他ハンドラーは修正済み）
+    - **影響API**: `/messages/inbox-with-ratings` - 受信トレイ取得で500エラー
+    - **根本原因**: ブランチ統合時に新しいハンドラーがuserID型変換未対応
+  - **修正内容**:
+    - message_ratings.go: 4つの関数で`userID.(primitive.ObjectID)`→`getUserID()`に統一
+    - 修正対象: RateMessage, GetRating, GetInboxWithRatings, MarkAsRead関数
+    - 32行削減・12行追加で認証処理を簡潔化
+  - **テスト結果**: 受信トレイAPI正常動作確認・200 OK・空データ正常取得
+  - **統合機能**: メッセージ評価システム・ツリーマップ表示・StarRating UI完全動作
+  - **コミット**: b2c453a
+
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
   - **統一パディングシステム**: パーセンテージベースの画面サイズ別パディング(5%→10%→15%→20%)
