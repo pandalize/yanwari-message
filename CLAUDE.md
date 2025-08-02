@@ -1376,23 +1376,28 @@ Week 9: feature/message-system-integration  # 全機能統合
   - **統合機能**: メッセージ評価システム・ツリーマップ表示・StarRating UI完全動作
   - **コミット**: b2c453a
 
-- ✅ **受信トレイ「Unknown User」表示問題の修正**（2025年8月2日 16:53 完了）
+- ✅ **受信トレイ「Unknown User」表示問題の修正完了**（2025年8月2日 17:01 完了）
   - **第7の問題**: 受信トレイで送信者名が「Unknown User」として表示される
-    - **原因**: Firebase認証移行後、ユーザーの`Name`フィールドが空文字列になっている
-    - **影響範囲**: GetReceivedMessagesWithSender APIで送信者情報の取得・表示処理
+    - **根本原因**: `/api/v1/messages/inbox-with-ratings`エンドポイントで`models.GetUserInfo()`関数がスタブ実装で常に"Unknown User"を返していた
+    - **調査過程**: 
+      - 最初に`GetReceivedMessagesWithSender`を修正→効果なし
+      - フロントエンドが実際には`inbox-with-ratings`エンドポイントを使用していることを発見
+      - `GetUserInfo`関数がスタブ実装だったことを特定
   - **修正内容**:
-    - **フォールバック処理強化**: Name が空の場合にメールアドレスから表示名を自動生成
+    - **新ヘルパー関数実装**: `GetUserInfoByService()`を作成し実際のUserServiceと連携
     - **表示名生成ロジック**: メールアドレスの@マークより前の部分を表示名として使用
-    - **デフォルト値改善**: ユーザーが見つからない場合は「Unknown User」を明示的に設定
-  - **修正ファイル**: backend/models/message.go - GetReceivedMessagesWithSender関数
-  - **技術的改善**:
-    - MessageWithSender構造体での適切なフォールバック処理
-    - ユーザー情報取得失敗時の安全な処理
-    - デバッグログ機能の追加（本番環境では無効化済み）
+    - **message_ratings.go修正**: `GetInboxWithRatings`関数で新しいヘルパー関数を使用
+    - **フォールバック処理**: ユーザー取得失敗時の安全な処理
+  - **修正ファイル**: 
+    - `backend/models/user_helpers.go`: 新ヘルパー関数追加
+    - `backend/handlers/message_ratings.go`: 実際のユーザーサービス連携に変更
+    - `backend/models/message.go`: デバッグログ追加（デバッグ用）
+  - **✅ 動作確認**: ユーザーテストにより受信トレイで送信者名が正常表示されることを確認済み
   - **期待される結果**: 
     - 名前が設定されているユーザー → 設定された名前を表示
     - 名前が空のユーザー → メールアドレスのローカル部分を表示（例: test-user@example.com → "test-user"）
     - ユーザーが見つからない場合 → "Unknown User"を表示
+  - **コミット**: 00a8d3f
 
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
