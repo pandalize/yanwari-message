@@ -87,6 +87,11 @@ func NewMessageService(db *mongo.Database, userService *UserService) *MessageSer
 	}
 }
 
+// GetUserService userServiceのgetterメソッド（Firebase認証で必要）
+func (s *MessageService) GetUserService() *UserService {
+	return s.userService
+}
+
 // CreateDraft 下書きメッセージを作成
 func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.ObjectID, req *CreateMessageRequest) (*Message, error) {
 	now := time.Now()

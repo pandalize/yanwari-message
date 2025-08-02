@@ -5,25 +5,36 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"yanwari-message-backend/middleware"
+	"yanwari-message-backend/models"
 )
 
-// getUserID JWTトークンからユーザーIDを取得する共通ヘルパー関数
-// JWTミドルウェアで設定されたuserID（string）をprimitive.ObjectIDに変換
-func getUserID(c *gin.Context) (primitive.ObjectID, error) {
-	userID, exists := c.Get("userID")
+// getUserByFirebaseUID Firebase UIDからMongoDBユーザーを取得するヘルパー関数
+// UserServiceが必要なため、各ハンドラーで使用
+func getUserByFirebaseUID(c *gin.Context, userService *models.UserService) (*models.User, error) {
+	firebaseUID, exists := middleware.GetFirebaseUID(c)
 	if !exists {
-		return primitive.NilObjectID, fmt.Errorf("認証が必要です")
+		return nil, fmt.Errorf("Firebase認証が必要です")
 	}
 
-	userIDStr, ok := userID.(string)
-	if !ok {
-		return primitive.NilObjectID, fmt.Errorf("ユーザーIDの取得に失敗しました")
-	}
-
-	objID, err := primitive.ObjectIDFromHex(userIDStr)
+	user, err := userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		return primitive.NilObjectID, fmt.Errorf("ユーザーIDの変換に失敗しました")
+		return nil, fmt.Errorf("Firebase UID %s に対応するユーザーが見つかりません: %v", firebaseUID, err)
 	}
 
-	return objID, nil
+	return user, nil
+}
+
+// DEPRECATED: この関数は使用しないでください
+func getUserID(c *gin.Context) (primitive.ObjectID, error) {
+	return primitive.NilObjectID, fmt.Errorf("この関数は廃止されました。getUserByFirebaseUID() を使用してください")
+}
+
+// getFirebaseUID Firebase UIDを取得する共通ヘルパー関数
+func getFirebaseUID(c *gin.Context) (string, error) {
+	firebaseUID, exists := middleware.GetFirebaseUID(c)
+	if !exists {
+		return "", fmt.Errorf("Firebase認証が必要です")
+	}
+	return firebaseUID, nil
 }

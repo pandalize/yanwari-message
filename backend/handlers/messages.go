@@ -26,11 +26,12 @@ func NewMessageHandler(messageService *models.MessageService) *MessageHandler {
 // CreateDraft 下書きメッセージを作成
 // POST /api/v1/messages/draft
 func (h *MessageHandler) CreateDraft(c *gin.Context) {
-	senderID, err := getUserID(c)
+	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	senderID := sender.ID
 
 	var req models.CreateMessageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -57,11 +58,12 @@ func (h *MessageHandler) CreateDraft(c *gin.Context) {
 // UpdateMessage メッセージを更新
 // PUT /api/v1/messages/:id
 func (h *MessageHandler) UpdateMessage(c *gin.Context) {
-	senderID, err := getUserID(c)
+	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	senderID := sender.ID
 
 	messageIDStr := c.Param("id")
 	messageID, err := primitive.ObjectIDFromHex(messageIDStr)
@@ -95,11 +97,12 @@ func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 // GetMessage メッセージを取得
 // GET /api/v1/messages/:id
 func (h *MessageHandler) GetMessage(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	messageIDStr := c.Param("id")
 	messageID, err := primitive.ObjectIDFromHex(messageIDStr)
@@ -126,11 +129,12 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 // GetDrafts 下書き一覧を取得
 // GET /api/v1/messages/drafts
 func (h *MessageHandler) GetDrafts(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	// ページネーション対応
 	page := 1
@@ -180,11 +184,12 @@ func (h *MessageHandler) GetDrafts(c *gin.Context) {
 // DeleteMessage メッセージを削除
 // DELETE /api/v1/messages/:id
 func (h *MessageHandler) DeleteMessage(c *gin.Context) {
-	senderID, err := getUserID(c)
+	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	senderID := sender.ID
 
 	messageIDStr := c.Param("id")
 	messageID, err := primitive.ObjectIDFromHex(messageIDStr)
@@ -211,11 +216,12 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 // GetReceivedMessages 受信メッセージ一覧を取得
 // GET /api/v1/messages/received
 func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
-	recipientID, err := getUserID(c)
+	recipient, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	recipientID := recipient.ID
 
 	// ページネーション
 	page := 1
@@ -254,11 +260,12 @@ func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
 // MarkMessageAsRead メッセージを既読にする
 // POST /api/v1/messages/:id/read
 func (h *MessageHandler) MarkMessageAsRead(c *gin.Context) {
-	recipientID, err := getUserID(c)
+	recipient, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	recipientID := recipient.ID
 
 	messageIDStr := c.Param("id")
 	messageID, err := primitive.ObjectIDFromHex(messageIDStr)
@@ -310,11 +317,12 @@ func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
 // GET /api/v1/messages/sent
 func (h *MessageHandler) GetSentMessages(c *gin.Context) {
-	senderID, err := getUserID(c)
+	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	senderID := sender.ID
 
 	// ページネーション
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -347,9 +355,9 @@ func (h *MessageHandler) GetSentMessages(c *gin.Context) {
 }
 
 // RegisterRoutes メッセージ関連のルートを登録
-func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
+func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
 	messages := router.Group("/messages")
-	messages.Use(authMiddleware)
+	messages.Use(firebaseMiddleware)
 	{
 		// 送信者向け
 		messages.POST("/draft", h.CreateDraft)

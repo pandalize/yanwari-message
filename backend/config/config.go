@@ -92,17 +92,30 @@ func LoadToneConfig() (*ToneConfig, error) {
 
 	// 設定ファイルのパスを取得
 	configPath := getConfigPath()
+	fmt.Printf("[ToneConfig] 設定ファイルパスを解決: %s\n", configPath)
+	
+	// ファイル存在確認
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("設定ファイルが見つかりません: %s", configPath)
+	}
 	
 	// ファイル読み込み
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("設定ファイルの読み込みに失敗: %w", err)
+		return nil, fmt.Errorf("設定ファイルの読み込みに失敗 (%s): %w", configPath, err)
 	}
+
+	fmt.Printf("[ToneConfig] 設定ファイル読み込み成功: %d bytes\n", len(data))
 
 	// YAML パース
 	var config ToneConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("YAML設定の解析に失敗: %w", err)
+		return nil, fmt.Errorf("YAML設定の解析に失敗 (%s): %w", configPath, err)
+	}
+
+	fmt.Printf("[ToneConfig] YAML解析成功: %d個のトーン設定を読み込み\n", len(config.Tones))
+	for toneName := range config.Tones {
+		fmt.Printf("[ToneConfig] - トーン: %s\n", toneName)
 	}
 
 	toneConfig = &config
@@ -161,15 +174,30 @@ func getConfigPath() string {
 		return customPath
 	}
 	
-	// デフォルトパス: バイナリと同じディレクトリのconfig/tone_prompts.yaml
-	execPath, err := os.Executable()
-	if err != nil {
-		// フォールバック: 現在のディレクトリ
-		return filepath.Join("config", "tone_prompts.yaml")
+	// 開発環境での絶対パス（最優先）
+	devPath := "/Users/fujinoyuki/Documents/yanwari-message/backend/config/tone_prompts.yaml"
+	if _, err := os.Stat(devPath); err == nil {
+		return devPath
 	}
 	
-	execDir := filepath.Dir(execPath)
-	return filepath.Join(execDir, "config", "tone_prompts.yaml")
+	// 現在の作業ディレクトリからの相対パス
+	workingDirPath := filepath.Join("config", "tone_prompts.yaml")
+	if _, err := os.Stat(workingDirPath); err == nil {
+		return workingDirPath
+	}
+	
+	// 実行バイナリと同じディレクトリのconfig/tone_prompts.yaml
+	execPath, err := os.Executable()
+	if err == nil {
+		execDir := filepath.Dir(execPath)
+		execDirPath := filepath.Join(execDir, "config", "tone_prompts.yaml")
+		if _, err := os.Stat(execDirPath); err == nil {
+			return execDirPath
+		}
+	}
+	
+	// フォールバック: 開発環境パス（エラーでも返す）
+	return devPath
 }
 
 // LoadScheduleConfig スケジュール設定ファイルを読み込み
@@ -180,18 +208,28 @@ func LoadScheduleConfig() (*ScheduleConfig, error) {
 
 	// 設定ファイルのパスを取得
 	configPath := getScheduleConfigPath()
+	fmt.Printf("[ScheduleConfig] 設定ファイルパスを解決: %s\n", configPath)
+	
+	// ファイル存在確認
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("スケジュール設定ファイルが見つかりません: %s", configPath)
+	}
 	
 	// ファイル読み込み
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("スケジュール設定ファイルの読み込みに失敗: %w", err)
+		return nil, fmt.Errorf("スケジュール設定ファイルの読み込みに失敗 (%s): %w", configPath, err)
 	}
+
+	fmt.Printf("[ScheduleConfig] 設定ファイル読み込み成功: %d bytes\n", len(data))
 
 	// YAML パース
 	var config ScheduleConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("スケジュール設定の解析に失敗: %w", err)
+		return nil, fmt.Errorf("スケジュール設定の解析に失敗 (%s): %w", configPath, err)
 	}
+
+	fmt.Printf("[ScheduleConfig] YAML解析成功: スケジュール設定読み込み完了\n")
 
 	scheduleConfig = &config
 	return scheduleConfig, nil
@@ -241,15 +279,30 @@ func getScheduleConfigPath() string {
 		return customPath
 	}
 	
-	// デフォルトパス: バイナリと同じディレクトリのconfig/schedule_prompts.yaml
-	execPath, err := os.Executable()
-	if err != nil {
-		// フォールバック: 現在のディレクトリ
-		return filepath.Join("config", "schedule_prompts.yaml")
+	// 開発環境での絶対パス（最優先）
+	devPath := "/Users/fujinoyuki/Documents/yanwari-message/backend/config/schedule_prompts.yaml"
+	if _, err := os.Stat(devPath); err == nil {
+		return devPath
 	}
 	
-	execDir := filepath.Dir(execPath)
-	return filepath.Join(execDir, "config", "schedule_prompts.yaml")
+	// 現在の作業ディレクトリからの相対パス
+	workingDirPath := filepath.Join("config", "schedule_prompts.yaml")
+	if _, err := os.Stat(workingDirPath); err == nil {
+		return workingDirPath
+	}
+	
+	// 実行バイナリと同じディレクトリのconfig/schedule_prompts.yaml
+	execPath, err := os.Executable()
+	if err == nil {
+		execDir := filepath.Dir(execPath)
+		execDirPath := filepath.Join(execDir, "config", "schedule_prompts.yaml")
+		if _, err := os.Stat(execDirPath); err == nil {
+			return execDirPath
+		}
+	}
+	
+	// フォールバック: 開発環境パス（エラーでも返す）
+	return devPath
 }
 
 // getDayOfWeekInJapanese 英語の曜日を日本語に変換

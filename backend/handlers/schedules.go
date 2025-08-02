@@ -69,11 +69,12 @@ func NewScheduleHandler(scheduleService *models.ScheduleService, messageService 
 // CreateSchedule スケジュール作成
 // POST /api/v1/schedules
 func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	var req models.CreateScheduleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -162,11 +163,12 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 // GetSchedules スケジュール一覧取得
 // GET /api/v1/schedules
 func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	// クエリパラメータを取得
 	status := c.Query("status")
@@ -206,11 +208,12 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 // UpdateSchedule スケジュール更新
 // PUT /api/v1/schedules/:id
 func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	scheduleIDStr := c.Param("id")
 	scheduleID, err := primitive.ObjectIDFromHex(scheduleIDStr)
@@ -276,11 +279,12 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 // SyncScheduleStatus スケジュールとメッセージのステータス同期
 // POST /api/v1/schedules/sync-status
 func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	// 送信済みメッセージを取得
 	sentMessages, _, err := h.messageService.GetSentMessages(c.Request.Context(), currentUserID, 1, 100)
@@ -309,11 +313,12 @@ func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
 // DeleteSchedule スケジュール削除
 // DELETE /api/v1/schedules/:id
 func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	scheduleIDStr := c.Param("id")
 	scheduleID, err := primitive.ObjectIDFromHex(scheduleIDStr)
@@ -337,11 +342,12 @@ func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
 // SuggestSchedule AI時間提案
 // POST /api/v1/schedule/suggest
 func (h *ScheduleHandler) SuggestSchedule(c *gin.Context) {
-	currentUserID, err := getUserID(c)
+	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	currentUserID := currentUser.ID
 
 	var req models.ScheduleSuggestionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -524,15 +530,15 @@ func (h *ScheduleHandler) ExecuteSchedule(scheduleID string) error {
 }
 
 // RegisterRoutes スケジュール関連のルートを登録
-func (h *ScheduleHandler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
+func (h *ScheduleHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
 	schedule := router.Group("/schedule")
-	schedule.Use(authMiddleware)
+	schedule.Use(firebaseMiddleware)
 	{
 		schedule.POST("/suggest", h.SuggestSchedule) // AI時間提案
 	}
 
 	schedules := router.Group("/schedules")
-	schedules.Use(authMiddleware)
+	schedules.Use(firebaseMiddleware)
 	{
 		schedules.POST("/", h.CreateSchedule)
 		schedules.GET("/", h.GetSchedules)

@@ -32,8 +32,8 @@ type SendFriendRequestInput struct {
 
 // SendFriendRequest は友達申請を送信するハンドラー
 func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -41,13 +41,20 @@ func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	fromUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	fromUserID := user.ID
 	
 	// リクエストボディを解析
 	var input SendFriendRequestInput
@@ -117,8 +124,8 @@ func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
 
 // GetReceivedFriendRequests は受信した友達申請一覧を取得するハンドラー
 func (h *FriendRequestHandler) GetReceivedFriendRequests(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -126,13 +133,20 @@ func (h *FriendRequestHandler) GetReceivedFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	toUserID := user.ID
 	
 	// 受信した申請を取得
 	ctx := c.Request.Context()
@@ -152,8 +166,8 @@ func (h *FriendRequestHandler) GetReceivedFriendRequests(c *gin.Context) {
 
 // GetSentFriendRequests は送信した友達申請一覧を取得するハンドラー
 func (h *FriendRequestHandler) GetSentFriendRequests(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -161,13 +175,20 @@ func (h *FriendRequestHandler) GetSentFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	fromUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	fromUserID := user.ID
 	
 	// 送信した申請を取得
 	ctx := c.Request.Context()
@@ -187,8 +208,8 @@ func (h *FriendRequestHandler) GetSentFriendRequests(c *gin.Context) {
 
 // AcceptFriendRequest は友達申請を承諾するハンドラー
 func (h *FriendRequestHandler) AcceptFriendRequest(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -196,13 +217,20 @@ func (h *FriendRequestHandler) AcceptFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	toUserID := user.ID
 	
 	// 申請IDを取得
 	requestIDStr := c.Param("id")
@@ -231,8 +259,8 @@ func (h *FriendRequestHandler) AcceptFriendRequest(c *gin.Context) {
 
 // RejectFriendRequest は友達申請を拒否するハンドラー
 func (h *FriendRequestHandler) RejectFriendRequest(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -240,13 +268,20 @@ func (h *FriendRequestHandler) RejectFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	toUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	toUserID := user.ID
 	
 	// 申請IDを取得
 	requestIDStr := c.Param("id")
@@ -275,8 +310,8 @@ func (h *FriendRequestHandler) RejectFriendRequest(c *gin.Context) {
 
 // CancelFriendRequest は友達申請をキャンセルするハンドラー
 func (h *FriendRequestHandler) CancelFriendRequest(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -284,13 +319,20 @@ func (h *FriendRequestHandler) CancelFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	fromUserID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	fromUserID := user.ID
 	
 	// 申請IDを取得
 	requestIDStr := c.Param("id")
@@ -319,8 +361,8 @@ func (h *FriendRequestHandler) CancelFriendRequest(c *gin.Context) {
 
 // GetFriends は友達一覧を取得するハンドラー
 func (h *FriendRequestHandler) GetFriends(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -328,13 +370,20 @@ func (h *FriendRequestHandler) GetFriends(c *gin.Context) {
 		return
 	}
 	
-	userObjID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	userObjID := user.ID
 	
 	// 友達一覧を取得
 	ctx := c.Request.Context()
@@ -359,8 +408,8 @@ type RemoveFriendInput struct {
 
 // RemoveFriend は友達を削除するハンドラー
 func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
-	// JWTからユーザーIDを取得
-	userID, exists := c.Get("userID")
+	// Firebase認証からユーザー情報を取得
+	firebaseUser, exists := c.Get("firebase_uid")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "認証が必要です",
@@ -368,13 +417,20 @@ func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 		return
 	}
 	
-	userObjID, err := primitive.ObjectIDFromHex(userID.(string))
+	// Firebase UIDからMongoDBユーザーを取得
+	firebaseUID := firebaseUser.(string)
+	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "無効なユーザーIDです",
+		// デバッグログを追加
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "ユーザーが見つかりません",
+			"detail": err.Error(),
+			"firebase_uid": firebaseUID,
 		})
 		return
 	}
+	
+	userObjID := user.ID
 	
 	// リクエストボディを解析
 	var input RemoveFriendInput
@@ -410,10 +466,10 @@ func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 }
 
 // RegisterRoutes は友達申請関連のルートを登録
-func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
+func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
 	// 友達申請関連エンドポイント
 	friendRequests := v1.Group("/friend-requests")
-	friendRequests.Use(jwtMiddleware)
+	friendRequests.Use(firebaseMiddleware)
 	{
 		friendRequests.POST("/send", h.SendFriendRequest)          // 友達申請送信
 		friendRequests.GET("/received", h.GetReceivedFriendRequests) // 受信した申請一覧
@@ -425,7 +481,7 @@ func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware
 
 	// 友達関連エンドポイント
 	friends := v1.Group("/friends")
-	friends.Use(jwtMiddleware)
+	friends.Use(firebaseMiddleware)
 	{
 		friends.GET("/", h.GetFriends)       // 友達一覧取得
 		friends.DELETE("/remove", h.RemoveFriend) // 友達削除

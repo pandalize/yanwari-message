@@ -26,11 +26,12 @@ func NewSettingsHandler(userService *models.UserService, userSettingsService *mo
 
 // GetSettings ユーザー設定を取得
 func (h *SettingsHandler) GetSettings(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	// ユーザー設定を取得
 	settings, err := h.userSettingsService.GetOrCreateSettings(c.Request.Context(), userID)
@@ -40,7 +41,7 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 	}
 
 	// ユーザー情報も取得
-	user, err := h.userService.GetUserByID(c.Request.Context(), userID.Hex())
+	userInfo, err := h.userService.GetUserByID(c.Request.Context(), userID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザー情報の取得に失敗しました"})
 		return
@@ -48,9 +49,9 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 
 	response := gin.H{
 		"user": gin.H{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
+			"id":    userInfo.ID,
+			"name":  userInfo.Name,
+			"email": userInfo.Email,
 		},
 		"notifications": gin.H{
 			"emailNotifications":   settings.EmailNotifications,
@@ -71,11 +72,12 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 
 // UpdateProfile プロフィールを更新
 func (h *SettingsHandler) UpdateProfile(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -109,11 +111,12 @@ func (h *SettingsHandler) UpdateProfile(c *gin.Context) {
 
 // ChangePassword パスワードを変更
 func (h *SettingsHandler) ChangePassword(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	var req models.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -122,14 +125,14 @@ func (h *SettingsHandler) ChangePassword(c *gin.Context) {
 	}
 
 	// 現在のユーザー情報を取得
-	user, err := h.userService.GetUserByID(c.Request.Context(), userID.Hex())
+	currentUserInfo, err := h.userService.GetUserByID(c.Request.Context(), userID.Hex())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザー情報の取得に失敗しました"})
 		return
 	}
 
 	// 現在のパスワードを確認
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword))
+	err = bcrypt.CompareHashAndPassword([]byte(currentUserInfo.PasswordHash), []byte(req.CurrentPassword))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "現在のパスワードが正しくありません"})
 		return
@@ -157,11 +160,12 @@ func (h *SettingsHandler) ChangePassword(c *gin.Context) {
 
 // UpdateNotificationSettings 通知設定を更新
 func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	var req models.NotificationSettings
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -184,11 +188,12 @@ func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
 
 // UpdateMessageSettings メッセージ設定を更新
 func (h *SettingsHandler) UpdateMessageSettings(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	var req models.MessageSettings
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -233,11 +238,12 @@ func (h *SettingsHandler) UpdateMessageSettings(c *gin.Context) {
 
 // DeleteAccount アカウントを削除
 func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
-	userID, err := getUserID(c)
+	user, err := getUserByFirebaseUID(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
+	userID := user.ID
 
 	// TODO: アカウント削除の実装
 	// - ユーザーデータの削除
@@ -253,9 +259,9 @@ func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
 }
 
 // RegisterRoutes 設定関連のルートを登録
-func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
+func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
 	settings := v1.Group("/settings")
-	settings.Use(jwtMiddleware)
+	settings.Use(firebaseMiddleware)
 	{
 		settings.GET("", h.GetSettings)                           // 設定取得
 		settings.PUT("/profile", h.UpdateProfile)                 // プロフィール更新
