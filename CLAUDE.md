@@ -1197,8 +1197,8 @@ Week 9: feature/message-system-integration  # 全機能統合
 ### 現在のセッション状況
 - **開発者**: fujinoyuki
 - **現在のブランチ**: feature/friend-request-system
-- **最終更新**: 2025年8月1日 22:56
-- **セッション状態**: 友達申請システム完全実装・統合テスト完了
+- **最終更新**: 2025年8月2日 11:22
+- **セッション状態**: userID型不一致問題解決・重複スケジュール作成修正完了
 
 ### 完了したタスク（本セッション）
 - ✅ **友達申請システムの完全実装・統合テスト完了**（fujinoyuki, 2025年8月1日 22:56）
@@ -1237,6 +1237,34 @@ Week 9: feature/message-system-integration  # 全機能統合
         - 不要な`isLoadingFriends`変数削除・処理簡略化
       - **修正ファイル**: frontend/src/views/RecipientSelectView.vue（v-for構造・loading表示）
       - **✅ 解決確認**: ユーザーテストにより問題完全解決を確認済み
+      
+- ✅ **JWT認証のuserID型不一致問題の修正**（2025年8月2日 10:30 → 11:15 完了）
+  - **第4の問題**: 「トーン変換の開始に失敗しました: ユーザーIDの取得に失敗しました」エラー
+    - **原因**: JWTミドルウェアはuserIDをstring型で保存、ハンドラーはprimitive.ObjectID型でキャスト
+    - **影響範囲**: 全ハンドラーで認証後のuserID取得に失敗（500エラー）
+    - **解決策**: 共通ヘルパー関数`getUserID()`を作成してstring→ObjectID変換を統一
+  - **修正内容**:
+    - handlers/common.go: getUserIDヘルパー関数作成（string→primitive.ObjectID変換）
+    - handlers/messages.go: 全7関数でprimitive.ObjectIDキャスト→getUserID()に置換
+    - handlers/transform.go: TransformTones関数修正
+    - handlers/schedules.go: 全5関数修正（CreateSchedule, GetSchedules, UpdateSchedule等）
+    - handlers/settings.go: 全6関数修正・重複getUserIDFromContext削除
+    - handlers/users.go: GetCurrentUser関数修正
+  - **テスト結果**: 全API正常動作確認・トーン変換成功・スケジュールAPI 200 OK
+
+- ✅ **重複スケジュール作成問題の修正**（2025年8月2日 11:15 → 11:22 完了）
+  - **第5の問題**: 「１つのメッセージを送信予定したら送信予定に複数入った」
+    - **原因**: 
+      - selectScheduleOption('immediate')でsendImmediately()が即実行
+      - その後「この時刻に送信する」ボタンでscheduleMessage()も実行
+      - ダブルクリック防止機構の不足
+    - **修正内容**:
+      - selectScheduleOptionからsendImmediately()呼び出し削除（選択のみ）
+      - isSchedulingフラグによる重複実行防止強化
+      - handleScheduleClickにデバウンス処理追加（300ms）
+      - scheduleMessage統合: 即座送信・スケジュール送信を一本化
+    - **修正ファイル**: frontend/src/components/schedule/ScheduleWizard.vue
+    - **コミット**: 7296cb9
 
 - ✅ **UI画面比率改善・レスポンシブデザイン対応完了**（fujinoyuki, 2025年7月26日 20:00）
   - **main.css 根本修正**: #app の最大幅制限・古いグリッドレイアウト削除で全画面対応
