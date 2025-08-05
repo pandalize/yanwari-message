@@ -79,14 +79,20 @@ class RatingService {
   }
 
   // 評価付き受信トレイを取得
-  async getInboxWithRatings(page: number = 1, limit: number = 20): Promise<InboxWithRatingsResponse> {
+  async getInboxWithRatings(page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString()
     })
     
     const response = await apiService.get(`/messages/inbox-with-ratings?${params}`)
-    return response.data.data
+    
+    // バックエンドのレスポンス形式に合わせて変換
+    return {
+      status: 'success',
+      message: response.data.message || '受信トレイを取得しました',
+      data: response.data.data || response.data
+    }
   }
 
   // 評価を更新（既存評価がある場合）
@@ -100,6 +106,26 @@ class RatingService {
     const response = await apiService.post(`/messages/${messageId}/read`)
     // バックエンドは200ステータスで{"message": "..."}を返すため、エラーチェックは不要
     // レスポンスが正常でない場合は apiService 側で例外が投げられる
+  }
+  
+  // 評価を作成（InboxListコンポーネント用）
+  async createRating(params: { messageId: string; rating: number }): Promise<ApiResponse<MessageRating>> {
+    const result = await this.rateMessage(params.messageId, params.rating)
+    return {
+      status: 'success',
+      message: '評価を作成しました',
+      data: result
+    }
+  }
+  
+  // メッセージを既読にする（InboxListコンポーネント用）
+  async markMessageAsRead(messageId: string): Promise<ApiResponse<void>> {
+    await this.markAsRead(messageId)
+    return {
+      status: 'success',
+      message: 'メッセージを既読にしました',
+      data: undefined as any
+    }
   }
 }
 

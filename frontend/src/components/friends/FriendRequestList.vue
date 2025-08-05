@@ -1,7 +1,7 @@
 <template>
   <div class="friend-request-list">
-    <div class="header">
-      <h3 class="title">{{ type === 'received' ? '受信した申請' : '送信した申請' }}</h3>
+    <div class="section-header">
+      <h2 class="section-title">{{ type === 'received' ? '受信した申請' : '送信した申請' }}</h2>
       <span class="count">{{ requests.length }}件</span>
     </div>
     
@@ -158,29 +158,27 @@ async function cancelRequest(requestId: string) {
 
 <style scoped>
 .friend-request-list {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* 親要素のpaddingを活用するため、コンポーネント自体にはpaddingを設定しない */
 }
 
-.header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.title {
-  font-size: 1.2rem;
+.section-title {
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #2d3748;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .count {
-  font-size: 0.9rem;
-  color: #718096;
-  background: #f7fafc;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--background-tertiary);
   padding: 4px 12px;
   border-radius: 16px;
 }

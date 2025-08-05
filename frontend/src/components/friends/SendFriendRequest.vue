@@ -1,6 +1,6 @@
 <template>
   <div class="send-friend-request">
-    <h3 class="title">友達申請を送信</h3>
+    <h2 class="section-title">友達申請を送信</h2>
     
     <form @submit.prevent="sendRequest" class="form">
       <div class="form-group">
@@ -79,17 +79,14 @@ async function sendRequest() {
 
 <style scoped>
 .send-friend-request {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* 親要素のpaddingを活用するため、コンポーネント自体にはpaddingを設定しない */
 }
 
-.title {
-  font-size: 1.2rem;
+.section-title {
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #2d3748;
-  margin-bottom: 20px;
+  color: var(--text-primary);
+  margin: 0 0 24px 0;
 }
 
 .form {

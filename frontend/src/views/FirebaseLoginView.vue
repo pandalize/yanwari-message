@@ -1,8 +1,8 @@
 <template>
-  <div class="firebase-login-view">
-    <div class="container">
+  <PageContainer>
+    <div class="firebase-login-view">
       <div class="header">
-        <h1>🔥 やんわり伝言 - Firebase認証</h1>
+        <PageTitle>🔥 やんわり伝言 - Firebase認証</PageTitle>
         <p>Firebase認証でログインしてください</p>
       </div>
       
@@ -15,21 +15,21 @@
         </router-link>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 import FirebaseLoginForm from '@/components/auth/FirebaseLoginForm.vue'
 </script>
 
 <style scoped>
 .firebase-login-view {
-  min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
 }
 
 .container {

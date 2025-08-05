@@ -9,6 +9,15 @@
   font-weight: normal;
 }
 
+/* セクションタイトルの統一スタイル（PageContainerとPageTitleはコンポーネント化） */
+.section-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  font-family: var(--font-family-main);
+}
+
 /* リンクのデフォルトスタイル */
 a {
   text-decoration: none;

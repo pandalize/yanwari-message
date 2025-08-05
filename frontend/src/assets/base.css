@@ -24,12 +24,14 @@
   /* Text Colors */
   --text-primary: #333333;
   --text-secondary: #666666;
+  --text-tertiary: #999999;
   --text-muted: #999999;
   --text-inverse: #FFFFFF;
   
   /* Background Colors */
   --background-primary: var(--neutral-color);
   --background-secondary: var(--primary-color-light);
+  --background-tertiary: var(--gray-color-light);
   --background-muted: var(--gray-color-light);
   
   /* Border Colors */

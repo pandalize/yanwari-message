@@ -1,12 +1,8 @@
 <template>
-  <div class="settings-view">
+  <PageContainer>
+    <PageTitle>設定</PageTitle>
+    
     <div class="settings-container">
-      <!-- ページヘッダー -->
-      <div class="settings-header">
-        <h1 class="page-title">⚙️ 設定</h1>
-        <p class="page-subtitle">アカウントとアプリケーションの設定を管理</p>
-      </div>
-
       <!-- 設定メインコンテンツ -->
       <div class="settings-main">
         <!-- 設定サイドバー -->
@@ -18,7 +14,6 @@
               @click="activeSection = section.id"
               :class="['nav-item', { active: activeSection === section.id }]"
             >
-              <span class="nav-icon">{{ section.icon }}</span>
               <span class="nav-label">{{ section.label }}</span>
             </button>
           </nav>
@@ -28,21 +23,28 @@
         <div class="settings-content">
           <!-- アカウント設定 -->
           <div v-if="activeSection === 'account'" class="section-content">
-            <h2 class="section-title">👤 アカウント設定</h2>
-            
-            <!-- プロフィール設定 -->
-            <div class="settings-card">
-              <h3 class="card-title">プロフィール情報</h3>
+            <div class="form-container">
               <div class="form-group">
-                <label for="displayName">表示名</label>
+                <label for="displayName">ユーザー名</label>
                 <input 
                   id="displayName"
                   v-model="profileForm.displayName"
                   type="text" 
                   class="form-input"
-                  placeholder="表示名を入力"
+                  placeholder="今のユーザーネーム"
                 />
-                <small class="form-hint">他のユーザーに表示される名前です</small>
+              </div>
+
+              <div class="form-group">
+                <label for="userId">ID</label>
+                <input 
+                  id="userId"
+                  :value="profileForm.email"
+                  type="text" 
+                  class="form-input"
+                  placeholder="今のID"
+                  readonly
+                />
               </div>
 
               <div class="form-group">
@@ -52,92 +54,49 @@
                   v-model="profileForm.email"
                   type="email" 
                   class="form-input"
-                  placeholder="メールアドレスを入力"
+                  placeholder="今のメールアドレス"
                 />
-                <small class="form-hint">メールアドレスを変更できます（他のユーザーが使用していないものを入力してください）</small>
               </div>
 
-              <div class="form-actions">
-                <button 
-                  @click="updateProfile"
-                  :disabled="isUpdatingProfile"
-                  class="btn btn-primary"
-                >
-                  {{ isUpdatingProfile ? '更新中...' : '💾 プロフィール更新' }}
-                </button>
-              </div>
-            </div>
-
-            <!-- パスワード変更 -->
-            <div class="settings-card">
-              <h3 class="card-title">パスワード変更</h3>
               <div class="form-group">
-                <label for="currentPassword">現在のパスワード</label>
+                <label for="currentPassword">パスワード</label>
+                <label class="password-label">今のパスワード</label>
                 <input 
                   id="currentPassword"
                   v-model="passwordForm.currentPassword"
                   type="password" 
                   class="form-input"
-                  placeholder="現在のパスワード"
+                  placeholder=""
                 />
-              </div>
 
-              <div class="form-group">
-                <label for="newPassword">新しいパスワード</label>
+                <label class="password-label">変更後のパスワード</label>
                 <input 
                   id="newPassword"
                   v-model="passwordForm.newPassword"
                   type="password" 
                   class="form-input"
-                  placeholder="新しいパスワード（8文字以上）"
+                  placeholder=""
                 />
-              </div>
 
-              <div class="form-group">
-                <label for="confirmPassword">新しいパスワード（確認）</label>
+                <label class="password-label">再入力</label>
                 <input 
                   id="confirmPassword"
                   v-model="passwordForm.confirmPassword"
                   type="password" 
                   class="form-input"
-                  placeholder="新しいパスワードを再入力"
+                  placeholder=""
                 />
               </div>
-
-              <div class="form-actions">
+              
+              <!-- 更新ボタン -->
+              <div class="update-button-container">
                 <button 
-                  @click="changePassword"
-                  :disabled="!canChangePassword || isChangingPassword"
-                  class="btn btn-primary"
+                  @click="updateAllSettings"
+                  :disabled="isUpdating"
+                  class="update-button"
                 >
-                  {{ isChangingPassword ? '変更中...' : '🔐 パスワード変更' }}
+                  {{ isUpdating ? '更新中...' : '更新する' }}
                 </button>
-              </div>
-            </div>
-
-            <!-- アカウント管理 -->
-            <div class="settings-card danger-card">
-              <h3 class="card-title">アカウント管理</h3>
-              <div class="account-actions">
-                <div class="account-action">
-                  <div class="action-info">
-                    <h4>ログアウト</h4>
-                    <p>現在のセッションからログアウトします</p>
-                  </div>
-                  <button @click="logout" class="btn btn-secondary">
-                    🚪 ログアウト
-                  </button>
-                </div>
-
-                <div class="account-action danger">
-                  <div class="action-info">
-                    <h4>アカウント削除</h4>
-                    <p>アカウントと全てのデータが完全に削除されます</p>
-                  </div>
-                  <button @click="showDeleteConfirmation" class="btn btn-danger">
-                    🗑️ アカウント削除
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -310,6 +269,25 @@
               </div>
             </div>
           </div>
+
+          <!-- ログアウト -->
+          <div v-if="activeSection === 'logout'" class="section-content">
+            <h2 class="section-title">🚪 ログアウト</h2>
+            <div class="settings-card">
+              <div class="logout-container">
+                <p class="logout-description">
+                  現在のアカウントからログアウトします。<br>
+                  再度ログインするにはメールアドレスとパスワードが必要です。
+                </p>
+                <button 
+                  @click="logout"
+                  class="btn btn-logout"
+                >
+                  ログアウトする
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -334,7 +312,7 @@
     <div v-if="message" class="message" :class="messageType">
       {{ message }}
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -346,6 +324,8 @@ import settingsService, {
   type NotificationSettings, 
   type MessageSettings 
 } from '@/services/settingsService'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -383,16 +363,18 @@ const languageSettings = reactive({
 // サイドバーナビゲーション
 const activeSection = ref('account')
 const settingsSections = [
-  { id: 'account', label: 'アカウント', icon: '👤' },
-  { id: 'notifications', label: '通知', icon: '🔔' },
-  { id: 'language', label: '言語・地域', icon: '🌍' },
-  { id: 'messages', label: 'メッセージ', icon: '💬' }
+  { id: 'account', label: 'アカウント' },
+  { id: 'notifications', label: '通知' },
+  { id: 'language', label: '言語・地域' },
+  { id: 'messages', label: 'メッセージ' },
+  { id: 'logout', label: 'ログアウト' }
 ]
 
 // 状態管理
 const isLoading = ref(true)
 const isUpdatingProfile = ref(false)
 const isChangingPassword = ref(false)
+const isUpdating = ref(false)
 const showDeleteModal = ref(false)
 const message = ref('')
 const messageType = ref('')
@@ -518,7 +500,7 @@ const updateLanguageSettings = async () => {
 
 const logout = async () => {
   await authStore.logout()
-  router.push('/login')
+  router.push('/firebase-login')
 }
 
 const showDeleteConfirmation = () => {
@@ -541,6 +523,48 @@ const deleteAccount = async () => {
     showMessage(errorMessage, 'error')
   } finally {
     hideDeleteConfirmation()
+  }
+}
+
+const updateAllSettings = async () => {
+  isUpdating.value = true
+  try {
+    // プロフィールの更新
+    await settingsService.updateProfile({
+      name: profileForm.displayName,
+      email: profileForm.email
+    })
+    
+    // パスワードの変更（入力されている場合のみ）
+    if (canChangePassword.value) {
+      await settingsService.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      })
+      
+      // パスワードフィールドをクリア
+      passwordForm.currentPassword = ''
+      passwordForm.newPassword = ''
+      passwordForm.confirmPassword = ''
+    }
+    
+    showMessage('設定を更新しました', 'success')
+    
+    // 認証ストアのユーザー情報も更新
+    if (authStore.user) {
+      const updatedUser = {
+        ...authStore.user,
+        name: profileForm.displayName,
+        email: profileForm.email
+      }
+      localStorage.setItem('user', JSON.stringify(updatedUser))
+    }
+  } catch (error: any) {
+    console.error('設定更新エラー:', error)
+    const errorMessage = error.response?.data?.error || '設定の更新に失敗しました'
+    showMessage(errorMessage, 'error')
+  } finally {
+    isUpdating.value = false
   }
 }
 
@@ -581,34 +605,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.settings-view {
-  min-height: 100vh;
-  background: var(--background-muted);
-  padding: 2rem 0;
-}
-
 .settings-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.settings-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.page-title {
-  font-size: 2.5rem;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
-}
-
-.page-subtitle {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  margin: 0;
 }
 
 .settings-main {
@@ -618,10 +617,10 @@ onMounted(async () => {
 }
 
 .settings-sidebar {
-  width: 250px;
-  background: var(--background-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  width: 200px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -632,19 +631,17 @@ onMounted(async () => {
 }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  display: block;
   padding: 1rem 1.5rem;
   border: none;
-  background: var(--background-primary);
-  color: var(--text-primary);
+  background: white;
+  color: #333;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 400;
   text-align: left;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e9ecef;
 }
 
 .nav-item:last-child {
@@ -652,23 +649,16 @@ onMounted(async () => {
 }
 
 .nav-item:hover {
-  background: var(--background-muted);
-  color: var(--secondary-color);
+  background: #f8f9fa;
 }
 
 .nav-item.active {
-  background: var(--secondary-color);
-  color: var(--text-inverse);
-}
-
-.nav-icon {
-  font-size: 1.25rem;
-  width: 24px;
-  text-align: center;
+  background: #e9ecef;
+  font-weight: 500;
 }
 
 .nav-label {
-  flex: 1;
+  display: block;
 }
 
 .settings-content {
@@ -677,83 +667,61 @@ onMounted(async () => {
 }
 
 .section-content {
-  background: var(--background-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  overflow: hidden;
-}
-
-.settings-sections {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.settings-section {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-.section-title {
-  background: var(--secondary-color);
-  color: var(--text-inverse);
-  margin: 0;
-  padding: 1.5rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.section-content .section-title {
-  margin: 0;
-  padding: 1.5rem;
-  background: var(--secondary-color);
-  color: var(--text-inverse);
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.settings-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 2rem;
 }
 
-.danger-card {
-  background-color: var(--background-secondary);
-  border-top: 3px solid var(--error-color);
+.form-container {
+  max-width: 600px;
 }
 
+/* 削除された古いスタイル */
+
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-md);
+  font-weight: 500;
+  color: #333;
   font-size: 1rem;
-  transition: border-color 0.3s ease;
 }
 
-.form-input:focus,
-.form-select:focus {
+.password-label {
+  display: block;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 400;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: white;
+}
+
+.form-input:focus {
   outline: none;
-  border-color: var(--border-color-focus);
-  box-shadow: var(--shadow-sm);
+  border-color: #007bff;
 }
 
 .form-input[readonly] {
-  background-color: var(--background-muted);
-  color: var(--text-muted);
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+.form-input::placeholder {
+  color: #adb5bd;
 }
 
 .form-hint {
@@ -977,49 +945,198 @@ input:checked + .toggle-slider:before {
   border: 1px solid var(--error-color);
 }
 
-/* 大画面対応 */
-@media (min-width: 1400px) {
-  .settings-container {
-    max-width: 1200px;
-    padding: 0 2rem;
+/* メッセージ表示 */
+.message {
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  z-index: 1001;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* モーダル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.modal-content p {
+  margin: 0 0 2rem 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* 更新ボタンのスタイル（下書きボタンと同じ） */
+.update-button {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+  justify-content: center;
+  width: 700px;
+}
+
+.update-button {
+  width: 200px;
+  height: 60px;
+  border-radius: 30px;
+  border: none;
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.update-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* ボタン */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #545b62;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* ログアウトセクション専用スタイル */
+.logout-container {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.logout-description {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+.btn-logout {
+  background: #dc3545;
+  color: white;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1024px) {
+  .settings-main {
+    gap: 1.5rem;
   }
   
-  .settings-section {
-    margin-bottom: 3rem;
+  .settings-sidebar {
+    width: 180px;
   }
   
-  .settings-card {
-    padding: 2.5rem;
-  }
-  
-  .section-title {
-    font-size: 1.75rem;
-    margin-bottom: 2rem;
-  }
-  
-  .form-group {
-    margin-bottom: 2rem;
-  }
-  
-  .form-input,
-  .form-select {
-    padding: 1rem 1.25rem;
-    font-size: 1.1rem;
-  }
-  
-  .btn {
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
+  .nav-item {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 768px) {
   .settings-view {
-    padding: 1rem 0;
-  }
-  
-  .settings-container {
-    padding: 0 0.5rem;
+    padding: 1rem;
   }
   
   .settings-main {
@@ -1039,10 +1156,10 @@ input:checked + .toggle-slider:before {
   
   .nav-item {
     flex-shrink: 0;
-    min-width: 120px;
-    justify-content: center;
+    min-width: 100px;
+    text-align: center;
     border-bottom: none;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid #e9ecef;
   }
   
   .nav-item:last-child {
@@ -1053,34 +1170,12 @@ input:checked + .toggle-slider:before {
     order: 1;
   }
   
-  .page-title {
-    font-size: 2rem;
-  }
-  
-  .settings-card {
+  .section-content {
     padding: 1.5rem;
   }
   
-  .section-title {
-    padding: 1rem;
-    font-size: 1.1rem;
-  }
-  
-  .setting-item,
-  .account-action {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  
-  .modal-content {
-    margin: 1rem;
-  }
-  
-  .message {
-    top: 1rem;
-    right: 1rem;
-    left: 1rem;
+  .form-container {
+    max-width: none;
   }
 }
 </style>

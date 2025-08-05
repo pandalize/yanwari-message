@@ -1,17 +1,16 @@
 <template>
-  <div class="inbox-view">
+  <PageContainer>
+    <PageTitle>受信トレイ</PageTitle>
     <InboxList />
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 import InboxList from '../components/inbox/InboxList.vue'
 </script>
 
 <style scoped>
-.inbox-view {
-  min-height: 100vh;
-  background: #f8f9fa;
-  padding-top: 2rem;
-}
+/* PageContainerで統一されたスタイルを使用 */
 </style>

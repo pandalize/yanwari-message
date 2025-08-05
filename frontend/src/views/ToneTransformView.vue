@@ -1,5 +1,6 @@
 <template>
-  <div class="tone-transform-view">
+  <PageContainer>
+    <div class="tone-transform-view">
     <!-- エラー状態 -->
     <div v-if="error" class="error-container">
       <h2>エラーが発生しました</h2>
@@ -12,7 +13,7 @@
     <!-- メイン画面 -->
     <div v-else class="main-content">
       <!-- ページタイトル -->
-      <h1 class="page-title">トーン変換</h1>
+      <PageTitle>トーン変換</PageTitle>
 
       <!-- 元のメッセージ表示 -->
       <section class="original-section">
@@ -82,7 +83,8 @@
         </button>
       </div>
     </div>
-  </div>
+    </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -90,6 +92,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessageStore } from '@/stores/messages'
 import { useTransformStore } from '@/stores/transform'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -251,11 +255,7 @@ onMounted(() => {
 
 <style scoped>
 .tone-transform-view {
-  padding: var(--spacing-2xl) var(--spacing-3xl);
-  max-width: 1400px;
-  margin: 0 auto;
-  background: var(--background-primary);
-  font-family: var(--font-family-main);
+  /* page-containerで統一されたスタイルを使用 */
 }
 
 /* ローディング・エラー */
@@ -332,13 +332,6 @@ onMounted(() => {
   align-items: center;
 }
 
-.page-title {
-  font-size: var(--font-size-base);
-  color: var(--text-primary);
-  font-family: var(--font-family-main);
-  font-weight: var(--font-weight-regular);
-  margin: 0 0 var(--spacing-lg) 0;
-}
 
 /* セクション */
 .original-section,
@@ -487,9 +480,6 @@ onMounted(() => {
 
 /* 大画面対応 */
 @media (min-width: 1400px) {
-  .tone-transform-view {
-    padding: var(--spacing-3xl) var(--spacing-3xl);
-  }
   
   .section-title {
     font-size: var(--font-size-xl);
@@ -527,9 +517,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .tone-transform-view {
-    padding: var(--spacing-lg);
-  }
   
   .message-container,
   .tone-options {

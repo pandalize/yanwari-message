@@ -1,10 +1,8 @@
 <template>
-  <div class="friends-view">
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">友達管理</h1>
-        <p class="page-subtitle">友達申請の送信・管理、友達とのメッセージ交換ができます</p>
-      </div>
+  <PageContainer>
+    <div class="friends-view">
+      <!-- ページタイトル -->
+      <PageTitle>友達管理</PageTitle>
       
       <div class="tabs">
         <button
@@ -41,12 +39,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useFriendsStore } from '@/stores/friends'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 import SendFriendRequest from '@/components/friends/SendFriendRequest.vue'
 import FriendRequestList from '@/components/friends/FriendRequestList.vue'
 import FriendsList from '@/components/friends/FriendsList.vue'
@@ -93,107 +93,66 @@ function onRequestSent() {
 
 <style scoped>
 .friends-view {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  padding: var(--spacing-2xl) 5%;
-}
-
-@media (min-width: 768px) {
-  .friends-view {
-    padding: var(--spacing-2xl) 10%;
-  }
-}
-
-@media (min-width: 1200px) {
-  .friends-view {
-    padding: var(--spacing-2xl) 15%;
-  }
-}
-
-@media (min-width: 1600px) {
-  .friends-view {
-    padding: var(--spacing-2xl) 20%;
-  }
-}
-
-.container {
-  width: 100%;
-  margin: 0 auto;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.page-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
-}
-
-.page-subtitle {
-  font-size: 1.1rem;
-  color: #64748b;
-  max-width: 600px;
-  margin: 0 auto;
+  /* page-containerで統一されたスタイルを使用 */
 }
 
 .tabs {
   display: flex;
-  background: white;
-  border-radius: 12px;
-  padding: 8px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  gap: 24px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
 }
 
 .tab-button {
-  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  padding: 12px 8px;
+  padding: 12px 0;
   border: none;
   background: none;
-  border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-md);
   font-weight: 500;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s;
   white-space: nowrap;
-  min-width: 80px;
 }
 
 .tab-button:hover {
-  background: #f8fafc;
-  color: #475569;
+  color: var(--text-primary);
 }
 
 .tab-button.active {
-  background: linear-gradient(135deg, #81c784, #66bb6a);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(129, 199, 132, 0.3);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-color);
 }
 
 .tab-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: inherit;
+  background: var(--background-tertiary);
+  color: var(--text-secondary);
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 0.8rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   min-width: 20px;
   text-align: center;
 }
 
 .tab-button.active .tab-count {
-  background: rgba(255, 255, 255, 0.3);
+  background: var(--primary-color);
+  color: white;
 }
 
 .tab-content {
@@ -215,80 +174,15 @@ function onRequestSent() {
   }
 }
 
-/* 大画面対応 */
-@media (min-width: 1400px) {
-  .container {
-    padding: 0 40px;
-  }
-  
-  .page-title {
-    font-size: 3rem;
-  }
-  
-  .page-subtitle {
-    font-size: 1.25rem;
-  }
-  
-  .tabs {
-    padding: 12px;
-    margin-bottom: 32px;
-  }
-  
-  .tab-button {
-    padding: 16px 24px;
-    font-size: 1rem;
-    min-width: 140px;
-  }
-}
-
+/* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .page-title {
-    font-size: 2rem;
-  }
-  
-  .page-subtitle {
-    font-size: 1rem;
-  }
-  
   .tabs {
-    gap: 4px;
-    padding: 4px;
+    gap: 16px;
   }
   
   .tab-button {
-    padding: 8px 4px;
-    font-size: 0.75rem;
-    min-width: 60px;
-    gap: 4px;
-  }
-  
-  .tab-count {
-    padding: 1px 4px;
-    font-size: 0.7rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-title {
-    font-size: 1.5rem;
-  }
-  
-  .page-subtitle {
-    font-size: 0.9rem;
-    padding: 0 10px;
-  }
-  
-  .tab-button {
-    padding: 6px 2px;
-    font-size: 0.7rem;
-    min-width: 50px;
-    gap: 2px;
-  }
-  
-  .tab-count {
-    padding: 1px 3px;
-    font-size: 0.65rem;
-    min-width: 14px;
+    font-size: var(--font-size-sm);
+    padding: 10px 0;
   }
 }
 </style>
