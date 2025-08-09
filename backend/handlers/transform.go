@@ -361,7 +361,7 @@ func (h *TransformHandler) getDefaultPrompt(originalText, tone string) (string, 
 	}
 
 	defaultConfig := config.AIModelConfig{
-		Name:      "claude-3-5-sonnet-20241022",
+		Name:      "claude-3-haiku-20240307",
 		MaxTokens: 1000,
 	}
 

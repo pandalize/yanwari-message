@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
-// Import services and screens
+// Import services, screens, and design system
 import 'services/auth_service.dart';
 import 'screens/auth_wrapper.dart';
+import 'utils/design_system.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,16 +43,7 @@ class YanwariApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'やんわり伝言',
-        theme: ThemeData(
-          // やんわりとした優しい色合いのテーマ
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF81C784), // 優しい緑色
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          // 日本語フォント対応
-          fontFamily: 'NotoSansJP',
-        ),
+        theme: YanwariDesignSystem.lightTheme,
         home: const AuthWrapper(),
         debugShowCheckedModeBanner: false,
       ),

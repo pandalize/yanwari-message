@@ -3,8 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
-import 'login_screen.dart';
-import 'home_screen.dart';
+import '../utils/design_system.dart';
+import 'login_screen_redesigned.dart';
+import '../widgets/main_navigation_wrapper.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -16,29 +17,43 @@ class AuthWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         // ローディング中
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
+          return Scaffold(
+            backgroundColor: YanwariDesignSystem.backgroundMuted,
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(
-                    color: Color(0xFF81C784),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'やんわり伝言',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF81C784),
+                  // ロゴアイコン
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: YanwariDesignSystem.secondaryColor,
+                      borderRadius: BorderRadius.circular(YanwariDesignSystem.radiusFull),
+                      boxShadow: [YanwariDesignSystem.shadowMd],
+                    ),
+                    child: const Icon(
+                      Icons.message_rounded,
+                      size: 40,
+                      color: YanwariDesignSystem.textInverse,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: YanwariDesignSystem.spacingLg),
+                  const CircularProgressIndicator(
+                    color: YanwariDesignSystem.secondaryColor,
+                  ),
+                  const SizedBox(height: YanwariDesignSystem.spacingMd),
+                  Text(
+                    'やんわり伝言',
+                    style: YanwariDesignSystem.headingLg.copyWith(
+                      color: YanwariDesignSystem.secondaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: YanwariDesignSystem.spacingSm),
                   Text(
                     '初期化中...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
+                    style: YanwariDesignSystem.bodyMd.copyWith(
+                      color: YanwariDesignSystem.textSecondary,
                     ),
                   ),
                 ],
@@ -49,11 +64,11 @@ class AuthWrapper extends StatelessWidget {
 
         // ユーザーがログインしているか確認
         if (snapshot.hasData && snapshot.data != null) {
-          // ログイン済み → ホーム画面
-          return const HomeScreen();
+          // ログイン済み → ナビゲーション付きホーム画面
+          return const MainNavigationWrapper();
         } else {
           // 未ログイン → ログイン画面
-          return const LoginScreen();
+          return const LoginScreenRedesigned();
         }
       },
     );

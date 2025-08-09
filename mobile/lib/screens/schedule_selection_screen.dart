@@ -9,6 +9,8 @@ class ScheduleSelectionScreen extends StatefulWidget {
   final String originalText;
   final String selectedTone;
   final String selectedToneText;
+  final String recipientName;
+  final String recipientEmail;
 
   const ScheduleSelectionScreen({
     super.key,
@@ -16,6 +18,8 @@ class ScheduleSelectionScreen extends StatefulWidget {
     required this.originalText,
     required this.selectedTone,
     required this.selectedToneText,
+    required this.recipientName,
+    required this.recipientEmail,
   });
 
   @override
@@ -28,32 +32,139 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
   bool _isLoadingSuggestions = true;
   List<Map<String, dynamic>> _suggestions = [];
   DateTime? _customDateTime;
+  
+  // メッセージ詳細情報
+  String _actualRecipientName = '';
+  String _actualRecipientEmail = '';
+  String _actualOriginalText = '';
+  String _actualSelectedToneText = '';
 
   @override
   void initState() {
     super.initState();
     _apiService = ApiService(context.read<AuthService>());
+    
+    // 渡された値を初期値として設定
+    _actualRecipientName = widget.recipientName;
+    _actualRecipientEmail = widget.recipientEmail;
+    _actualOriginalText = widget.originalText;
+    _actualSelectedToneText = widget.selectedToneText;
+    
+    _loadMessageDetails();
     _loadScheduleSuggestions();
+  }
+
+  Future<void> _loadMessageDetails() async {
+    try {
+      print('📝 メッセージ詳細取得開始: ${widget.messageId}');
+      
+      final response = await _apiService.getMessage(widget.messageId);
+      
+      if (response['data'] != null) {
+        final messageData = response['data'];
+        print('📝 取得したメッセージ詳細: $messageData');
+        
+        // 受信者情報を更新
+        if (messageData['recipientEmail'] != null && messageData['recipientEmail'].isNotEmpty) {
+          _actualRecipientEmail = messageData['recipientEmail'];
+          print('📝 受信者メール更新: $_actualRecipientEmail');
+        }
+        
+        // メッセージ内容を更新
+        if (messageData['originalText'] != null && messageData['originalText'].isNotEmpty) {
+          _actualOriginalText = messageData['originalText'];
+          print('📝 元メッセージ更新: $_actualOriginalText');
+        }
+        
+        // トーン変換結果を更新
+        if (messageData['variations'] != null) {
+          final variations = messageData['variations'];
+          final selectedTone = widget.selectedTone;
+          if (variations[selectedTone] != null) {
+            _actualSelectedToneText = variations[selectedTone];
+            print('📝 選択トーン($selectedTone)テキスト更新: $_actualSelectedToneText');
+          }
+        }
+        
+        // 受信者名を取得（メールアドレスから推定）
+        if (_actualRecipientName.isEmpty && _actualRecipientEmail.isNotEmpty) {
+          // メールアドレスのローカル部分から名前を推定
+          final localPart = _actualRecipientEmail.split('@')[0];
+          _actualRecipientName = localPart.replaceAll('.', ' ').replaceAll('_', ' ');
+          print('📝 受信者名推定: $_actualRecipientName');
+        }
+        
+        if (mounted) {
+          setState(() {}); // UIを更新
+        }
+      }
+    } catch (e) {
+      print('📝 メッセージ詳細取得エラー: $e');
+      // エラーが発生しても、渡された値を使用して続行
+    }
   }
 
   Future<void> _loadScheduleSuggestions() async {
     try {
+      print('🤖 AI提案要求開始');
+      print('  - messageId: ${widget.messageId}');
+      print('  - selectedTone: ${widget.selectedTone}');
+      print('  - messageText: ${_actualSelectedToneText.isNotEmpty ? _actualSelectedToneText : widget.selectedToneText}');
+      
       final response = await _apiService.suggestSchedule(
         messageId: widget.messageId,
-        messageText: widget.selectedToneText,
+        messageText: _actualSelectedToneText.isNotEmpty ? _actualSelectedToneText : widget.selectedToneText,
         selectedTone: widget.selectedTone,
       );
 
-      setState(() {
-        _suggestions = List<Map<String, dynamic>>.from(
-          response['data']['suggestions'] ?? []
-        );
-        _isLoadingSuggestions = false;
-      });
+      print('🤖 AI提案レスポンス受信: $response');
+      
+      if (response != null && response['data'] != null) {
+        final aiData = response['data'];
+        final suggestedOptions = aiData['suggested_options'];
+        print('🤖 AI分析結果: ${aiData['message_type']}, 緊急度: ${aiData['urgency_level']}');
+        print('🤖 推奨タイミング: ${aiData['recommended_timing']}');
+        print('🤖 理由: ${aiData['reasoning']}');
+        print('🤖 提案オプション: $suggestedOptions');
+        
+        if (mounted) {
+          setState(() {
+            // suggested_optionsを_suggestions形式に変換
+            _suggestions = [];
+            if (suggestedOptions != null && suggestedOptions is List) {
+              for (var option in suggestedOptions) {
+                final delayMinutes = option['delay_minutes'] ?? 0;
+                final now = DateTime.now();
+                final scheduledAt = now.add(Duration(minutes: delayMinutes));
+                
+                _suggestions.add({
+                  'display_name': option['option'] ?? 'AI提案',
+                  'reasoning': option['reason'] ?? aiData['reasoning'],
+                  'scheduled_at': scheduledAt.toIso8601String(),
+                  'priority': option['priority'] ?? '推奨',
+                });
+              }
+            }
+            _isLoadingSuggestions = false;
+          });
+          print('🤖 変換後提案数: ${_suggestions.length}');
+        }
+      } else {
+        print('🤖 レスポンスが空またはnull');
+        if (mounted) {
+          setState(() {
+            _suggestions = [];
+            _isLoadingSuggestions = false;
+          });
+        }
+      }
     } catch (e) {
-      setState(() {
-        _isLoadingSuggestions = false;
-      });
+      print('🤖 AI提案エラー: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSuggestions = false;
+        });
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -66,9 +177,11 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
   }
 
   Future<void> _scheduleMessage(DateTime scheduledAt) async {
-    setState(() {
-      _isLoading = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       await _apiService.createSchedule(
@@ -98,9 +211,11 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
         );
       }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -115,12 +230,56 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
       initialDate: now.add(const Duration(hours: 1)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            // DatePickerのチェックマークを非表示にする
+            checkboxTheme: CheckboxThemeData(
+              checkColor: MaterialStateProperty.all(Colors.transparent),
+            ),
+            // 選択された日付の背景色は保持
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: const Color(0xFF81C784), // 選択時の背景色
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (selectedDate != null) {
+      // 今日の日付が選択された場合、現在時刻+1時間を初期値にする
+      // 未来の日付が選択された場合は、9:00を初期値にする
+      TimeOfDay initialTime;
+      if (selectedDate.year == now.year && 
+          selectedDate.month == now.month && 
+          selectedDate.day == now.day) {
+        // 今日の場合：現在時刻+1時間
+        final nextHour = now.add(const Duration(hours: 1));
+        initialTime = TimeOfDay.fromDateTime(nextHour);
+      } else {
+        // 未来の日付の場合：9:00
+        initialTime = const TimeOfDay(hour: 9, minute: 0);
+      }
+      
       final selectedTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+        initialTime: initialTime,
+        builder: (BuildContext context, Widget? child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              // TimePickerのチェックマークを非表示にする
+              checkboxTheme: CheckboxThemeData(
+                checkColor: MaterialStateProperty.all(Colors.transparent),
+              ),
+              // 選択された時刻の背景色は保持
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: const Color(0xFF81C784), // 選択時の背景色
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
 
       if (selectedTime != null) {
@@ -131,6 +290,22 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
           selectedTime.hour,
           selectedTime.minute,
         );
+
+        // 過去の時間チェック
+        final now = DateTime.now();
+        if (customDateTime.isBefore(now)) {
+          // 過去の時間が選択された場合、エラーメッセージを表示
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('過去の時間は選択できません。現在時刻以降の時間を選択してください。'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+          return; // 過去の時間は設定しない
+        }
 
         setState(() {
           _customDateTime = customDateTime;
@@ -193,6 +368,74 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 送信先情報
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.person,
+                            size: 20,
+                            color: Color(0xFF2E7D32),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '送信先',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2E7D32),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _actualRecipientName.isNotEmpty ? _actualRecipientName : widget.recipientName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _actualRecipientEmail.isNotEmpty ? _actualRecipientEmail : widget.recipientEmail,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
                 // 選択されたメッセージプレビュー
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -237,7 +480,7 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: Text(
-                          widget.selectedToneText,
+                          _actualSelectedToneText.isNotEmpty ? _actualSelectedToneText : widget.selectedToneText,
                           style: const TextStyle(
                             fontSize: 16,
                             height: 1.5,
@@ -274,26 +517,53 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // AI提案
+                      // AI提案セクション
+                      const Text(
+                        '🤖 AI による送信タイミング提案',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      
                       if (_isLoadingSuggestions)
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.blue.shade50,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(color: Colors.blue.shade200),
                           ),
                           child: const Row(
                             children: [
                               CircularProgressIndicator(
-                                color: Color(0xFF81C784),
+                                color: Colors.blue,
+                                strokeWidth: 3,
                               ),
                               SizedBox(width: 16),
-                              Text(
-                                'AI が最適なタイミングを分析中...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Color(0xFF2E7D32),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'AI が最適なタイミングを分析中...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      'メッセージの内容と相手の状況を考慮しています',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -301,12 +571,21 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
                         )
                       else
                         ..._suggestions.map((suggestion) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.blue.shade50, Colors.white],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade200, width: 2),
+                            ),
                             child: _buildScheduleOption(
-                              icon: Icons.smart_toy,
-                              title: suggestion['display_name'] ?? 'AI提案',
-                              subtitle: suggestion['reasoning'] ?? '',
+                              icon: Icons.auto_awesome,
+                              title: '${suggestion['display_name'] ?? 'AI提案'} ✨',
+                              subtitle: '💡 ${suggestion['reasoning'] ?? 'AIが分析した最適なタイミング'}',
                               onTap: _isLoading
                                   ? null
                                   : () => _scheduleMessage(
@@ -318,6 +597,39 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
                           );
                         }).toList(),
 
+                      // AI提案がない場合の表示
+                      if (!_isLoadingSuggestions && _suggestions.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.orange,
+                                size: 24,
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'AI提案を取得できませんでした。下記からお選びください。',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      const SizedBox(height: 12),
+                      
                       // カスタム時間設定
                       _buildScheduleOption(
                         icon: Icons.schedule,

@@ -117,7 +117,7 @@
                 :class="[
                   'star', 
                   { 
-                    filled: selectedMessage.rating && star <= selectedMessage.rating,
+                    filled: selectedMessage.rating && selectedMessage.rating >= star,
                     hover: !isRatingMessage 
                   }
                 ]"
