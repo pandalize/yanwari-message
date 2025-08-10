@@ -288,6 +288,37 @@ class ApiService {
     }
   }
 
+  // スケジュール提案取得（AI時間提案）
+  Future<Map<String, dynamic>> getScheduleSuggestions({
+    required String messageId,
+    required String messageText,
+    required String selectedTone,
+  }) async {
+    final response = await _dio.post('/schedule/suggest', data: {
+      'messageId': messageId,
+      'messageText': messageText,
+      'selectedTone': selectedTone,
+    });
+    return response.data;
+  }
+
+  // メッセージ更新（ステータス変更等） - 既存メソッドを拡張
+  Future<Map<String, dynamic>> updateMessageWithData({
+    required String messageId,
+    required Map<String, dynamic> updates,
+  }) async {
+    final response = await _dio.put('/messages/$messageId', data: updates);
+    return response.data;
+  }
+
+  // メッセージ送信（即座送信）
+  Future<Map<String, dynamic>> sendMessageImmediately({
+    required String messageId,
+  }) async {
+    final response = await _dio.post('/messages/$messageId/send');
+    return response.data;
+  }
+
   // 送信済みメッセージ一覧取得
   Future<Map<String, dynamic>?> getSentMessages() async {
     try {

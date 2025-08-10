@@ -192,7 +192,14 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	fmt.Printf("📋 [GetSchedules] ユーザーID: %s, ステータス: %s, ページ: %d, 上限: %d\n", currentUserID.Hex(), status, page, limit)
+	fmt.Printf("📋 [GetSchedules] 取得件数: %d件, 総件数: %d件\n", len(schedules), total)
+	for i, schedule := range schedules {
+		fmt.Printf("📋 [Schedule-%d] ID: %s, MessageID: %s, Status: %s, ScheduledAt: %s\n", 
+			i, schedule.ID.Hex(), schedule.MessageID.Hex(), schedule.Status, schedule.ScheduledAt.Format("2006-01-02 15:04:05"))
+	}
+
+	responseData := gin.H{
 		"data": gin.H{
 			"schedules": schedules,
 			"pagination": gin.H{
@@ -202,7 +209,12 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 			},
 		},
 		"message": "スケジュール一覧を取得しました",
-	})
+	}
+	
+	// レスポンス全体をログ出力
+	fmt.Printf("📋 [GetSchedules] レスポンス全体: %+v\n", responseData)
+	
+	c.JSON(http.StatusOK, responseData)
 }
 
 // UpdateSchedule スケジュール更新

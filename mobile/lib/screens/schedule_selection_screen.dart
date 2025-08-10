@@ -133,7 +133,34 @@ class _ScheduleSelectionScreenState extends State<ScheduleSelectionScreen> {
             _suggestions = [];
             if (suggestedOptions != null && suggestedOptions is List) {
               for (var option in suggestedOptions) {
-                final delayMinutes = option['delay_minutes'] ?? 0;
+                // delay_minutesが文字列か数値かを判定して処理
+                var delayMinutes = 0;
+                if (option['delay_minutes'] != null) {
+                  if (option['delay_minutes'] is int) {
+                    delayMinutes = option['delay_minutes'];
+                  } else if (option['delay_minutes'] is String) {
+                    // 文字列の場合は数値に変換を試みる
+                    try {
+                      delayMinutes = int.parse(option['delay_minutes']);
+                    } catch (e) {
+                      print('⚠️ delay_minutesのパースエラー: ${option['delay_minutes']}');
+                      // 特殊な文字列の場合の処理
+                      final delayStr = option['delay_minutes'].toString().toLowerCase();
+                      if (delayStr.contains('next_business_day') || delayStr.contains('翌朝')) {
+                        // 翌朝9時を計算
+                        final now = DateTime.now();
+                        final tomorrow = now.add(const Duration(days: 1));
+                        final nextMorning = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0);
+                        delayMinutes = nextMorning.difference(now).inMinutes;
+                      } else if (delayStr.contains('明日')) {
+                        delayMinutes = 24 * 60; // 24時間後
+                      } else if (delayStr.contains('来週')) {
+                        delayMinutes = 7 * 24 * 60; // 1週間後
+                      }
+                    }
+                  }
+                }
+                
                 final now = DateTime.now();
                 final scheduledAt = now.add(Duration(minutes: delayMinutes));
                 
