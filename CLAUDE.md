@@ -1389,9 +1389,9 @@ Week 9: feature/message-system-integration  # 全機能統合
 
 ### 現在のセッション状況
 - **開発者**: fujinoyuki
-- **現在のブランチ**: feature/auth-phase1-implementation
-- **最終更新**: 2025年8月2日 16:53
-- **セッション状態**: Firebase認証完全移行・トーン変換YAML修復・受信トレイ表示問題修正完了
+- **現在のブランチ**: feature/web-messaging-improvements
+- **最終更新**: 2025年8月10日 18:50
+- **セッション状態**: 送信済みメッセージ「Unknown User」表示問題修正・reason フィールド統合完了
 
 ### 完了したタスク（本セッション）
 - ✅ **Firebase認証システム完全移行・統合完了**（fujinoyuki, 2025年8月2日 16:40）
@@ -1754,3 +1754,83 @@ QUICK_START.md                   # 開発者向けクイックスタートガイ
 - **詳細ログ**: API応答・型情報・実行フローの詳細ログ出力
 - **型安全性**: Dart型システム活用による実行時エラー事前防止
 - **ユーザビリティ**: エラー時も美しいUI・適切なフィードバック表示
+
+## 最新セッション履歴
+
+### **✅ 送信済みメッセージ表示問題修正・reason フィールド統合完了**（fujinoyuki, 2025年8月10日 18:50）
+
+#### **主要修正項目**
+1. **送信済みメッセージ「Unknown User」表示問題の修正**
+2. **reason フィールド（状況説明）のフロントエンド統合**
+3. **バックエンドコンパイルエラー修正**
+
+#### **バックエンド修正**（`backend/handlers/messages.go`, `backend/handlers/dashboard.go`）
+- **MessageWithRecipient構造体追加**: 受信者名・メールアドレスを含む新構造体
+- **GetSentMessages APIの強化**: 
+  - 送信済みメッセージ取得時に受信者情報を並行して取得
+  - `userService.GetUserByID()` で受信者情報を解決
+  - 受信者名がない場合はメールアドレスを表示名として使用
+  - レスポンスに `recipientName` と `recipientEmail` フィールドを追加
+- **コンパイルエラー修正**: `GetByID` → `GetUserByID` メソッド名修正・SentAt型エラー修正
+
+#### **フロントエンド修正**（各種Vueファイル・TypeScript）
+- **MessageComposer.vue**: reason フィールドUI実装
+  - 状況説明入力エリア追加（textarea・500文字制限）
+  - 文字数カウンター表示・レスポンシブデザイン対応
+  - 下書きでの reason 表示・読み込み機能
+- **HistoryView.vue**: 送信済みメッセージ表示改善
+  - バックエンドから直接受信者情報を受け取るように修正
+  - 複雑な `getUserInfo()` 呼び出しを削除・処理を簡略化
+- **型定義・ストア・サービス層**: reason フィールド完全対応
+  - `messageService.ts`: MessageDraft・CreateDraftRequest・UpdateDraftRequest に reason 追加
+  - `messages.ts ストア`: reason フィールドCRUD操作対応
+
+#### **解決された問題**
+- **Before**: 送信済みメッセージで「Unknown User」が表示
+- **After**: 実際の受信者名（または受信者のメールアドレス）が正しく表示
+- **Before**: reason フィールドがフロントエンドで利用不可
+- **After**: メッセージ作成時の状況説明が完全に利用可能
+- **Before**: バックエンドコンパイルエラー
+- **After**: 全APIが正常動作
+
+#### **技術的実装詳細**
+```go
+// バックエンド: 受信者情報付きメッセージ構造体
+type MessageWithRecipient struct {
+    *models.Message
+    RecipientName  string `json:"recipientName"`
+    RecipientEmail string `json:"recipientEmail"`
+}
+```
+
+```vue
+<!-- フロントエンド: reason フィールドUI -->
+<div class="reason-input-area">
+  <label for="reason" class="reason-label">状況説明（任意）</label>
+  <textarea
+    id="reason"
+    v-model="form.reason"
+    placeholder="送りたい理由や背景を教えてください"
+    class="reason-textarea"
+    maxlength="500"
+  ></textarea>
+  <div class="reason-counter">{{ form.reason.length }}/500</div>
+</div>
+```
+
+#### **動作確認完了**
+- **バックエンド**: http://localhost:8080 で正常動作
+- **フロントエンド**: http://localhost:5175 で正常動作
+- **API統合**: `/messages/sent` エンドポイントで受信者情報を含むレスポンス確認
+- **UI機能**: reason フィールド入力・保存・表示機能確認
+
+#### **Git管理**
+- **ブランチ**: `feature/web-messaging-improvements`
+- **コミット**: e11b8f9 "fix: 送信済みメッセージ「Unknown User」表示問題を修正・reason フィールド統合完了"
+- **状態**: リモートリポジトリにプッシュ済み
+
+#### **今後の改善ポイント**
+1. **送信者情報不足問題**: 受信したメッセージの送信者名表示
+2. **既読通知システム**: 既読時の送信者通知機能
+3. **メッセージ評価システム**: 5段階評価・フィードバック機能
+4. **レスポンシブデザイン強化**: モバイル対応の更なる改善
