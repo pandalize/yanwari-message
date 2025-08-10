@@ -450,3 +450,23 @@ func (s *UserService) CreateFirebaseUIDIndex(ctx context.Context) error {
 	
 	return nil
 }
+
+// GetFriendsCount 友達数を取得
+func (s *UserService) GetFriendsCount(ctx context.Context, userID primitive.ObjectID) (int, error) {
+	// friendshipsコレクションから友達関係を取得
+	friendshipCollection := s.collection.Database().Collection("friendships")
+	
+	filter := bson.M{
+		"$or": []bson.M{
+			{"user1_id": userID},
+			{"user2_id": userID},
+		},
+	}
+	
+	count, err := friendshipCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("友達数取得エラー: %w", err)
+	}
+	
+	return int(count), nil
+}

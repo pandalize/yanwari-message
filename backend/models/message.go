@@ -684,3 +684,101 @@ func (s *MessageService) GetMessageByID(ctx context.Context, messageID primitive
 func (s *MessageService) GetReceivedMessagesWithPagination(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
 	return s.GetReceivedMessages(ctx, recipientID, page, limit)
 }
+
+// StatsResult 統計結果
+type StatsResult struct {
+	MessagesSent     int `json:"messagesSent"`
+	MessagesReceived int `json:"messagesReceived"`
+	MessagesRead     int `json:"messagesRead"`
+}
+
+// GetStatsForPeriod 指定期間の統計を取得
+func (s *MessageService) GetStatsForPeriod(ctx context.Context, userID primitive.ObjectID, startTime, endTime time.Time) (StatsResult, error) {
+	var stats StatsResult
+
+	// 期間フィルタを構築
+	timeFilter := bson.M{}
+	if !startTime.IsZero() {
+		timeFilter["$gte"] = startTime
+	}
+	if !endTime.IsZero() {
+		timeFilter["$lte"] = endTime
+	}
+
+	// 送信メッセージ数を取得
+	sentFilter := bson.M{
+		"senderId": userID,
+		"status": bson.M{"$in": []MessageStatus{MessageStatusSent, MessageStatusDelivered, MessageStatusRead}},
+	}
+	if len(timeFilter) > 0 {
+		sentFilter["sentAt"] = timeFilter
+	}
+
+	sentCount, err := s.collection.CountDocuments(ctx, sentFilter)
+	if err != nil {
+		return stats, err
+	}
+	stats.MessagesSent = int(sentCount)
+
+	// 受信メッセージ数を取得
+	receivedFilter := bson.M{
+		"recipientId": userID,
+		"status": bson.M{"$in": []MessageStatus{MessageStatusSent, MessageStatusDelivered, MessageStatusRead}},
+	}
+	if len(timeFilter) > 0 {
+		receivedFilter["sentAt"] = timeFilter
+	}
+
+	receivedCount, err := s.collection.CountDocuments(ctx, receivedFilter)
+	if err != nil {
+		return stats, err
+	}
+	stats.MessagesReceived = int(receivedCount)
+
+	// 既読メッセージ数を取得（受信メッセージの中で既読になったもの）
+	readFilter := bson.M{
+		"recipientId": userID,
+		"status": MessageStatusRead,
+	}
+	if len(timeFilter) > 0 {
+		readFilter["readAt"] = timeFilter
+	}
+
+	readCount, err := s.collection.CountDocuments(ctx, readFilter)
+	if err != nil {
+		return stats, err
+	}
+	stats.MessagesRead = int(readCount)
+
+	return stats, nil
+}
+
+// GetUnreadCount 未読メッセージ数を取得
+func (s *MessageService) GetUnreadCount(ctx context.Context, recipientID primitive.ObjectID) (int, error) {
+	filter := bson.M{
+		"recipientId": recipientID,
+		"status": bson.M{"$in": []MessageStatus{MessageStatusSent, MessageStatusDelivered}}, // 送信済みだが未読
+	}
+
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+// GetScheduledCount スケジュール済みメッセージ数を取得
+func (s *MessageService) GetScheduledCount(ctx context.Context, senderID primitive.ObjectID) (int, error) {
+	filter := bson.M{
+		"senderId": senderID,
+		"status":   MessageStatusScheduled,
+	}
+
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}
