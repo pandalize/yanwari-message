@@ -429,60 +429,173 @@ JWT_SECRET=your_jwt_secret_here
 
 ## 開発ワークフロー
 
-### ブランチ戦略 (GitFlow)
-- `main`: 本番デプロイ用
-- `develop`: 統合ブランチ
-- `feature/*`: 機能開発ブランチ
+### 新しいブランチ戦略 (Multi-Platform GitFlow)
 
-### 現在のブランチ: `feature/auth-system`
-認証システムが完了し、統合テストの準備が整っています。
+#### **メインブランチ構成**
+```
+main                    # 本番デプロイ用（Web版・Flutter版統合）
+├── develop            # 統合開発ブランチ（全プラットフォーム共通バックエンド）
+├── develop-web        # Web版専用統合ブランチ（Vue.js Frontend）
+└── develop-mobile     # Flutter版専用統合ブランチ（Flutter Mobile App）
+```
 
-## 詳細なブランチ戦略
+#### **機能開発ブランチ構成**
+```
+feature/web-[機能名]     # Web版専用機能（Vue.js Frontend）
+feature/mobile-[機能名]  # Flutter版専用機能（Flutter Mobile）
+feature/shared-[機能名]  # 共通機能（バックエンドAPI・DB・認証等）
+hotfix/[修正内容]       # 緊急修正（全プラットフォーム対象）
+```
 
-### 作成済みブランチ一覧
+### 実装済みブランチ一覧
 
 **メインブランチ:**
 - `main` - 本番環境用（保護設定）
-- `develop` - 開発統合用
+- `develop` - 共通バックエンド統合用（API・DB・認証システム）
+- `develop-web` - Web版Vue.jsアプリ統合ブランチ 
+- `develop-mobile` - Flutter版アプリ統合ブランチ
 
-**機能ブランチ:**
-- `feature/auth-system` - F-01: 認証システム（BE Lead担当）★★★
-- `feature/message-drafts` - F-02: 下書き・トーン変換（BE+FE協力）★★★
-- `feature/schedule-system` - F-03: 送信スケジュール（BE Lead担当）★★★
-- `feature/history-management` - F-04: 履歴管理（FE+BE協力）★★☆
-- `feature/frontend-ui` - UI/UX基盤（FE Lead担当）★★★
-- `feature/infrastructure` - インフラ・CI/CD（DevOps担当）★★☆
+**サンプル機能ブランチ:**
+- `feature/shared-api-v2` - 共通API v2開発（バックエンド）
+- `feature/web-inbox-redesign` - Web版受信トレイリデザイン
+- `feature/mobile-message-compose` - Flutter版メッセージ作成機能
+
+### 新しい開発ワークフロー
+
+#### **Phase 1: 基盤整備**
+```bash
+# プラットフォーム別統合ブランチ確立
+develop-web      # Web版Vue.jsアプリ統合
+develop-mobile   # Flutter版アプリ統合
+develop          # 共通バックエンドAPI・データベース・認証システム
+```
+
+#### **Phase 2: 並行開発**
+```bash
+# Web版機能開発の例
+feature/web-inbox-redesign         # 受信トレイUI改善
+feature/web-ui-improvements        # UI/UX機能強化  
+feature/web-notification-system    # Web版通知システム
+
+# Flutter版機能開発の例
+feature/mobile-message-compose     # メッセージ作成画面
+feature/mobile-tone-selection      # トーン選択機能
+feature/mobile-push-notifications  # プッシュ通知機能
+
+# 共通バックエンド開発の例
+feature/shared-real-time-sync      # リアルタイム同期機能
+feature/shared-api-v2              # API v2 設計・実装
+feature/shared-analytics           # 分析・統計システム
+```
 
 ### よく使うGitコマンド
 
-#### リモートブランチをローカルに持ってくる（チームメンバー向け）
+#### **新ブランチ戦略に基づくセットアップ**
 
 ```bash
 # リモートの最新情報を取得
 git fetch origin
 
-# リモートにあるブランチ一覧を確認
-git branch -r
+# プラットフォーム別統合ブランチをローカルに設定
+git checkout -b develop origin/develop               # 共通バックエンド
+git checkout -b develop-web origin/develop-web       # Web版統合
+git checkout -b develop-mobile origin/develop-mobile # Flutter版統合
 
-# リモートブランチをローカルに作成して追跡設定
-git checkout -b develop origin/develop
-git checkout -b feature/auth-system origin/feature/auth-system
-git checkout -b feature/message-drafts origin/feature/message-drafts
-git checkout -b feature/schedule-system origin/feature/schedule-system
-git checkout -b feature/history-management origin/feature/history-management
-git checkout -b feature/frontend-ui origin/feature/frontend-ui
-git checkout -b feature/infrastructure origin/feature/infrastructure
+# 機能開発ブランチの作成例
+git checkout develop && git checkout -b feature/shared-new-api     # バックエンド機能
+git checkout develop-web && git checkout -b feature/web-new-ui     # Web版機能  
+git checkout develop-mobile && git checkout -b feature/mobile-new-screen  # Flutter版機能
 
 # 現在のローカルブランチ確認
 git branch
 ```
 
+#### **プラットフォーム別開発ワークフロー**
+
+```bash
+# Web版機能開発の例
+git checkout develop-web
+git pull origin develop-web
+git checkout -b feature/web-new-feature
+# 開発作業...
+git add . && git commit -m "feat: Web版新機能実装"
+git push origin feature/web-new-feature
+# プルリクエスト: feature/web-new-feature → develop-web
+
+# Flutter版機能開発の例
+git checkout develop-mobile  
+git pull origin develop-mobile
+git checkout -b feature/mobile-new-feature
+# 開発作業...
+git add . && git commit -m "feat: Flutter版新機能実装"
+git push origin feature/mobile-new-feature
+# プルリクエスト: feature/mobile-new-feature → develop-mobile
+
+# 共通バックエンド機能開発の例
+git checkout develop
+git pull origin develop
+git checkout -b feature/shared-new-api
+# 開発作業...
+git add . && git commit -m "feat: 共通API新機能実装"
+git push origin feature/shared-new-api
+# プルリクエスト: feature/shared-new-api → develop
+```
+
+#### **統合・リリースワークフロー**
+
+```bash
+# 定期統合（週1回程度）
+git checkout develop-web && git pull origin develop-web
+git checkout develop-mobile && git pull origin develop-mobile  
+git checkout develop && git pull origin develop
+
+# developブランチの最新を各プラットフォームブランチにマージ
+git checkout develop-web && git merge develop
+git checkout develop-mobile && git merge develop
+
+# 本番リリース時
+git checkout main
+git merge develop-web      # Web版の統合
+git merge develop-mobile   # Flutter版の統合
+git tag v1.0.0
+git push origin main --tags
+```
+
+### 新ブランチ戦略のメリット
+
+#### **並行開発効率化**
+- **Web版とFlutter版の独立開発**: 互いの開発進捗に影響されない
+- **共通バックエンドの安定性**: プラットフォーム固有の変更が他に影響しない
+- **専門チーム編成**: Web専門・モバイル専門・バックエンド専門チームの効率的運用
+
+#### **リリース管理の柔軟性**  
+- **段階的リリース**: Web版先行リリース → Flutter版フォローアップが可能
+- **独立したバグ修正**: 一方のプラットフォームの問題が他に影響しない
+- **機能フラグ管理**: プラットフォーム別の機能有効化・無効化
+
+#### **コードレビューの最適化**
+- **専門性重視**: Web専門家がWeb版、モバイル専門家がFlutter版をレビュー
+- **責任範囲の明確化**: プラットフォーム別の責任分離
+- **統合テストの段階化**: プラットフォーム内テスト → 統合テスト → E2Eテスト
+
+### 注意事項・ベストプラクティス
+
+#### **定期的な統合**
+⚠️ **重要**: 週1回は必ずdevelopブランチの変更を各プラットフォームブランチにマージ
+
+#### **共通API変更時の調整**  
+🔄 **調整**: バックエンドAPI変更時は Web版・Flutter版両方への影響を確認
+
+#### **コンフリクト回避**
+✅ **推奨**: 共通ファイル（設定・ドキュメント等）の編集は事前に調整
+
 #### 日常的な開発作業
 
 ```bash
-# ブランチ切り替え
-git checkout feature/auth-system
-git checkout develop
+# プラットフォーム別ブランチ切り替え
+git checkout develop-web      # Web版統合ブランチ
+git checkout develop-mobile   # Flutter版統合ブランチ  
+git checkout develop         # 共通バックエンドブランチ
 
 # 最新の変更を取得
 git fetch origin
