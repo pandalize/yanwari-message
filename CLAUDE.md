@@ -83,30 +83,12 @@ git push origin feature/xxx
 - ✅ メッセージ評価システム
 - ✅ Flutter iOSアプリ
 
-## ブランチ統合計画
+## ブランチ構成
 
-### 現在の課題
-現在3つのdevelopブランチが分散：
-- `develop` - 基本ブランチ
-- `develop-mobile` - モバイル開発用（AI改善含む）  
-- `develop-web` - Web開発用
+### 統一ブランチ構成
+- **develop** - 統合開発ブランチ（Web・Mobile・API全て）
 
-### 統合提案
-**1つの`develop`に統一** → 開発効率向上・コードベース統一
-
-```bash
-# 統合手順
-git checkout develop
-git pull origin develop
-git merge develop-mobile --no-ff
-git merge develop-web --no-ff
-git push origin develop
-
-# 古いブランチ削除
-git push origin --delete develop-mobile develop-web
-```
-
-### 統合後の利点
-- Web・Mobile共通のコードベース
-- AI改善機能の全プラットフォーム共有
-- 重複開発の削減・レビュー効率化
+### 利点
+- 単一コードベースでの開発
+- 機能の一貫性確保
+- 開発・レビュー効率の最大化
