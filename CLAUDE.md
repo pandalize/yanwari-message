@@ -829,11 +829,76 @@ curl -X POST http://localhost:8080/api/v1/schedule/suggest \
   - 完全テストシーケンス
   - トラブルシューティング情報
 
+## 🔧 API設計書・開発リファレンス
+
+### **✅ API設計書作成完了（2025年8月10日 22:50）**
+- **ファイル**: `docs/API_REFERENCE.md` - 包括的なAPIエンドポイント設計書（760行）
+- **対象**: 全47個のAPIエンドポイント完全網羅
+- **内容**: Firebase認証・10機能グループ・リクエスト/レスポンス・データモデル・エラーハンドリング
+
+### **主要APIエンドポイントクイックリファレンス**
+
+#### **認証・ユーザー** (6API)
+```bash
+GET  /firebase/profile     # Firebase認証プロフィール取得
+GET  /users/search         # ユーザー検索（友達申請用）  
+GET  /users/me             # 現在のユーザー情報
+```
+
+#### **メッセージング** (9API)  
+```bash
+POST /messages/draft       # 下書き作成（reason フィールド対応）
+GET  /messages/sent        # 送信済み一覧（受信者名修正済み）
+GET  /messages/inbox-with-ratings  # 評価付き受信トレイ
+```
+
+#### **AI機能** (2API)
+```bash 
+POST /transform/tones      # 3種並行変換（gentle/constructive/casual）
+POST /schedule/suggest     # AI時間提案（5-7秒）
+```
+
+#### **評価システム** (4API) ⭐ **最新修正完了**
+```bash
+POST   /messages/:id/rate     # 評価作成・更新（1-5段階）
+GET    /messages/:id/rating   # 評価取得  
+DELETE /messages/:id/rating   # 評価削除
+```
+
+#### **友達申請** (8API)
+```bash
+POST /friend-requests/send        # 友達申請送信
+POST /friend-requests/:id/accept  # 申請承諾
+GET  /friends                     # 友達一覧取得
+```
+
+#### **スケジュール** (6API)
+```bash
+POST /schedules           # スケジュール作成  
+POST /schedule/suggest    # AI時間提案（メッセージ分析）
+```
+
+### **最新の重要修正（2025年8月10日）**
+
+#### **✅ 評価システムAPI修正完了**
+- **問題**: フロントエンド APIエンドポイント不一致（`/ratings/*` vs `/messages/:id/*`）
+- **修正**: `ratingService.ts` の全3エンドポイント修正
+- **結果**: Bob アカウントでの受信トレイ評価機能が正常動作
+
+#### **✅ 送信済みメッセージ表示問題修正**  
+- **問題**: 送信者名が「Unknown User」表示
+- **修正**: `GetUserInfoByService()` ヘルパー実装・受信者情報適切取得
+
+#### **✅ reason フィールド統合**
+- **新機能**: メッセージ送信理由・状況説明（500文字制限）
+- **UI**: 状況説明入力エリア・文字数カウンター追加
+
 ## ドキュメント構成
 
-### ファイル使い分け
+### ファイル使い分け  
 - **README.md**: プロジェクトの公式文書（外部向け、新規参加者向け）
 - **CLAUDE.md**: AI開発アシスタント専用ガイド（内部開発用）
+- **docs/API_REFERENCE.md**: ✨ **新規** 包括的APIエンドポイント設計書
 - **API_TEST_COMMANDS.md**: 手動APIテスト用コマンド集
 - **SETUP.md**: README.mdに統合済み（削除予定）
 
