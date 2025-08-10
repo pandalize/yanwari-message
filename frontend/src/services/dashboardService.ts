@@ -1,4 +1,4 @@
-import apiService from './api'
+import { apiService } from './api'
 
 // 活動統計
 export interface ActivityStats {
