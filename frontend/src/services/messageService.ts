@@ -131,6 +131,7 @@ export const getUserInfo = async (userIdOrEmail: string): Promise<{ name: string
 export interface MessageDraft {
   id?: string
   originalText: string
+  reason?: string
   recipientEmail?: string
   status: 'draft' | 'processing' | 'scheduled' | 'sent' | 'delivered' | 'read'
   createdAt?: string
@@ -145,11 +146,13 @@ export interface MessageVariations {
 
 export interface CreateDraftRequest {
   originalText: string
+  reason?: string
   recipientEmail?: string
 }
 
 export interface UpdateDraftRequest {
   originalText?: string
+  reason?: string
   recipientEmail?: string
   variations?: MessageVariations
   selectedTone?: string

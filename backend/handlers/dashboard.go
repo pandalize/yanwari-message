@@ -181,7 +181,7 @@ func (dh *DashboardHandler) getRecentMessages(c *gin.Context, userID primitive.O
 
 	// 送信メッセージを追加
 	for _, msg := range sentMessages {
-		recipientInfo, _ := dh.userService.GetByID(ctx, msg.RecipientID)
+		recipientInfo, _ := dh.userService.GetUserByID(ctx, msg.RecipientID.Hex())
 		recipientName := "Unknown User"
 		recipientEmail := ""
 		if recipientInfo != nil {
@@ -199,7 +199,12 @@ func (dh *DashboardHandler) getRecentMessages(c *gin.Context, userID primitive.O
 			RecipientName:  recipientName,
 			RecipientEmail: recipientEmail,
 			Text:           msg.FinalText,
-			SentAt:         msg.SentAt,
+			SentAt:         func() time.Time {
+				if msg.SentAt != nil {
+					return *msg.SentAt
+				}
+				return time.Time{}
+			}(),
 			ReadAt:         msg.ReadAt,
 			IsRead:         msg.ReadAt != nil,
 		})
@@ -207,7 +212,7 @@ func (dh *DashboardHandler) getRecentMessages(c *gin.Context, userID primitive.O
 
 	// 受信メッセージを追加
 	for _, msg := range receivedMessages {
-		senderInfo, _ := dh.userService.GetByID(ctx, msg.SenderID)
+		senderInfo, _ := dh.userService.GetUserByID(ctx, msg.SenderID.Hex())
 		senderName := "Unknown User"
 		senderEmail := ""
 		if senderInfo != nil {
@@ -225,7 +230,12 @@ func (dh *DashboardHandler) getRecentMessages(c *gin.Context, userID primitive.O
 			SenderName:  senderName,
 			SenderEmail: senderEmail,
 			Text:        msg.FinalText,
-			SentAt:      msg.SentAt,
+			SentAt:      func() time.Time {
+				if msg.SentAt != nil {
+					return *msg.SentAt
+				}
+				return time.Time{}
+			}(),
 			ReadAt:      msg.ReadAt,
 			IsRead:      msg.ReadAt != nil,
 		})
@@ -296,7 +306,7 @@ func (dh *DashboardHandler) GetDeliveryStatuses(c *gin.Context) {
 	var statuses []DeliveryStatus
 	for _, msg := range messages {
 		// 受信者情報を取得
-		recipientInfo, _ := dh.userService.GetByID(c.Request.Context(), msg.RecipientID)
+		recipientInfo, _ := dh.userService.GetUserByID(c.Request.Context(), msg.RecipientID.Hex())
 		recipientName := "Unknown User"
 		if recipientInfo != nil {
 			if recipientInfo.Name != "" {

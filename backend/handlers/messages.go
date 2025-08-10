@@ -305,6 +305,13 @@ func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// MessageWithRecipient 受信者情報を含むメッセージ
+type MessageWithRecipient struct {
+	*models.Message
+	RecipientName  string `json:"recipientName"`
+	RecipientEmail string `json:"recipientEmail"`
+}
+
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
 // GET /api/v1/messages/sent
 func (h *MessageHandler) GetSentMessages(c *gin.Context) {
@@ -332,9 +339,37 @@ func (h *MessageHandler) GetSentMessages(c *gin.Context) {
 		return
 	}
 
+	// 受信者情報を付加したメッセージを作成
+	userService := h.messageService.GetUserService()
+	messagesWithRecipient := make([]MessageWithRecipient, len(messages))
+	
+	for i, msg := range messages {
+		recipientName := "Unknown User"
+		recipientEmail := "unknown@example.com"
+		
+		// 受信者情報を取得
+		if !msg.RecipientID.IsZero() {
+			recipientInfo, err := userService.GetUserByID(c.Request.Context(), msg.RecipientID.Hex())
+			if err == nil && recipientInfo != nil {
+				if recipientInfo.Name != "" {
+					recipientName = recipientInfo.Name
+				} else {
+					recipientName = recipientInfo.Email
+				}
+				recipientEmail = recipientInfo.Email
+			}
+		}
+		
+		messagesWithRecipient[i] = MessageWithRecipient{
+			Message:        &msg,
+			RecipientName:  recipientName,
+			RecipientEmail: recipientEmail,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"data": gin.H{
-			"messages": messages,
+			"messages": messagesWithRecipient,
 			"pagination": gin.H{
 				"page":  page,
 				"limit": limit,

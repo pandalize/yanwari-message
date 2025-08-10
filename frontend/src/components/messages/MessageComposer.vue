@@ -13,11 +13,24 @@
       <div class="message-input-area">
         <textarea
           v-model="form.originalText"
-          placeholder="メッセージを入力 / 変換前のメッセージ&#10;送りたい理由も教えてね"
+          placeholder="メッセージを入力してください"
           class="message-textarea"
           :class="{ 'error': hasError }"
           maxlength="1000"
         ></textarea>
+        
+        <!-- 状況説明フィールド -->
+        <div class="reason-input-area">
+          <label for="reason" class="reason-label">状況説明（任意）</label>
+          <textarea
+            id="reason"
+            v-model="form.reason"
+            placeholder="送りたい理由や背景を教えてください&#10;例: 急な変更で申し訳ありません、体調不良のため..."
+            class="reason-textarea"
+            maxlength="500"
+          ></textarea>
+          <div class="reason-counter">{{ form.reason.length }}/500</div>
+        </div>
       </div>
 
       <!-- アクションボタン -->
@@ -60,7 +73,8 @@
             @click="loadDraft(draft)"
           >
             <div class="draft-content">
-              <p class="draft-text">{{ truncateText(draft.originalText, 100) }}</p>
+              <p class="draft-text">{{ truncateText(draft.originalText, 80) }}</p>
+              <p v-if="draft.reason" class="draft-reason">状況: {{ truncateText(draft.reason, 50) }}</p>
               <small class="draft-date">{{ formatDate(draft.updatedAt) }}</small>
             </div>
             <button
@@ -94,7 +108,8 @@ const messageStore = useMessageStore()
 
 const form = reactive({
   recipient: null as User | null,
-  originalText: ''
+  originalText: '',
+  reason: '' // 状況説明フィールドを追加
 })
 
 const hasError = computed(() => {
@@ -139,14 +154,16 @@ const handleCreateDraft = async () => {
     console.log('Updating existing draft:', messageStore.currentDraft.id)
     success = await messageStore.updateDraft(messageStore.currentDraft.id, {
       originalText: form.originalText.trim(),
-      recipientEmail: form.recipient?.email
+      recipientEmail: form.recipient?.email,
+      reason: form.reason.trim()
     })
     draftId = messageStore.currentDraft.id
   } else {
     console.log('Creating new draft')
     success = await messageStore.createDraft({
       originalText: form.originalText.trim(),
-      recipientEmail: form.recipient?.email
+      recipientEmail: form.recipient?.email,
+      reason: form.reason.trim()
     })
     // 作成成功後、currentDraftが設定されるまで少し待つ
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -174,12 +191,14 @@ const saveDraft = async () => {
 
   const success = await messageStore.createDraft({
     originalText: form.originalText.trim(),
-    recipientEmail: form.recipient?.email
+    recipientEmail: form.recipient?.email,
+    reason: form.reason.trim()
   })
 
   if (success) {
     form.originalText = ''
     form.recipient = null
+    form.reason = ''
     messageStore.clearCurrentDraft()
     messageStore.clearError()
   }
@@ -189,6 +208,7 @@ const saveDraft = async () => {
 const startNewMessage = () => {
   form.originalText = ''
   form.recipient = null
+  form.reason = ''
   messageStore.clearCurrentDraft()
   messageStore.clearError()
 }
@@ -203,6 +223,7 @@ const proceedToToneSelection = () => {
 // 下書き読み込み
 const loadDraft = (draft: any) => {
   form.originalText = draft.originalText
+  form.reason = draft.reason || ''
   // recipientEmailがある場合は簡易的にUser形式に変換
   if (draft.recipientEmail) {
     form.recipient = {
@@ -330,6 +351,54 @@ onMounted(() => {
   border-color: var(--error-color);
 }
 
+/* ===== 状況説明フィールド ===== */
+.reason-input-area {
+  margin-top: var(--spacing-lg);
+}
+
+.reason-label {
+  display: block;
+  font-size: var(--font-size-md);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+  font-family: var(--font-family-main);
+}
+
+.reason-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--spacing-lg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-md);
+  font-family: var(--font-family-main);
+  background: var(--neutral-color);
+  color: var(--text-primary);
+  resize: vertical;
+  transition: all 0.3s ease;
+  line-height: var(--line-height-relaxed);
+}
+
+.reason-textarea::placeholder {
+  color: var(--text-muted);
+  line-height: var(--line-height-relaxed);
+}
+
+.reason-textarea:focus {
+  outline: none;
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 3px rgba(146, 201, 255, 0.15);
+}
+
+.reason-counter {
+  text-align: right;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-top: var(--spacing-xs);
+  font-family: var(--font-family-main);
+}
+
 /* ===== アクションボタン ===== */
 .action-buttons {
   display: flex;
@@ -443,6 +512,15 @@ onMounted(() => {
   font-family: var(--font-family-main);
 }
 
+.draft-reason {
+  margin: var(--spacing-xs) 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-style: italic;
+  line-height: var(--line-height-normal);
+  font-family: var(--font-family-main);
+}
+
 .draft-date {
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
@@ -547,6 +625,11 @@ onMounted(() => {
     padding: var(--spacing-lg);
   }
   
+  .reason-textarea {
+    min-height: 100px;
+    padding: var(--spacing-lg);
+  }
+  
   .action-buttons {
     gap: var(--spacing-lg);
   }
@@ -577,6 +660,12 @@ onMounted(() => {
   
   .message-textarea {
     min-height: 150px;
+    font-size: var(--font-size-md);
+    padding: var(--spacing-md);
+  }
+  
+  .reason-textarea {
+    min-height: 80px;
     font-size: var(--font-size-md);
     padding: var(--spacing-md);
   }
@@ -618,6 +707,12 @@ onMounted(() => {
   .message-textarea {
     padding: var(--spacing-sm);
     min-height: 120px;
+    font-size: var(--font-size-sm);
+  }
+  
+  .reason-textarea {
+    padding: var(--spacing-sm);
+    min-height: 60px;
     font-size: var(--font-size-sm);
   }
   

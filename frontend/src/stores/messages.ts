@@ -22,6 +22,7 @@ export const useMessageStore = defineStore('messages', () => {
       const newDraft: MessageDraft = {
         id: response.data.id,
         originalText: response.data.originalText,
+        reason: response.data.reason,
         recipientEmail: request.recipientEmail,
         status: response.data.status as MessageDraft['status'],
         createdAt: response.data.createdAt,
@@ -54,6 +55,7 @@ export const useMessageStore = defineStore('messages', () => {
       const updatedDraft: MessageDraft = {
         id: response.data.id,
         originalText: response.data.originalText,
+        reason: response.data.reason,
         recipientEmail: response.data.recipientId || currentDraft.value?.recipientEmail || request.recipientEmail,
         status: response.data.status as MessageDraft['status'],
         createdAt: response.data.createdAt,
@@ -137,6 +139,7 @@ export const useMessageStore = defineStore('messages', () => {
       currentDraft.value = {
         id: response.data.id,
         originalText: response.data.originalText,
+        reason: response.data.reason,
         recipientEmail: response.data.recipientId, // Use recipientId as recipientEmail for now
         status: response.data.status as MessageDraft['status'],
         createdAt: response.data.createdAt,
