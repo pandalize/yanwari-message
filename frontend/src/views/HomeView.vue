@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import PageContainer from '@/components/layout/PageContainer.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -28,7 +29,8 @@ const goToHistory = () => {
 </script>
 
 <template>
-  <main class="home">
+  <PageContainer>
+    <main class="home">
     <section class="hero">
       <div class="hero-content">
         <h1>✨ やんわり伝言</h1>
@@ -93,7 +95,8 @@ const goToHistory = () => {
         </div>
       </div>
     </section>
-  </main>
+    </main>
+  </PageContainer>
 </template>
 
 <style scoped>

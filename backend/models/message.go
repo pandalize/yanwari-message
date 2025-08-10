@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +19,7 @@ type Message struct {
 	SenderID     primitive.ObjectID `bson:"senderId" json:"senderId"`
 	RecipientID  primitive.ObjectID `bson:"recipientId,omitempty" json:"recipientId,omitempty"`
 	OriginalText string             `bson:"originalText" json:"originalText"`
+	Reason       string             `bson:"reason,omitempty" json:"reason,omitempty"`
 	Variations   MessageVariations  `bson:"variations" json:"variations"`
 	SelectedTone string             `bson:"selectedTone,omitempty" json:"selectedTone,omitempty"`
 	FinalText    string             `bson:"finalText,omitempty" json:"finalText,omitempty"`
@@ -59,13 +61,15 @@ const (
 // CreateMessageRequest メッセージ作成リクエスト
 type CreateMessageRequest struct {
 	RecipientEmail string `json:"recipientEmail,omitempty"`
-	OriginalText   string `json:"originalText" binding:"required,min=1,max=1000"`
+	OriginalText   string `json:"originalText" binding:"max=1000"`
+	Reason         string `json:"reason,omitempty" binding:"max=500"`
 }
 
 // UpdateMessageRequest メッセージ更新リクエスト
 type UpdateMessageRequest struct {
 	RecipientEmail   string            `json:"recipientEmail,omitempty"`
 	OriginalText     string            `json:"originalText,omitempty"`
+	Reason           string            `json:"reason,omitempty"`
 	Variations       MessageVariations `json:"variations,omitempty"`
 	ToneVariations   map[string]string `json:"toneVariations,omitempty"` // トーン変換結果用
 	SelectedTone     string            `json:"selectedTone,omitempty"`
@@ -95,11 +99,17 @@ func (s *MessageService) GetUserService() *UserService {
 
 // CreateDraft 下書きメッセージを作成
 func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.ObjectID, req *CreateMessageRequest) (*Message, error) {
+	// バリデーション: メッセージまたは理由のいずれかは必須
+	if req.OriginalText == "" && req.Reason == "" {
+		return nil, errors.New("メッセージまたは理由を入力してください")
+	}
+	
 	now := time.Now()
 	
 	message := &Message{
 		SenderID:     senderID,
 		OriginalText: req.OriginalText,
+		Reason:       req.Reason,
 		Status:       MessageStatusDraft,
 		CreatedAt:    now,
 		UpdatedAt:    now,
@@ -144,6 +154,10 @@ func (s *MessageService) UpdateMessage(ctx context.Context, messageID, senderID 
 	
 	if req.OriginalText != "" {
 		updateData["originalText"] = req.OriginalText
+	}
+	
+	if req.Reason != "" {
+		updateData["reason"] = req.Reason
 	}
 	
 	if req.Variations.Gentle != "" || req.Variations.Constructive != "" || req.Variations.Casual != "" {
@@ -244,7 +258,8 @@ func (s *MessageService) GetMessage(ctx context.Context, messageID, userID primi
 }
 
 // GetUserDrafts ユーザーの下書き一覧を取得
-func (s *MessageService) GetUserDrafts(ctx context.Context, userID primitive.ObjectID) ([]Message, error) {
+// GetUserDrafts ユーザーの下書きメッセージを取得（ページネーション対応）
+func (s *MessageService) GetUserDrafts(ctx context.Context, userID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
 	var messages []Message
 	
 	filter := bson.M{
@@ -252,21 +267,41 @@ func (s *MessageService) GetUserDrafts(ctx context.Context, userID primitive.Obj
 		"status":   MessageStatusDraft,
 	}
 
-	cursor, err := s.collection.Find(ctx, filter, nil)
+	// 総数を取得
+	total, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// ページネーション設定
+	skip := int64((page - 1) * limit)
+	limitInt64 := int64(limit)
+	
+	cursor, err := s.collection.Find(ctx, filter, &options.FindOptions{
+		Sort:  bson.D{{Key: "updatedAt", Value: -1}}, // 更新日時の降順
+		Skip:  &skip,
+		Limit: &limitInt64,
+	})
+	if err != nil {
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
 	if err = cursor.All(ctx, &messages); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if messages == nil {
 		messages = []Message{}
 	}
 
-	return messages, nil
+	return messages, total, nil
+}
+
+// 互換性のために古いメソッドも残す
+func (s *MessageService) GetUserDraftsLegacy(ctx context.Context, userID primitive.ObjectID) ([]Message, error) {
+	messages, _, err := s.GetUserDrafts(ctx, userID, 1, 100)
+	return messages, err
 }
 
 // DeleteMessage メッセージを削除
@@ -293,6 +328,10 @@ func (s *MessageService) DeleteMessage(ctx context.Context, messageID, senderID 
 func (s *MessageService) DeliverScheduledMessages(ctx context.Context) ([]Message, error) {
 	now := time.Now()
 	
+	// デバッグログ: クエリ条件を詳細出力
+	log.Printf("🔍 [DeliverScheduledMessages] 現在時刻: %v", now.Format("2006-01-02 15:04:05"))
+	log.Printf("🔍 [DeliverScheduledMessages] 検索条件: status='%s', scheduledAt<='%v'", MessageStatusScheduled, now.Format("2006-01-02 15:04:05"))
+	
 	// 配信時刻が過ぎたスケジュールメッセージを取得
 	filter := bson.M{
 		"status":      MessageStatusScheduled,
@@ -308,6 +347,14 @@ func (s *MessageService) DeliverScheduledMessages(ctx context.Context) ([]Messag
 
 	if err = cursor.All(ctx, &messages); err != nil {
 		return nil, err
+	}
+
+	// デバッグログ: 取得したメッセージの詳細を出力
+	log.Printf("🔍 [DeliverScheduledMessages] 取得したメッセージ数: %d件", len(messages))
+	for i, msg := range messages {
+		log.Printf("🔍 [DeliverScheduledMessages] メッセージ%d: ID=%s, status='%s', scheduledAt=%v, createdAt=%v", 
+			i+1, msg.ID.Hex(), msg.Status, 
+			msg.ScheduledAt, msg.CreatedAt)
 	}
 
 	// バッチで配信済みに更新

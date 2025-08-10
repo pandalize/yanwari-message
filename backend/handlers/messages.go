@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -45,7 +46,8 @@ func (h *MessageHandler) CreateDraft(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "指定された受信者が見つかりません"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージの作成に失敗しました"})
+		log.Printf("CreateDraft error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージの作成に失敗しました", "details": err.Error()})
 		return
 	}
 
@@ -151,22 +153,11 @@ func (h *MessageHandler) GetDrafts(c *gin.Context) {
 		}
 	}
 
-	messages, err := h.messageService.GetUserDrafts(c.Request.Context(), currentUserID)
+	// ✅ 修正: DBレベルでページネーション実装
+	messages, total, err := h.messageService.GetUserDrafts(c.Request.Context(), currentUserID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "下書きの取得に失敗しました"})
 		return
-	}
-
-	// 簡易ページネーション（将来的にはDBレベルで実装）
-	start := (page - 1) * limit
-	end := start + limit
-	if start >= len(messages) {
-		messages = []models.Message{}
-	} else {
-		if end > len(messages) {
-			end = len(messages)
-		}
-		messages = messages[start:end]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -175,7 +166,7 @@ func (h *MessageHandler) GetDrafts(c *gin.Context) {
 			"pagination": gin.H{
 				"page":  page,
 				"limit": limit,
-				"total": len(messages),
+				"total": total, // ✅ DBから正確な総数を取得
 			},
 		},
 	})

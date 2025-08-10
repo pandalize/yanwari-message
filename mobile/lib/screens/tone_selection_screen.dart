@@ -9,12 +9,16 @@ class ToneSelectionScreen extends StatefulWidget {
   final String messageId;
   final String originalText;
   final Map<String, dynamic> toneVariations;
+  final String recipientName;
+  final String recipientEmail;
 
   const ToneSelectionScreen({
     super.key,
     required this.messageId,
     required this.originalText,
     required this.toneVariations,
+    required this.recipientName,
+    required this.recipientEmail,
   });
 
   @override
@@ -32,9 +36,16 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
     _apiService = ApiService(context.read<AuthService>());
   }
 
-  Future<void> _selectToneAndProceed(String tone) async {
+  void _selectTone(String tone) {
     setState(() {
       _selectedTone = tone;
+    });
+  }
+
+  Future<void> _proceedWithSelectedTone() async {
+    if (_selectedTone == null) return;
+
+    setState(() {
       _isLoading = true;
     });
 
@@ -42,7 +53,7 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
       // メッセージを更新して選択されたトーンを保存
       await _apiService.updateMessage(
         messageId: widget.messageId,
-        selectedTone: tone,
+        selectedTone: _selectedTone!,
       );
 
       // スケジュール選択画面に遷移
@@ -53,8 +64,10 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
             builder: (context) => ScheduleSelectionScreen(
               messageId: widget.messageId,
               originalText: widget.originalText,
-              selectedTone: tone,
-              selectedToneText: widget.toneVariations[tone] ?? '',
+              selectedTone: _selectedTone!,
+              selectedToneText: widget.toneVariations[_selectedTone!] ?? '',
+              recipientName: widget.recipientName,
+              recipientEmail: widget.recipientEmail,
             ),
           ),
         );
@@ -72,6 +85,17 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  String _extractText(dynamic data) {
+    if (data is String) {
+      return data;
+    } else if (data is Map<String, dynamic>) {
+      // JSONオブジェクトの場合、textフィールドを探す
+      return data['text'] ?? data['content'] ?? data['message'] ?? data.toString();
+    } else {
+      return data?.toString() ?? '変換エラー';
     }
   }
 
@@ -174,7 +198,7 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
                         tone: 'gentle',
                         title: '💝 優しめトーン',
                         subtitle: '丁寧で思いやりのある表現',
-                        text: widget.toneVariations['gentle'] ?? '',
+                        text: _extractText(widget.toneVariations['gentle']),
                         color: const Color(0xFFE91E63),
                       ),
                       const SizedBox(height: 16),
@@ -182,7 +206,7 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
                         tone: 'constructive',
                         title: '🏗️ 建設的トーン',
                         subtitle: '問題解決に焦点を当てた表現',
-                        text: widget.toneVariations['constructive'] ?? '',
+                        text: _extractText(widget.toneVariations['constructive']),
                         color: const Color(0xFF2196F3),
                       ),
                       const SizedBox(height: 16),
@@ -190,34 +214,56 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
                         tone: 'casual',
                         title: '🎯 カジュアルトーン',
                         subtitle: 'フレンドリーで親しみやすい表現',
-                        text: widget.toneVariations['casual'] ?? '',
+                        text: _extractText(widget.toneVariations['casual']),
                         color: const Color(0xFFFF9800),
                       ),
                     ],
                   ),
                 ),
 
-                // ローディング表示
-                if (_isLoading)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          color: Color(0xFF81C784),
-                        ),
-                        SizedBox(width: 16),
-                        Text(
-                          '選択を保存しています...',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF2E7D32),
+                // 選択ボタン
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: _isLoading
+                      ? const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              color: Color(0xFF81C784),
+                            ),
+                            SizedBox(width: 16),
+                            Text(
+                              '選択を保存しています...',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF2E7D32),
+                              ),
+                            ),
+                          ],
+                        )
+                      : SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _selectedTone != null ? _proceedWithSelectedTone : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF81C784),
+                              disabledBackgroundColor: Colors.grey.shade300,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              _selectedTone != null ? 'このトーンで送信予約へ進む' : 'トーンを選択してください',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedTone != null ? Colors.white : Colors.grey.shade600,
+                              ),
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                ),
               ],
             ),
           ),
@@ -245,7 +291,7 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
         ),
       ),
       child: InkWell(
-        onTap: _isLoading ? null : () => _selectToneAndProceed(tone),
+        onTap: _isLoading ? null : () => _selectTone(tone),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -301,34 +347,20 @@ class _ToneSelectionScreenState extends State<ToneSelectionScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: isSelected ? color.withOpacity(0.05) : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: isSelected ? color.withOpacity(0.3) : Colors.grey.shade200,
+                    width: isSelected ? 2 : 1,
+                  ),
                 ),
                 child: Text(
                   text,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    height: 1.5,
-                    color: Color(0xFF2E2E2E),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'このトーンを選択',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    height: 1.5,
+                    color: isSelected ? color.withOpacity(0.8) : const Color(0xFF2E2E2E),
+                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
                   ),
                 ),
               ),

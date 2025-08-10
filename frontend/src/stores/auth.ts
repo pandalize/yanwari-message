@@ -86,12 +86,37 @@ export const useAuthStore = defineStore('auth', () => {
       apiService.setAuthToken(idToken.value)
       
       // バックエンドからユーザー情報を取得
-      const response = await apiService.get('/users/me')
-      appUser.value = response.data.data
+      const response = await apiService.get('/firebase-auth/profile')
       
-      console.log('✅ アプリユーザー情報取得成功:', appUser.value?.name)
-    } catch (err) {
+      // レスポンスがdata.userの形式の場合
+      if (response.data?.data?.user) {
+        appUser.value = response.data.data.user
+      } else if (response.data?.data) {
+        appUser.value = response.data.data
+      } else {
+        throw new Error('ユーザー情報の形式が不正です')
+      }
+      
+      console.log('✅ アプリユーザー情報取得成功:', appUser.value?.name || appUser.value?.email)
+    } catch (err: any) {
       console.error('❌ アプリユーザー情報取得エラー:', err)
+      console.error('❌ エラー詳細:', err.response?.data)
+      
+      // 404の場合はユーザー同期を試みる
+      if (err.response?.status === 404) {
+        console.log('🔄 ユーザー同期を試みています...')
+        try {
+          const syncResponse = await apiService.post('/firebase-auth/sync')
+          if (syncResponse.data?.data?.user) {
+            appUser.value = syncResponse.data.data.user
+            console.log('✅ ユーザー同期成功:', appUser.value?.name || appUser.value?.email)
+            return
+          }
+        } catch (syncErr) {
+          console.error('❌ ユーザー同期エラー:', syncErr)
+        }
+      }
+      
       throw err
     }
   }

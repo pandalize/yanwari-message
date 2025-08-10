@@ -1,7 +1,7 @@
 <template>
   <div class="friends-list">
-    <div class="header">
-      <h3 class="title">友達リスト</h3>
+    <div class="section-header">
+      <h2 class="section-title">友達リスト</h2>
       <span class="count">{{ friends.length }}人</span>
     </div>
     
@@ -151,36 +151,34 @@ async function removeFriend() {
 
 <style scoped>
 .friends-list {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* 親要素のpaddingを活用するため、コンポーネント自体にはpaddingを設定しない */
 }
 
-.header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-.title {
-  font-size: 1.2rem;
+.section-title {
+  font-size: var(--font-size-lg);
   font-weight: 600;
-  color: #2d3748;
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .count {
-  font-size: 0.9rem;
-  color: #718096;
-  background: #f7fafc;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  background: var(--background-tertiary);
   padding: 4px 12px;
   border-radius: 16px;
 }
 
 .loading {
   text-align: center;
-  color: #718096;
+  color: var(--text-secondary);
   padding: 40px 20px;
 }
 
@@ -215,14 +213,16 @@ async function removeFriend() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  transition: border-color 0.2s;
+  padding: 20px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
 .friend-item:hover {
-  border-color: #cbd5e0;
+  background: var(--background-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .friend-info {
@@ -236,13 +236,13 @@ async function removeFriend() {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #81c784, #66bb6a);
+  background: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: 18px;
 }
 
 .details {
@@ -251,19 +251,19 @@ async function removeFriend() {
 
 .name {
   font-weight: 600;
-  color: #2d3748;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .email {
-  font-size: 0.85rem;
-  color: #718096;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
 .since {
-  font-size: 0.8rem;
-  color: #a0aec0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .actions {
@@ -272,17 +272,17 @@ async function removeFriend() {
 }
 
 .btn {
-  padding: 8px 12px;
+  padding: 8px 16px;
   border: none;
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

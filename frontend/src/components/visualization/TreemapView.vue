@@ -647,10 +647,13 @@ watch(() => props.messages, () => {
 .treemap-svg-container {
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 .treemap-svg {
   display: block;
+  position: relative;
+  z-index: 1;
 }
 
 .treemap-svg text {

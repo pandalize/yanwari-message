@@ -340,10 +340,28 @@ const formatOptionTime = (option: any) => {
   if (!option) return ''
   
   if (typeof option.delay_minutes === 'string') {
-    if (option.delay_minutes.includes('next_business_day')) {
-      return '明日の朝☀️　10:00'
+    // 文字列形式のdelay_minutesを適切な表示に変換
+    const now = new Date()
+    const nextBusinessDay = getNextBusinessDay(now)
+    
+    switch (option.delay_minutes) {
+      case 'next_business_day_9am':
+        return `${formatDateJapanese(nextBusinessDay)} 9:00`
+      case 'next_business_day_10am':
+        return `${formatDateJapanese(nextBusinessDay)} 10:00`
+      case 'next_business_day_8:30am':
+        return `${formatDateJapanese(nextBusinessDay)} 8:30`
+      case 'tomorrow_9am':
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        return `${formatDateJapanese(tomorrow)} 9:00`
+      case 'tomorrow_morning':
+        const tomorrowMorning = new Date(now)
+        tomorrowMorning.setDate(tomorrowMorning.getDate() + 1)
+        return `${formatDateJapanese(tomorrowMorning)} 9:00`
+      default:
+        return option.delay_minutes // フォールバック
     }
-    return option.delay_minutes
   }
   
   const now = new Date()
@@ -471,6 +489,41 @@ const loadAISuggestion = async () => {
 
 // 即座送信（削除 - scheduleMessage統合）
 
+// 翌営業日を取得するヘルパー関数
+const getNextBusinessDay = (date: Date): Date => {
+  const nextDay = new Date(date)
+  nextDay.setDate(nextDay.getDate() + 1)
+  
+  // 土曜日(6)の場合は月曜日(+2日)、日曜日(0)の場合は月曜日(+1日)
+  const dayOfWeek = nextDay.getDay()
+  if (dayOfWeek === 0) { // 日曜日
+    nextDay.setDate(nextDay.getDate() + 1)
+  } else if (dayOfWeek === 6) { // 土曜日
+    nextDay.setDate(nextDay.getDate() + 2)
+  }
+  
+  return nextDay
+}
+
+// 日付を日本語形式で表示するヘルパー関数
+const formatDateJapanese = (date: Date): string => {
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()]
+  
+  const today = new Date()
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  if (date.toDateString() === today.toDateString()) {
+    return '今日'
+  } else if (date.toDateString() === tomorrow.toDateString()) {
+    return '明日'
+  } else {
+    return `${month}/${day}(${dayOfWeek})`
+  }
+}
+
 // 戻るボタン
 const goBack = () => {
   if (messageId.value) {
@@ -508,10 +561,41 @@ const scheduleMessage = async () => {
     } else if (selectedOption.value.type === 'ai') {
       const option = selectedOption.value.data
       if (typeof option.delay_minutes === 'string') {
-        const tomorrow = new Date()
-        tomorrow.setDate(tomorrow.getDate() + 1)
-        tomorrow.setHours(10, 0, 0, 0)
-        scheduledAt = tomorrow.toISOString()
+        // 文字列形式のdelay_minutesを適切に処理
+        const now = new Date()
+        let scheduled: Date
+        
+        switch (option.delay_minutes) {
+          case 'next_business_day_9am':
+            scheduled = getNextBusinessDay(now)
+            scheduled.setHours(9, 0, 0, 0)
+            break
+          case 'next_business_day_10am':
+            scheduled = getNextBusinessDay(now)
+            scheduled.setHours(10, 0, 0, 0)
+            break
+          case 'next_business_day_8:30am':
+            scheduled = getNextBusinessDay(now)
+            scheduled.setHours(8, 30, 0, 0)
+            break
+          case 'tomorrow_9am':
+            scheduled = new Date(now)
+            scheduled.setDate(scheduled.getDate() + 1)
+            scheduled.setHours(9, 0, 0, 0)
+            break
+          case 'tomorrow_morning':
+            scheduled = new Date(now)
+            scheduled.setDate(scheduled.getDate() + 1)
+            scheduled.setHours(9, 0, 0, 0)
+            break
+          default:
+            // フォールバック: 翌営業日10時
+            scheduled = getNextBusinessDay(now)
+            scheduled.setHours(10, 0, 0, 0)
+            console.warn('未知のdelay_minutes文字列:', option.delay_minutes)
+        }
+        
+        scheduledAt = scheduled.toISOString()
       } else {
         const now = new Date()
         const delay = option.delay_minutes || 60

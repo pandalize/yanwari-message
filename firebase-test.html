@@ -77,7 +77,40 @@
                 const data = await response.json();
                 
                 resultDiv.innerHTML += `
-                    <h3>🧪 API Test Result</h3>
+                    <h3>🧪 API Test Result - Users/Me</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                // Test drafts API
+                await testDraftsAPI(idToken);
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <h3>❌ API Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testDraftsAPI(idToken) {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test drafts endpoint
+                const response = await fetch('http://127.0.0.1:8080/api/v1/messages/drafts', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML += `
+                    <h3>📝 下書き一覧 API Test Result</h3>
                     <p><strong>Status:</strong> ${response.status}</p>
                     <p><strong>Response:</strong></p>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
@@ -85,7 +118,7 @@
 
             } catch (error) {
                 resultDiv.innerHTML += `
-                    <h3>❌ API Test Failed</h3>
+                    <h3>❌ Drafts API Test Failed</h3>
                     <p><strong>Error:</strong> ${error.message}</p>
                 `;
             }

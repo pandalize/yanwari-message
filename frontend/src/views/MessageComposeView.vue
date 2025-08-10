@@ -1,7 +1,8 @@
 <template>
-  <div class="message-compose-view">
-    <!-- ページタイトル -->
-    <h1 class="page-title">送信</h1>
+  <PageContainer>
+    <div class="message-compose-view">
+      <!-- ページタイトル -->
+      <PageTitle>送信</PageTitle>
 
     <!-- 受信者情報表示 -->
     <MessageContainer 
@@ -141,7 +142,8 @@
         </div>
       </MessageContainer>
     </section>
-  </div>
+    </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
@@ -149,6 +151,8 @@ import { ref, onMounted, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessageStore } from '@/stores/messages'
 import type { MessageDraft } from '@/services/messageService'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 import SmallButton from '@/components/common/SmallButton.vue'
 import MessageContainer from '@/components/common/MessageContainer.vue'
 import MessageListItem from '@/components/common/MessageListItem.vue'
@@ -503,22 +507,9 @@ const transformTone = async () => {
 
 <style scoped>
 .message-compose-view {
-  padding: var(--spacing-2xl) var(--spacing-3xl);
-  max-width: 1200px;
-  margin: 0 auto;
-  background: var(--background-primary);
-  font-family: var(--font-family-main);
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.page-title {
-  font-size: var(--font-size-base);
-  color: var(--text-primary);
-  font-family: var(--font-family-main);
-  font-weight: var(--font-weight-regular);
-  margin: 0 0 var(--spacing-lg) 0;
 }
 
 
@@ -755,9 +746,6 @@ const transformTone = async () => {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .message-compose-view {
-    padding: var(--spacing-lg);
-  }
   
   .message-input-container,
   .drafts-container {

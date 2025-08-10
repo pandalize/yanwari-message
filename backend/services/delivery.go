@@ -58,14 +58,18 @@ func (s *DeliveryService) processScheduledMessages() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	log.Printf("🔍 スケジュール配信チェック開始 (時刻: %v)", time.Now().Format("2006-01-02 15:04:05"))
+
 	messages, err := s.messageService.DeliverScheduledMessages(ctx)
 	if err != nil {
-		log.Printf("スケジュール配信エラー: %v", err)
+		log.Printf("❌ スケジュール配信エラー: %v", err)
 		return
 	}
 
+	log.Printf("📋 配信対象メッセージ: %d件", len(messages))
+
 	if len(messages) > 0 {
-		log.Printf("配信開始: %d件のメッセージを配信中...", len(messages))
+		log.Printf("🚀 配信開始: %d件のメッセージを配信中...", len(messages))
 		
 		// 各メッセージについて実際の配信処理を実行
 		for _, msg := range messages {
@@ -82,8 +86,12 @@ func (s *DeliveryService) processScheduledMessages() {
 				msg.SentAt.Format("2006-01-02 15:04:05"))
 		}
 		
-		log.Printf("配信完了: %d件のメッセージ処理完了", len(messages))
+		log.Printf("✅ 配信完了: %d件のメッセージ処理完了", len(messages))
+	} else {
+		log.Printf("📭 配信対象メッセージなし")
 	}
+	
+	log.Printf("🔚 スケジュール配信チェック終了")
 }
 
 // deliverMessageToRecipient メッセージを受信者に実際に配信

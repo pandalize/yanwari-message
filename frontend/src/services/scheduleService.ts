@@ -18,7 +18,7 @@ export interface ScheduleSuggestionResponse {
     option: string
     priority: string
     reason: string
-    delay_minutes: number
+    delay_minutes: number | string // 数値または文字列（特殊な時間指定）を許可
   }>
 }
 

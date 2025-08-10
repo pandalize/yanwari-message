@@ -1,7 +1,7 @@
 <template>
-  <div class="history-page">
+  <PageContainer>
     <!-- ページタイトル -->
-    <h1 class="page-title">送信履歴</h1>
+    <PageTitle>送信履歴</PageTitle>
 
     <!-- 検索・フィルター -->
     <div class="filter-bar">
@@ -31,7 +31,7 @@
           v-for="message in filteredScheduledMessages" 
           :key="message.id" 
           :clickable="true"
-          min-height="60px"
+          min-height="80px"
           padding="var(--spacing-lg)"
           @click="showScheduleDetail(message.id)"
         >
@@ -42,9 +42,21 @@
             <div class="message-time">{{ formatDateTime(message.scheduledAt) }}</div>
           </template>
           <template #right>
-            <div class="action-buttons">
-              <SmallButton @click.stop="editMessage(message.id)" text="編集" title="メッセージを編集" />
-              <SmallButton @click.stop="cancelSchedule(message.id)" text="キャンセル" title="送信をキャンセル" />
+            <div class="action-buttons" @click.stop>
+              <button 
+                @click.stop="editMessage(message.id)" 
+                class="action-button edit-button"
+                title="メッセージを編集"
+              >
+                編集
+              </button>
+              <button 
+                @click.stop="cancelSchedule(message.id)" 
+                class="action-button cancel-button"
+                title="送信をキャンセル"
+              >
+                キャンセル
+              </button>
             </div>
           </template>
         </MessageListItem>
@@ -65,7 +77,7 @@
           v-for="message in filteredSentMessages" 
           :key="message.id" 
           :clickable="true"
-          min-height="60px"
+          min-height="80px"
           padding="var(--spacing-lg)"
           @click="showSentMessageDetail(message.id)"
         >
@@ -130,16 +142,17 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 import { messageService, getUserInfo, clearUserCache } from '@/services/messageService'
 import scheduleService from '@/services/scheduleService'
 import { apiService } from '@/services/api'
-import SmallButton from '@/components/common/SmallButton.vue'
 import MessageContainer from '@/components/common/MessageContainer.vue'
 import MessageListItem from '@/components/common/MessageListItem.vue'
 
@@ -230,14 +243,43 @@ const toggleSort = () => {
   sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
 }
 
-const editMessage = (messageId: string) => {
-  router.push({
-    name: 'message-compose',
-    query: { editId: messageId }
-  })
+const editMessage = async (messageId: string) => {
+  console.log('📝 編集ボタンがクリックされました:', messageId)
+  
+  try {
+    // スケジュール情報からメッセージIDを取得
+    const schedule = scheduledMessages.value.find(s => s.id === messageId)
+    if (!schedule || !schedule.messageId) {
+      console.error('スケジュールまたはメッセージIDが見つかりません')
+      alert('編集対象のメッセージが見つかりません')
+      return
+    }
+    
+    // メッセージの詳細を取得
+    const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
+    const message = messageResponse.data.data
+    
+    console.log('編集対象メッセージ:', message)
+    
+    // メッセージ編集画面に遷移（元のメッセージと受信者情報を渡す）
+    router.push({
+      name: 'message-compose',
+      query: { 
+        editId: messageId,
+        originalText: message.originalText || '',
+        recipientEmail: schedule.recipientEmail || '',
+        recipientName: schedule.recipientName || '',
+        editScheduleId: messageId // スケジュールIDも渡す
+      }
+    })
+  } catch (error) {
+    console.error('メッセージ編集準備エラー:', error)
+    alert('メッセージの編集準備に失敗しました')
+  }
 }
 
 const cancelSchedule = async (scheduleId: string) => {
+  console.log('🗑️ キャンセルボタンがクリックされました:', scheduleId)
   if (!confirm('このスケジュールをキャンセルしますか？')) {
     return
   }
@@ -608,25 +650,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.history-page {
-  background: var(--background-primary);
-  font-family: var(--font-family-main);
-  position: relative;
-  width: 1280px;
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-3xl);
-  box-sizing: border-box;
-}
-
-.page-title {
-  color: var(--text-primary);
-  font-size: var(--font-size-2xl);
-  font-weight: 600;
-  font-family: var(--font-family-main);
-  line-height: var(--line-height-base);
-  margin: 0 0 var(--spacing-xl) 0;
-}
 
 /* フィルターバー */
 .filter-bar {
@@ -687,6 +710,13 @@ onUnmounted(() => {
   max-width: 1104px;
 }
 
+/* メッセージアイテムの高さ統一 */
+.section :deep(.message-list-item) {
+  min-height: 80px !important;
+  display: flex;
+  align-items: center;
+}
+
 .section-title {
   font-size: var(--font-size-lg);
   font-weight: 600;
@@ -725,6 +755,35 @@ onUnmounted(() => {
   display: flex;
   gap: var(--spacing-sm);
   justify-content: flex-end;
+  align-items: center;
+  min-height: 32px; /* ボタンの高さを統一 */
+  z-index: 10; /* ボタンが確実にクリックできるように */
+  position: relative;
+  pointer-events: auto;
+}
+
+.action-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-main);
+  font-weight: var(--font-weight-regular);
+  pointer-events: auto;
+  z-index: 11;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background: var(--primary-color-dark);
+}
+
+.action-button:active {
+  background: var(--primary-color-darker);
 }
 
 
@@ -738,6 +797,10 @@ onUnmounted(() => {
   background: var(--success-color);
   border-radius: var(--radius-sm);
   border: 1px solid var(--success-color);
+  display: flex;
+  align-items: center;
+  min-height: 32px; /* アクションボタンと同じ高さに統一 */
+  box-sizing: border-box;
 }
 
 /* モーダルスタイル */

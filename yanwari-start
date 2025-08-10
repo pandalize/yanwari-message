@@ -19,8 +19,30 @@ NC='\033[0m' # No Color
 # プロジェクトルートディレクトリ
 PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Flutter パスの設定
-export PATH="$PATH:/Users/fujinoyuki/development/flutter/bin"
+# Flutter パスの設定（複数の可能なパスを試行）
+FLUTTER_PATHS=(
+    "/Users/hinano/development/flutter/bin"
+    "/Users/hinano/workspace/yanwari-message/flutter/bin"
+    "/opt/homebrew/bin"
+    "/usr/local/bin"
+)
+
+FLUTTER_FOUND=false
+for flutter_path in "${FLUTTER_PATHS[@]}"; do
+    if [ -f "$flutter_path/flutter" ]; then
+        export PATH="$PATH:$flutter_path"
+        echo "Flutter found at: $flutter_path"
+        FLUTTER_FOUND=true
+        break
+    fi
+done
+
+if [ "$FLUTTER_FOUND" = false ]; then
+    echo -e "${YELLOW}⚠️  Flutter SDKが見つかりません${NC}"
+    echo "Flutterをインストールするには以下のコマンドを実行してください:"
+    echo "  brew install --cask flutter"
+    echo "または手動でインストール: https://flutter.dev/docs/get-started/install"
+fi
 
 # シミュレーターIDを取得する関数
 get_simulator_id() {
@@ -280,6 +302,13 @@ start_all() {
     # 4. Flutterアプリの起動
     echo -e "\n${GREEN}4. Flutterモバイルアプリ起動中...${NC}"
     cd "$PROJECT_ROOT/mobile"
+
+    # Flutterの可用性を確認
+    if [ "$FLUTTER_FOUND" = false ] || ! which flutter > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  Flutter SDKが見つからないため、Flutterアプリをスキップします${NC}"
+        echo "Flutterをインストール後に再度お試しください"
+        return 0
+    fi
 
     # 依存関係の確認
     if [ ! -d "ios/Pods" ]; then

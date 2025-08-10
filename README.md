@@ -212,7 +212,7 @@ npm run dev:backend
 npm run dev
 ```
 
-#### MongoDB接続エラー
+#### ngoDB接続エラー
 
 **原因**: 環境変数の設定不備
 

@@ -1,7 +1,8 @@
 <template>
-  <div class="recipient-select-view">
-    <!-- ページタイトル -->
-    <h1 class="page-title">送信先を選択</h1>
+  <PageContainer>
+    <div class="recipient-select-view">
+      <!-- ページタイトル -->
+      <PageTitle>送信先を選択</PageTitle>
 
     <!-- 友達リスト -->
     <section class="friends-section">
@@ -13,7 +14,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="友達の名前、メールアドレス、IDで検索..."
+            placeholder="友達の名前、メールアドレスで検索..."
             class="search-input"
             @input="handleSearchInput"
           />
@@ -52,14 +53,11 @@
           :class="{ selected: selectedRecipient?.id === friendship.friend.id }"
         >
           <div class="friend-avatar">
-            {{ friendship.friend.name.charAt(0).toUpperCase() }}
+            {{ getFriendDisplayName(friendship.friend).charAt(0).toUpperCase() }}
           </div>
           <div class="friend-info">
-            <h3 class="friend-name" v-html="highlightMatch(friendship.friend.name)"></h3>
+            <h3 class="friend-name" v-html="highlightMatch(getFriendDisplayName(friendship.friend))"></h3>
             <p class="friend-email" v-html="highlightMatch(friendship.friend.email)"></p>
-            <p v-if="friendship.friend.id && searchQuery" class="friend-id">
-              ID: <span v-html="highlightMatch(friendship.friend.id)"></span>
-            </p>
           </div>
           <div class="select-indicator" v-if="selectedRecipient?.id === friendship.friend.id">
             ✓
@@ -82,17 +80,20 @@
       </button>
     </div>
 
-    <!-- エラー表示 -->
-    <div v-if="error" class="error-message">
-      {{ error }}
+      <!-- エラー表示 -->
+      <div v-if="error" class="error-message">
+        {{ error }}
+      </div>
     </div>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFriendsStore } from '@/stores/friends'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import PageTitle from '@/components/layout/PageTitle.vue'
 
 const router = useRouter()
 const friendsStore = useFriendsStore()
@@ -117,13 +118,11 @@ const filteredFriends = computed(() => {
   const query = searchQuery.value.toLowerCase().trim()
   return friends.value.filter(friendship => {
     const friend = friendship.friend
-    const name = (friend.name || '').toLowerCase()
+    const displayName = getFriendDisplayName(friend).toLowerCase()
     const email = (friend.email || '').toLowerCase()
-    const id = (friend.id || '').toLowerCase()
     
-    return name.includes(query) || 
-           email.includes(query) || 
-           id.includes(query)
+    return displayName.includes(query) || 
+           email.includes(query)
   })
 })
 
@@ -143,6 +142,16 @@ const clearSearch = () => {
   searchQuery.value = ''
 }
 
+// 友達の表示名を取得（displayNameがない場合はメールアドレスから名前部分を抽出）
+const getFriendDisplayName = (friend: any): string => {
+  if (friend.displayName) {
+    return friend.displayName
+  }
+  // メールアドレスから@より前の部分を名前として使用
+  const emailName = friend.email.split('@')[0]
+  return emailName
+}
+
 // 検索キーワードをハイライト
 const highlightMatch = (text: string): string => {
   if (!searchQuery.value.trim() || !text) {
@@ -156,7 +165,7 @@ const highlightMatch = (text: string): string => {
 
 const loadFriends = async () => {
   try {
-    await friendsStore.loadFriends()
+    await friendsStore.fetchFriends()
     friends.value = friendsStore.friends
   } catch (err) {
     console.error('友達一覧の取得に失敗:', err)
@@ -179,8 +188,8 @@ const proceedToCompose = () => {
   router.push({
     name: 'message-compose',
     query: {
-      recipientEmail: recipient.friend ? recipient.friend.email : recipient.email,
-      recipientName: recipient.friend ? recipient.friend.name : recipient.name
+      recipientEmail: recipient.email,
+      recipientName: getFriendDisplayName(recipient)
     }
   })
 }
@@ -193,29 +202,7 @@ onMounted(async () => {
 
 <style scoped>
 .recipient-select-view {
-  background: var(--background-primary);
-  font-family: var(--font-family-main);
-  min-height: 100vh;
-  padding: 32px 80px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.page-title {
-  color: var(--text-primary);
-  font-size: 24px;
-  font-weight: 600;
-  font-family: var(--font-family-main);
-  line-height: var(--line-height-base);
-  margin: 0 0 32px 0;
-}
-
-.section-title {
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 16px 0;
-  font-family: var(--font-family-main);
+  /* page-containerで統一されたスタイルを使用 */
 }
 
 .friends-section {
