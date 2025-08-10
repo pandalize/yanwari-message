@@ -2,10 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
+import '../models/dashboard.dart';
 import '../utils/design_system.dart';
+import 'settings_screen.dart';
+import 'delivery_status_screen.dart';
 
-class HomeScreenRedesigned extends StatelessWidget {
+class HomeScreenRedesigned extends StatefulWidget {
   const HomeScreenRedesigned({super.key});
+
+  @override
+  State<HomeScreenRedesigned> createState() => _HomeScreenRedesignedState();
+}
+
+class _HomeScreenRedesignedState extends State<HomeScreenRedesigned> {
+  DashboardData? _dashboardData;
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  /// ダッシュボードデータを読み込み
+  Future<void> _loadDashboardData() async {
+    if (!context.read<AuthService>().isAuthenticated) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final authService = context.read<AuthService>();
+      final apiService = ApiService(authService);
+      
+      final response = await apiService.getDashboard();
+      final dashboardData = DashboardData.fromJson(response['data']);
+      
+      setState(() {
+        _dashboardData = dashboardData;
+      });
+    } catch (e) {
+      print('ダッシュボードデータ読み込みエラー: $e');
+      setState(() {
+        _error = 'データの読み込みに失敗しました';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,10 +106,29 @@ class HomeScreenRedesigned extends StatelessWidget {
                             if (value == 'logout') {
                               await context.read<AuthService>().signOut();
                             } else if (value == 'settings') {
-                              // 設定画面へ遷移
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                              );
+                            } else if (value == 'delivery-status') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const DeliveryStatusScreen()),
+                              );
                             }
                           },
                           itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'delivery-status',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.track_changes,
+                                    color: YanwariDesignSystem.textPrimary,
+                                  ),
+                                  SizedBox(width: YanwariDesignSystem.spacingSm),
+                                  const Text('送信状況'),
+                                ],
+                              ),
+                            ),
                             PopupMenuItem<String>(
                               value: 'settings',
                               child: Row(
@@ -166,36 +235,71 @@ class HomeScreenRedesigned extends StatelessWidget {
                     style: YanwariDesignSystem.headingMd,
                   ),
                   SizedBox(height: YanwariDesignSystem.spacingMd),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.send_rounded,
-                          title: '送信',
-                          value: '12',
-                          color: YanwariDesignSystem.successColor,
+                  
+                  // データ読み込み状態の処理
+                  if (_isLoading)
+                    Container(
+                      height: 120,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 8),
+                            Text('統計データを読み込み中...'),
+                          ],
                         ),
                       ),
-                      SizedBox(width: YanwariDesignSystem.spacingSm),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.inbox_rounded,
-                          title: '受信',
-                          value: '8',
-                          color: YanwariDesignSystem.secondaryColor,
+                    )
+                  else if (_error != null)
+                    Container(
+                      height: 120,
+                      padding: EdgeInsets.all(YanwariDesignSystem.spacingMd),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(_error!, style: const TextStyle(color: Colors.red)),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: _loadDashboardData,
+                              child: const Text('再試行'),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: YanwariDesignSystem.spacingSm),
-                      Expanded(
-                        child: _buildStatCard(
-                          icon: Icons.people_rounded,
-                          title: '友達',
-                          value: '15',
-                          color: YanwariDesignSystem.primaryColorDark,
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.send_rounded,
+                            title: '送信',
+                            value: _dashboardData?.activityStats.thisMonth.messagesSent.toString() ?? '0',
+                            color: YanwariDesignSystem.successColor,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        SizedBox(width: YanwariDesignSystem.spacingSm),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.inbox_rounded,
+                            title: '受信',
+                            value: _dashboardData?.activityStats.thisMonth.messagesReceived.toString() ?? '0',
+                            color: YanwariDesignSystem.secondaryColor,
+                          ),
+                        ),
+                        SizedBox(width: YanwariDesignSystem.spacingSm),
+                        Expanded(
+                          child: _buildStatCard(
+                            icon: Icons.people_rounded,
+                            title: '友達',
+                            value: _dashboardData?.activityStats.total.friends.toString() ?? '0',
+                            color: YanwariDesignSystem.primaryColorDark,
+                          ),
+                        ),
+                      ],
+                    ),
                   SizedBox(height: YanwariDesignSystem.spacingXl),
 
                   // 最近のメッセージ
@@ -204,47 +308,63 @@ class HomeScreenRedesigned extends StatelessWidget {
                     style: YanwariDesignSystem.headingMd,
                   ),
                   SizedBox(height: YanwariDesignSystem.spacingMd),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: YanwariDesignSystem.neutralColor,
-                      borderRadius: BorderRadius.circular(YanwariDesignSystem.radiusLg),
-                      boxShadow: [YanwariDesignSystem.shadowSm],
-                      border: Border.all(
-                        color: YanwariDesignSystem.borderColor.withOpacity(0.1),
-                        width: 1,
+                  
+                  // 最近のメッセージ表示
+                  if (_dashboardData?.recentMessages.isEmpty ?? true)
+                    Container(
+                      padding: EdgeInsets.all(YanwariDesignSystem.spacingLg),
+                      decoration: BoxDecoration(
+                        color: YanwariDesignSystem.neutralColor,
+                        borderRadius: BorderRadius.circular(YanwariDesignSystem.radiusLg),
+                        boxShadow: [YanwariDesignSystem.shadowSm],
+                        border: Border.all(
+                          color: YanwariDesignSystem.borderColor.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'まだメッセージがありません',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        color: YanwariDesignSystem.neutralColor,
+                        borderRadius: BorderRadius.circular(YanwariDesignSystem.radiusLg),
+                        boxShadow: [YanwariDesignSystem.shadowSm],
+                        border: Border.all(
+                          color: YanwariDesignSystem.borderColor.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: _dashboardData!.recentMessages
+                          .take(3) // 最大3件まで表示
+                          .map((message) => Column(
+                            children: [
+                              _buildRecentMessageItem(
+                                name: message.displayName,
+                                message: message.text,
+                                time: _formatRelativeTime(message.sentAt),
+                                isRead: message.isRead,
+                                type: message.type,
+                              ),
+                              if (message != _dashboardData!.recentMessages.last)
+                                Divider(
+                                  height: 1,
+                                  color: YanwariDesignSystem.borderColor.withOpacity(0.3),
+                                ),
+                            ],
+                          ))
+                          .toList(),
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        _buildRecentMessageItem(
-                          name: '田中さん',
-                          message: 'ミーティングの件、了解しました！',
-                          time: '2時間前',
-                          isRead: false,
-                        ),
-                        Divider(
-                          height: 1,
-                          color: YanwariDesignSystem.borderColor.withOpacity(0.3),
-                        ),
-                        _buildRecentMessageItem(
-                          name: '佐藤さん',
-                          message: 'お疲れ様でした。明日もよろしくお願いします。',
-                          time: '昨日',
-                          isRead: true,
-                        ),
-                        Divider(
-                          height: 1,
-                          color: YanwariDesignSystem.borderColor.withOpacity(0.3),
-                        ),
-                        _buildRecentMessageItem(
-                          name: '鈴木さん',
-                          message: 'プレゼン資料、確認しました。',
-                          time: '2日前',
-                          isRead: true,
-                        ),
-                      ],
-                    ),
-                  ),
                   SizedBox(height: 100), // ボトムナビゲーション分のスペース
                 ],
               ),
@@ -296,11 +416,28 @@ class HomeScreenRedesigned extends StatelessWidget {
     );
   }
 
+  /// 相対時間をフォーマット
+  String _formatRelativeTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}分前';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}時間前';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}日前';
+    } else {
+      return '${dateTime.month}/${dateTime.day}';
+    }
+  }
+
   Widget _buildRecentMessageItem({
     required String name,
     required String message,
     required String time,
     required bool isRead,
+    String type = 'received', // 'sent' or 'received'
   }) {
     return ListTile(
       contentPadding: EdgeInsets.symmetric(

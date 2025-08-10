@@ -448,4 +448,29 @@ class ApiService {
     final response = await _dio.get('/health');
     return response.data;
   }
+
+  // ダッシュボード情報取得
+  Future<Map<String, dynamic>> getDashboard() async {
+    try {
+      final response = await _dio.get('/dashboard');
+      return response.data;
+    } catch (e) {
+      print('ダッシュボード情報取得エラー: $e');
+      rethrow;
+    }
+  }
+
+  // 送信状況一覧取得
+  Future<Map<String, dynamic>> getDeliveryStatuses({int page = 1, int limit = 20}) async {
+    try {
+      final response = await _dio.get('/delivery-status', queryParameters: {
+        'page': page,
+        'limit': limit,
+      });
+      return response.data;
+    } catch (e) {
+      print('送信状況取得エラー: $e');
+      rethrow;
+    }
+  }
 }
