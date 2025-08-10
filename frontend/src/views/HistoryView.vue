@@ -202,8 +202,8 @@ const filteredScheduledMessages = computed(() => {
   }
   
   return filtered.sort((a, b) => {
-    const dateA = new Date(a.scheduledAt || 0)
-    const dateB = new Date(b.scheduledAt || 0)
+    const dateA = parseDateTime(a.scheduledAt || '')
+    const dateB = parseDateTime(b.scheduledAt || '')
     return sortOrder.value === 'desc' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime()
   })
 })
@@ -219,17 +219,35 @@ const filteredSentMessages = computed(() => {
   }
   
   return filtered.sort((a, b) => {
-    const dateA = new Date(a.sentAt || 0)
-    const dateB = new Date(b.sentAt || 0)
+    const dateA = parseDateTime(a.sentAt || '')
+    const dateB = parseDateTime(b.sentAt || '')
     return sortOrder.value === 'desc' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime()
   })
 })
 
-// メソッド
+// メソッド - タイムゾーン統一処理を追加
+const parseDateTime = (dateString: string): Date => {
+  if (!dateString) return new Date()
+  
+  try {
+    // Parse the datetime string and ensure consistent timezone handling
+    const parsedDate = new Date(dateString)
+    
+    // Log timezone info for debugging
+    console.log(`🕐 [DateTime] Parsing: "${dateString}" → Local: ${parsedDate.toLocaleString()}`)
+    
+    return parsedDate
+  } catch (error) {
+    console.warn(`⚠️ DateTime parsing error for "${dateString}":`, error)
+    return new Date() // Fallback to current time
+  }
+}
+
 const formatDateTime = (dateString?: string) => {
   if (!dateString) return ''
   
-  const date = new Date(dateString)
+  // Use unified datetime parsing
+  const date = parseDateTime(dateString)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
@@ -492,10 +510,10 @@ const loadScheduledMessages = async () => {
               const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
               const message = messageResponse.data.data
 
-              // メッセージが実際に送信済み/配信済みの場合はnullを返す（除外する）
+              // 配信済みメッセージのログを出力するが、表示は継続
               if (message && ['sent', 'delivered', 'read'].includes(message.status)) {
-                console.log(`スケジュール ${schedule.id} は既に配信済み (${message.status}) のためスキップ`)
-                return null
+                console.log(`⚠️ スケジュール ${schedule.id} は既に配信済み (${message.status}) ですが、一覧に表示します`)
+                // return null; // コメントアウトして表示を継続
               }
 
               if (message?.recipientId && message.recipientId !== '000000000000000000000000') {
@@ -515,7 +533,7 @@ const loadScheduledMessages = async () => {
             messageId: schedule.messageId, // メッセージIDを追加
             recipientName,
             recipientEmail,
-            scheduledAt: schedule.scheduledAt,
+            scheduledAt: schedule.scheduledAt, // APIから直接の値を使用（parseDateTime は表示時に適用）
             status: 'scheduled' as const,
             originalText: 'スケジュールされたメッセージ',
             finalText: 'スケジュールされたメッセージ',

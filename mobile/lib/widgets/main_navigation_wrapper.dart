@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/recipient_select_screen.dart';
 import '../screens/home_screen_redesigned.dart';
 import '../screens/inbox_only_screen.dart';
-import '../screens/scheduled_messages_screen_redesigned.dart';
+import '../screens/history_screen.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
   final int initialIndex;
@@ -26,8 +26,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     const RecipientSelectScreen(),
     // 受信画面 - InboxOnlyScreen（受信トレイのみ）
     const InboxOnlyScreen(),
-    // 予定画面 - ScheduledMessagesScreenRedesigned（送信予定と送信済み）
-    const ScheduledMessagesScreenRedesigned(),
+    // 履歴画面 - HistoryScreen（送信予定と送信済み）
+    const HistoryScreen(),
     // 友達画面
     const Scaffold(
       backgroundColor: Colors.white,
@@ -75,8 +75,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             label: '受信',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.schedule),
-            label: '予定',
+            icon: Icon(Icons.history),
+            label: '履歴',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.people),

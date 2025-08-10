@@ -68,6 +68,19 @@ class ApiService {
     return response.data;
   }
 
+  // ユーザー情報を取得（ID指定）
+  Future<Map<String, dynamic>> getUser(String userId) async {
+    print('📡 [API] getUser($userId) 開始');
+    try {
+      final response = await _dio.get('/users/$userId');
+      print('📡 [API] getUser($userId) 成功: ${response.statusCode}');
+      return response.data;
+    } catch (e) {
+      print('📡 [API] getUser($userId) エラー: $e');
+      rethrow;
+    }
+  }
+
   // Firebase→MongoDB同期
   Future<Map<String, dynamic>> syncUserToMongoDB(String name) async {
     final response = await _dio.post('/firebase-auth/sync', data: {
@@ -222,8 +235,16 @@ class ApiService {
 
   // スケジュール一覧取得
   Future<Map<String, dynamic>> getSchedules() async {
-    final response = await _dio.get('/schedules/');
-    return response.data;
+    print('📡 [API] getSchedules() 開始');
+    try {
+      final response = await _dio.get('/schedules/');
+      print('📡 [API] getSchedules() 成功: ${response.statusCode}');
+      print('📡 [API] レスポンス: ${response.data}');
+      return response.data;
+    } catch (e) {
+      print('📡 [API] getSchedules() エラー: $e');
+      rethrow;
+    }
   }
 
   // スケジュール更新

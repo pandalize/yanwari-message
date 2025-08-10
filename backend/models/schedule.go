@@ -146,9 +146,18 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 		"status":   MessageStatusDraft, // draft状態のメッセージのみ更新可能
 	}
 
-	_, err = s.messageService.collection.UpdateOne(ctx, messageFilter, bson.M{"$set": messageUpdateData})
+	updateResult, err := s.messageService.collection.UpdateOne(ctx, messageFilter, bson.M{"$set": messageUpdateData})
 	if err != nil {
 		return nil, err
+	}
+	
+	// デバッグログ: メッセージ更新結果
+	fmt.Printf("🔄 [CreateSchedule] メッセージ更新結果: MessageID=%s, MatchedCount=%d, ModifiedCount=%d\n", 
+		messageID.Hex(), updateResult.MatchedCount, updateResult.ModifiedCount)
+	
+	if updateResult.MatchedCount == 0 {
+		fmt.Printf("⚠️ [CreateSchedule] メッセージが見つからないか、条件に一致しません: MessageID=%s, UserID=%s, ExpectedStatus=%s\n",
+			messageID.Hex(), userID.Hex(), MessageStatusDraft)
 	}
 
 	result, err := s.collection.InsertOne(ctx, schedule)
@@ -157,6 +166,23 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 	}
 
 	schedule.ID = result.InsertedID.(primitive.ObjectID)
+	
+	// デバッグログ: 作成完了後のメッセージ状態を確認
+	var createdMessage struct {
+		ID        primitive.ObjectID `bson:"_id"`
+		Status    string             `bson:"status"`
+		ScheduledAt time.Time        `bson:"scheduledAt"`
+		SenderID  primitive.ObjectID `bson:"senderId"`
+	}
+	err = s.messageService.collection.FindOne(ctx, bson.M{"_id": messageID}).Decode(&createdMessage)
+	if err == nil {
+		fmt.Printf("✅ [CreateSchedule] 作成後メッセージ確認: ID=%s, Status=%s, ScheduledAt=%s, SenderID=%s\n",
+			createdMessage.ID.Hex(), createdMessage.Status, 
+			createdMessage.ScheduledAt.Format("2006-01-02 15:04:05"), createdMessage.SenderID.Hex())
+	} else {
+		fmt.Printf("❌ [CreateSchedule] メッセージ確認エラー: %v\n", err)
+	}
+	
 	return schedule, nil
 }
 

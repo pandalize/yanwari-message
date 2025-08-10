@@ -14,7 +14,7 @@ class ScheduledMessagesScreenRedesigned extends StatefulWidget {
   State<ScheduledMessagesScreenRedesigned> createState() => _ScheduledMessagesScreenRedesignedState();
 }
 
-class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScreenRedesigned> {
+class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScreenRedesigned> with RouteAware {
   bool _isLoading = false;
   String _filter = 'pending'; // pending, sent
   List<Map<String, dynamic>> _scheduledMessages = [];
@@ -32,16 +32,54 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
     }
   }
 
+  // ページが再表示されるたびにデータを再読み込み
+  @override
+  void didUpdateWidget(ScheduledMessagesScreenRedesigned oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print('🔄 [DEBUG] didUpdateWidget - データを再読み込みします');
+    _loadScheduledMessages();
+  }
+
+  // 他の画面から戻ってきた時に呼ばれる
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    print('🔄 [DEBUG] didPopNext - 他画面から戻りました。データを再読み込み');
+    _loadScheduledMessages();
+  }
+
+  // このページが表示された時に呼ばれる
+  @override
+  void didPush() {
+    super.didPush();
+    print('🔄 [DEBUG] didPush - ページが表示されました');
+  }
+
   Future<void> _loadScheduledMessages() async {
+    print('🔄 [DEBUG] _loadScheduledMessages() 開始');
     setState(() {
       _isLoading = true;
     });
 
     try {
+      print('🔄 [DEBUG] APIからスケジュール一覧を取得中...');
       final response = await _apiService.getSchedules();
 
       if (response['data'] != null && response['data']['schedules'] != null) {
         final schedules = response['data']['schedules'] as List;
+        print('🔍 [DEBUG] 取得したスケジュール数: ${schedules.length}');
+        
+        // 最新の数件を詳細表示
+        for (int i = 0; i < schedules.length && i < 5; i++) {
+          final schedule = schedules[i];
+          print('🔍 [DEBUG] スケジュール$i: status=${schedule['status']}, scheduledAt=${schedule['scheduledAt']}, id=${schedule['id']}');
+        }
+        
+        // pendingステータスのスケジュール数をカウント
+        final pendingCount = schedules.where((s) => s['status'] == 'pending').length;
+        final sentCount = schedules.where((s) => s['status'] == 'sent').length;
+        final scheduledCount = schedules.where((s) => s['status'] == 'scheduled').length;
+        print('🔍 [DEBUG] ステータス別: pending=$pendingCount, sent=$sentCount, scheduled=$scheduledCount');
         
         setState(() {
           _scheduledMessages = schedules.map((schedule) {
@@ -63,9 +101,16 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
             };
           }).toList();
 
-          // 送信予定時刻順にソート
+          // 送信予定時刻順にソート（新しいものが上に来るように）
           _scheduledMessages.sort((a, b) => 
-            (a['scheduledAt'] as DateTime).compareTo(b['scheduledAt'] as DateTime));
+            (b['scheduledAt'] as DateTime).compareTo(a['scheduledAt'] as DateTime));
+        });
+        
+        print('🔄 [DEBUG] スケジュール一覧の更新完了。合計: ${_scheduledMessages.length}件');
+      } else {
+        print('🔄 [DEBUG] APIレスポンスが空または無効です');
+        setState(() {
+          _scheduledMessages = [];
         });
       }
     } catch (e) {
@@ -100,23 +145,46 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
   }
 
   List<Map<String, dynamic>> get _filteredMessages {
+    print('🔍 [DEBUG] フィルター開始: $_filter, 全件数: ${_scheduledMessages.length}');
+    
+    final now = DateTime.now();
+    List<Map<String, dynamic>> result;
+    
     switch (_filter) {
       case 'pending':
-        return _scheduledMessages.where((msg) => 
-          msg['status'] == 'scheduled' && 
-          (msg['scheduledAt'] as DateTime).isAfter(DateTime.now())
+        result = _scheduledMessages.where((msg) => 
+          (msg['status'] == 'scheduled' || msg['status'] == 'pending') && 
+          (msg['scheduledAt'] as DateTime).isAfter(now)
         ).toList();
+        print('🔍 [DEBUG] pendingフィルター条件: status=scheduled/pending AND scheduledAt > $now');
+        break;
       case 'sent':
-        return _scheduledMessages.where((msg) => 
+        result = _scheduledMessages.where((msg) => 
           msg['status'] == 'sent' || 
-          (msg['status'] == 'scheduled' && (msg['scheduledAt'] as DateTime).isBefore(DateTime.now()))
+          ((msg['status'] == 'scheduled' || msg['status'] == 'pending') && (msg['scheduledAt'] as DateTime).isBefore(now))
         ).toList();
+        print('🔍 [DEBUG] sentフィルター条件: status=sent OR (status=scheduled/pending AND scheduledAt < $now)');
+        break;
       default:
-        return _scheduledMessages.where((msg) => 
-          msg['status'] == 'scheduled' && 
-          (msg['scheduledAt'] as DateTime).isAfter(DateTime.now())
+        result = _scheduledMessages.where((msg) => 
+          (msg['status'] == 'scheduled' || msg['status'] == 'pending') && 
+          (msg['scheduledAt'] as DateTime).isAfter(now)
         ).toList();
     }
+    
+    print('🔍 [DEBUG] フィルター結果: ${result.length}件');
+    
+    // 結果の詳細をログ出力
+    for (int i = 0; i < result.length && i < 3; i++) {
+      final msg = result[i];
+      final messageText = (msg['messageText'] as String?) ?? '';
+      final truncatedText = messageText.length > 20 
+          ? '${messageText.substring(0, 20)}...' 
+          : messageText;
+      print('🔍 [DEBUG] フィルター結果$i: status=${msg['status']}, scheduledAt=${msg['scheduledAt']}, text=$truncatedText');
+    }
+    
+    return result;
   }
 
   Future<void> _editSchedule(Map<String, dynamic> schedule) async {
@@ -379,7 +447,10 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadScheduledMessages,
+            onPressed: () {
+              print('🔄 [DEBUG] 手動更新ボタンが押されました');
+              _loadScheduledMessages();
+            },
             tooltip: '更新',
           ),
         ],
@@ -395,7 +466,10 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => setState(() => _filter = 'pending'),
+                      onPressed: () {
+                        print('🔄 [DEBUG] 送信予定フィルターが選択されました');
+                        setState(() => _filter = 'pending');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _filter == 'pending' ? Colors.orange : Colors.grey.shade300,
                         foregroundColor: _filter == 'pending' ? Colors.white : Colors.black,
@@ -406,7 +480,10 @@ class _ScheduledMessagesScreenRedesignedState extends State<ScheduledMessagesScr
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => setState(() => _filter = 'sent'),
+                      onPressed: () {
+                        print('🔄 [DEBUG] 送信済みフィルターが選択されました');
+                        setState(() => _filter = 'sent');
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _filter == 'sent' ? Colors.blue : Colors.grey.shade300,
                         foregroundColor: _filter == 'sent' ? Colors.white : Colors.black,

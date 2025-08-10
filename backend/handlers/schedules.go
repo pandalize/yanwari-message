@@ -163,12 +163,15 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 // GetSchedules スケジュール一覧取得
 // GET /api/v1/schedules
 func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
+	fmt.Printf("🔍 [GetSchedules] API呼び出し開始\n")
 	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
+		fmt.Printf("❌ [GetSchedules] Firebase認証エラー: %v\n", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 	currentUserID := currentUser.ID
+	fmt.Printf("✅ [GetSchedules] 認証成功: UserID=%s, Email=%s\n", currentUserID.Hex(), currentUser.Email)
 
 	// クエリパラメータを取得
 	status := c.Query("status")
