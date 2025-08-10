@@ -197,6 +197,7 @@ func main() {
 	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
 	messageRatingHandler := handlers.NewMessageRatingHandler(messageRatingService, messageService)
 	dashboardHandler := handlers.NewDashboardHandler(messageService, userService)
+	testHandler := handlers.NewTestHandler(userService, messageService)
 	
 	// Firebase認証ハンドラーの初期化
 	var firebaseAuthHandler *handlers.FirebaseAuthHandler
@@ -233,6 +234,11 @@ func main() {
 		// ダッシュボードエンドポイント
 		v1.GET("/dashboard", firebaseMiddleware, dashboardHandler.GetDashboard)
 		v1.GET("/delivery-status", firebaseMiddleware, dashboardHandler.GetDeliveryStatuses)
+		
+		// 開発環境専用テストエンドポイント（Firebase認証なし）
+		if gin.Mode() == gin.DebugMode {
+			testHandler.RegisterTestRoutes(v1)
+		}
 		
 		log.Println("✅ 全APIエンドポイントでFirebase認証を使用")
 	}
