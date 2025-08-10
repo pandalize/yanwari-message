@@ -54,8 +54,7 @@ interface ApiResponse<T> {
 class RatingService {
   // メッセージを評価
   async rateMessage(messageId: string, rating: number): Promise<MessageRating> {
-    const response = await apiService.post(`/ratings`, {
-      messageId,
+    const response = await apiService.post(`/messages/${messageId}/rate`, {
       rating
     })
     return response.data.data
@@ -64,7 +63,7 @@ class RatingService {
   // メッセージの評価を取得
   async getMessageRating(messageId: string): Promise<MessageRating | null> {
     try {
-      const response = await apiService.get(`/ratings/${messageId}`)
+      const response = await apiService.get(`/messages/${messageId}/rating`)
       return response.data.data
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -76,7 +75,7 @@ class RatingService {
 
   // メッセージの評価を削除
   async deleteMessageRating(messageId: string): Promise<void> {
-    await apiService.delete(`/ratings/${messageId}`)
+    await apiService.delete(`/messages/${messageId}/rating`)
   }
 
   // 評価付き受信トレイを取得
