@@ -1,255 +1,104 @@
 # やんわり伝言サービス
 
-AI を使って気まずい用件を優しく伝えるサービスです。上司⇔部下・恋人など「気まずい用件」を AI で優しく変換し、デリケートなコミュニケーションを支援します。
+AI を使って気まずい用件を優しく伝えるサービスです。
 
-## 🚀 機能
+## 🚀 実装済み機能
 
-### 現在利用可能
-- ✅ **ユーザー認証** - セキュアなメール・パスワード認証（JWT + Argon2）
-- ✅ **API サーバー** - Go + Gin による高性能バックエンド
+### コア機能
+- ✅ **Firebase認証** - セキュアな認証システム
+- ✅ **メッセージ作成・編集** - リアルタイム下書き保存
+- ✅ **AIトーン変換** - 3種類の並行変換（優しめ・建設的・カジュアル）
+- ✅ **スケジュール送信** - AI時間提案・配信予約
+- ✅ **友達申請システム** - 申請・承諾・管理
+- ✅ **メッセージ評価** - 5段階評価・ツリーマップ可視化
+- ✅ **設定機能** - プロフィール・通知・パスワード管理
 
-### 開発予定
-- 🔄 **メッセージ下書き作成** - AI によるトーン変換（gentle/constructive/casual）
-- 🔄 **送信スケジュール設定** - 指定時刻での自動送信
-- 🔄 **履歴管理** - 送信履歴の一覧・検索機能
+### プラットフォーム
+- ✅ **Webアプリ** - Vue 3 + TypeScript
+- ✅ **iOSアプリ** - Flutter（受信トレイ実装済み）
+- 🔄 **Androidアプリ** - Flutter（開発中）
 
 ## 🛠 技術スタック
 
+- **バックエンド**: Go 1.23+ + Gin + Firebase認証 + MongoDB Atlas
 - **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia
-- **バックエンド**: Go 1.24+ + Gin + JWT認証
-- **データベース**: MongoDB Atlas
+- **モバイル**: Flutter (iOS/Android)
 - **AI連携**: Anthropic Claude API
-- **認証**: Argon2 パスワードハッシュ化 + JWT
+- **データベース**: MongoDB Atlas
 
 ## 📦 セットアップ
 
 ### 必要な環境
 - Go 1.23.0+
 - Node.js 18.0+
+- Flutter (モバイル開発の場合)
 - MongoDB Atlas アカウント
+- Firebase プロジェクト
 - Anthropic API キー
 
-### インストール手順
+### クイックスタート
 
-1. **リポジトリのクローン**
 ```bash
-git clone <repository-url>
-cd yanwari-message
-```
-
-2. **依存関係のインストール**
-```bash
-# 全体の依存関係をインストール
+# 1. 依存関係のインストール
 npm run install:all
 
-# または個別にインストール
-cd backend && go mod download && cd ..
-cd frontend && npm install && cd ..
-```
-
-⚠️ **重要**: `npm run dev` を実行する前に、必ず依存関係のインストールを完了してください。
-
-3. **環境変数の設定**
-```bash
+# 2. 環境変数の設定
 npm run setup:env
-```
+# backend/.env を編集して実際の値を設定
 
-その後、`backend/.env` ファイルを編集して実際の値を設定：
-```env
-PORT=8080
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/yanwari-message
-ANTHROPIC_API_KEY=your_anthropic_api_key_here  
-JWT_SECRET=your_jwt_secret_here
-# Firebase設定（必要に応じて）
-FIREBASE_PROJECT_ID=yanwari-message
-```
-
-## 🚦 使用方法
-
-### 開発サーバーの起動
-
-**すべて同時起動（推奨）:**
-```bash
+# 3. 開発サーバー起動
 npm run dev
+# または統合スクリプト
+./yanwari-start
 ```
 
-**個別起動:**
-```bash
-# バックエンドのみ（Go サーバー）
-npm run dev:backend    # http://localhost:8080
+### 各プラットフォーム個別起動
 
-# フロントエンドのみ（Vue 開発サーバー）
-npm run dev:frontend   # http://localhost:5173
+```bash
+# Webのみ
+npm run dev:frontend  # http://localhost:5173
+npm run dev:backend   # http://localhost:8080
+
+# モバイル（iOS）
+cd mobile && flutter run
 ```
 
-### APIテスト
+## 📱 アプリフロー
 
-認証システムの動作確認：
-```bash
-# サーバー動作確認
-curl -X GET http://localhost:8080/health
+1. **ユーザー登録・ログイン**（Firebase認証）
+2. **友達申請・承諾**
+3. **メッセージ作成**
+4. **AIトーン変換**（3種類から選択）
+5. **AI時間提案**（メッセージ分析で最適タイミング提案）
+6. **配信時間決定・送信**
+7. **受信・評価**
 
-# ユーザー登録
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"newuser@example.com","password":"password123"}'
-```
-
-詳細なAPIテストコマンドは `API_TEST_COMMANDS.md` を参照してください。
-
-## 🧪 テスト
+## 🧪 テスト・品質管理
 
 ```bash
-# すべてのテストを実行
+# 全てのテスト
 npm run test
 
-# フロントエンドテストのみ
-npm run test:frontend
-
-# バックエンドテストのみ
-npm run test:backend
-
-# E2Eテスト
-npm run test:e2e
-```
-
-## 🔧 開発用コマンド
-
-```bash
-# コード品質チェック
+# リント・フォーマット
 npm run lint
-
-# コードフォーマット
 npm run format
 
-# プロダクションビルド
-npm run build
-
-# 依存関係のクリーンアップ
-npm run clean
+# APIテスト
+./test_message.sh
 ```
 
-## 📁 プロジェクト構成
+## 📚 詳細ドキュメント
 
-```
-yanwari-message/
-├── backend/              # Go + Gin APIサーバー
-│   ├── main.go          # サーバーエントリーポイント
-│   └── handlers/        # API ハンドラー
-├── frontend/            # Vue 3 + TypeScript
-│   ├── src/
-│   │   ├── components/  # Vue コンポーネント
-│   │   ├── stores/      # Pinia 状態管理
-│   │   └── router/      # Vue Router 設定
-│   └── package.json
-├── API_TEST_COMMANDS.md # APIテスト用コマンド集
-├── CLAUDE.md           # AI開発アシスタント用ガイド
-└── package.json        # プロジェクト管理用スクリプト
-```
+- **開発者ガイド**: `CLAUDE.md`
+- **API仕様**: `docs/API_REFERENCE.md`
+- **APIテスト**: `API_TEST_COMMANDS.md`
+- **モバイル開発**: `mobile/README.md`
 
-## 🔐 セキュリティ
+## 🤝 開発参加
 
-- Argon2 による暗号学的に安全なパスワードハッシュ化
-- JWT トークン（アクセス15分、リフレッシュ14日）
-- CORS 適切な設定
-- OWASP Top 10 準拠を目指した実装
+現在のブランチ:
+- **メイン**: `main`
+- **開発**: `develop`
+- **現在**: `fix/message-rating-system`
 
-## 🤝 開発に参加する
-
-### ブランチ戦略
-- `main` - 本番環境用
-- `develop` - 開発統合用  
-- `feature/*` - 機能開発用
-
-### 開発フロー
-1. feature ブランチで開発
-2. Pull Request 作成
-3. コードレビュー
-4. develop ブランチにマージ
-
-詳細な開発ガイドラインは `CLAUDE.md` を参照してください。
-
-## 📄 ライセンス
-
-MIT License
-
-## 🔧 トラブルシューティング
-
-### よくある問題と解決方法
-
-#### Firebase依存関係エラー
-```
-Failed to resolve import "firebase/app" from "src/services/firebase.ts"
-```
-
-**原因**: フロントエンドの依存関係がインストールされていない
-
-**解決方法**:
-```bash
-# フロントエンドの依存関係を再インストール
-cd frontend
-npm install
-cd ..
-
-# または全体をクリーンインストール
-npm run clean
-npm run install:all
-```
-
-#### サーバー接続エラー
-```
-curl: (7) Failed to connect to localhost port 8080
-```
-
-**原因**: バックエンドサーバーが起動していない
-
-**解決方法**:
-```bash
-# バックエンドサーバーを起動
-npm run dev:backend
-
-# または全体を起動
-npm run dev
-```
-
-#### ngoDB接続エラー
-
-**原因**: 環境変数の設定不備
-
-**解決方法**:
-1. `backend/.env` ファイルが存在することを確認
-2. `MONGODB_URI` が正しく設定されていることを確認
-3. MongoDB Atlas の IP アドレス制限を確認
-
-#### その他のセットアップ問題
-
-1. **Node.js バージョン確認**:
-   ```bash
-   node --version  # 18.0+ が必要
-   npm --version
-   ```
-
-2. **Go バージョン確認**:
-   ```bash
-   go version  # 1.23.0+ が必要
-   ```
-
-3. **依存関係の完全クリーンアップ**:
-   ```bash
-   npm run clean
-   rm -rf frontend/node_modules
-   rm -rf backend/vendor
-   npm run install:all
-   ```
-
-## 🆘 サポート
-
-問題が発生した場合：
-1. 上記のトラブルシューティングを確認
-2. `API_TEST_COMMANDS.md` でAPIの動作確認
-3. Issues ページで既知の問題を確認
-4. 新しい Issue を作成
-
----
-
-**Status**: 🚧 開発中 - F-01 認証システム完了、F-02+ 実装予定
+機能開発は `feature/*` ブランチで行い、`develop` を経由して `main` にマージします。
