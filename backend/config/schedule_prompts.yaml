@@ -1,0 +1,105 @@
+# やんわり伝言 - AI送信時間提案プロンプト設定
+# メッセージ内容を分析して最適な送信タイミングを提案
+
+system_role: "あなたは日本のビジネスコミュニケーション専門家です。相手への配慮を最優先に、メッセージの最適な送信タイミングを提案してください。"
+
+ai_model:
+  name: "claude-3-5-sonnet-20241022"
+  max_tokens: 500
+
+schedule_analysis:
+  instruction_template: |
+    以下のメッセージを分析し、最適な送信タイミングを提案してください。
+    
+    メッセージ内容: "{{.MessageText}}"
+    選択されたトーン: {{.SelectedTone}}
+    現在時刻: {{.CurrentTime}}
+    曜日: {{.DayOfWeek}}
+    
+    以下の観点で分析してください：
+    1. メッセージの種類（謝罪、お礼、依頼、報告、相談、確認など）
+    2. 緊急度レベル（高/中/低）
+    3. 相手への配慮（即座送信/少し時間を置く/翌日など）
+    4. 日本のビジネスマナー的な最適タイミング
+    5. 時間帯や曜日による適切性
+
+    必ず以下のJSON形式で回答してください：
+    {
+      "message_type": "謝罪|お礼|依頼|報告|相談|確認|連絡|その他",
+      "urgency_level": "高|中|低",
+      "recommended_timing": "今すぐ|1時間以内|当日中|翌朝|翌日中|来週",
+      "reasoning": "推奨理由を日本語で100文字以内で説明",
+      "suggested_options": [
+        {
+          "option": "今すぐ送信",
+          "priority": "最推奨|推奨|選択肢",
+          "reason": "選択理由を簡潔に",
+          "delay_minutes": 0
+        },
+        {
+          "option": "1時間後",
+          "priority": "推奨|選択肢",
+          "reason": "選択理由を簡潔に", 
+          "delay_minutes": 60
+        },
+        {
+          "option": "明日朝9時",
+          "priority": "推奨|選択肢",
+          "reason": "選択理由を簡潔に",
+          "delay_minutes": "next_business_day_9am"
+        },
+        {
+          "option": "明日朝10時",
+          "priority": "選択肢",
+          "reason": "より遅い時間で配慮",
+          "delay_minutes": "next_business_day_10am"
+        }
+      ]
+    }
+
+# メッセージタイプ別デフォルト提案パターン
+default_suggestions:
+  謝罪:
+    urgency_level: "高"
+    recommended_timing: "今すぐ"
+    reasoning: "謝罪は迅速さが重要。相手への誠意を示すため早めの送信を推奨します。"
+    
+  お礼:
+    urgency_level: "中" 
+    recommended_timing: "当日中"
+    reasoning: "感謝の気持ちは早めに伝える方が効果的ですが、緊急性は高くありません。"
+    
+  依頼:
+    urgency_level: "中"
+    recommended_timing: "1時間以内"
+    reasoning: "依頼は相手の時間を考慮し、少し考える時間を置いてから送信することを推奨します。"
+    
+  報告:
+    urgency_level: "中"
+    recommended_timing: "翌朝"
+    reasoning: "報告は相手が落ち着いて確認できる時間帯での送信を推奨します。"
+
+# 時間帯別配慮事項
+time_considerations:
+  early_morning: # 6:00-9:00
+    caution: "早朝のため、緊急でない限り9時以降の送信を推奨"
+    
+  business_hours: # 9:00-18:00
+    preference: "ビジネスアワーのため、即座送信も可能"
+    
+  evening: # 18:00-22:00  
+    caution: "夕方以降のため、緊急でない内容は翌朝送信を検討"
+    
+  night: # 22:00-6:00
+    strong_caution: "夜間のため、緊急事態以外は翌朝送信を強く推奨"
+
+# 曜日別配慮事項  
+day_considerations:
+  monday:
+    note: "週始めで忙しいため、重要でない内容は火曜日以降を検討"
+    
+  friday:
+    note: "週末前で忙しいため、急ぎでない内容は翌週を検討"
+    
+  weekend:
+    caution: "休日のため、業務関連は月曜日以降の送信を推奨"

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Firebase Authentication Test</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <h1>Firebase Authentication Test</h1>
+    
+    <div id="login-form">
+        <h2>Login</h2>
+        <input type="email" id="email" placeholder="Email" value="alice@yanwari.com">
+        <input type="password" id="password" placeholder="Password" value="AliceDemo123!">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="result" style="margin-top: 20px;">
+        <!-- Results will appear here -->
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDMN2wUjE6NicanP0KP8ybnPgJZloMNOoI",
+            authDomain: "yanwari-message.firebaseapp.com",
+            projectId: "yanwari-message"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Sign in with email and password
+                const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Get ID token
+                const idToken = await user.getIdToken();
+                
+                resultDiv.innerHTML = `
+                    <h3>✅ Login Success!</h3>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>UID:</strong> ${user.uid}</p>
+                    <p><strong>ID Token:</strong></p>
+                    <textarea style="width:100%; height:200px;">${idToken}</textarea>
+                    <br><br>
+                    <button onclick="testAPI('${idToken}')">Test API</button>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ Login Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+
+        async function testAPI(idToken) {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test Firebase auth endpoint
+                const response = await fetch('http://localhost:8080/api/v1/users/me', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML += `
+                    <h3>🧪 API Test Result - Users/Me</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                // Test drafts API
+                await testDraftsAPI(idToken);
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <h3>❌ API Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+        
+        async function testDraftsAPI(idToken) {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test drafts endpoint
+                const response = await fetch('http://127.0.0.1:8080/api/v1/messages/drafts', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                resultDiv.innerHTML += `
+                    <h3>📝 下書き一覧 API Test Result</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <h3>❌ Drafts API Test Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
