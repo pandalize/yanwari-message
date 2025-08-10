@@ -1,0 +1,120 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { scheduleService, type Schedule } from '@/services/scheduleService'
+
+export const useSchedulesStore = defineStore('schedules', () => {
+  // State
+  const schedules = ref<Schedule[]>([])
+  const isLoading = ref(false)
+  const error = ref<string | null>(null)
+  const pagination = ref({
+    page: 1,
+    limit: 20,
+    total: 0
+  })
+
+  // Actions
+  const loadSchedules = async (page = 1, limit = 20, status?: string) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const response = await scheduleService.getSchedules(page, limit, status)
+      schedules.value = response.schedules
+      pagination.value = response.pagination
+    } catch (err: any) {
+      error.value = err.message || 'スケジュールの読み込みに失敗しました'
+      console.error('Failed to load schedules:', err)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const createSchedule = async (messageId: string, scheduledAt: string) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const schedule = await scheduleService.createSchedule({
+        messageId,
+        scheduledAt
+      })
+      
+      // Add to existing list if it's the current page
+      schedules.value.unshift(schedule)
+      pagination.value.total += 1
+      
+      return schedule
+    } catch (err: any) {
+      error.value = err.message || 'スケジュールの作成に失敗しました'
+      console.error('Failed to create schedule:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const updateSchedule = async (id: string, data: { scheduledAt?: string, status?: string }) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      const updatedSchedule = await scheduleService.updateSchedule(id, data)
+      
+      // Update in existing list
+      const index = schedules.value.findIndex(s => s.id === id)
+      if (index !== -1) {
+        schedules.value[index] = updatedSchedule
+      }
+      
+      return updatedSchedule
+    } catch (err: any) {
+      error.value = err.message || 'スケジュールの更新に失敗しました'
+      console.error('Failed to update schedule:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const deleteSchedule = async (id: string) => {
+    isLoading.value = true
+    error.value = null
+    
+    try {
+      await scheduleService.deleteSchedule(id)
+      
+      // Remove from existing list
+      const index = schedules.value.findIndex(s => s.id === id)
+      if (index !== -1) {
+        schedules.value.splice(index, 1)
+        pagination.value.total -= 1
+      }
+    } catch (err: any) {
+      error.value = err.message || 'スケジュールの削除に失敗しました'
+      console.error('Failed to delete schedule:', err)
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const clearError = () => {
+    error.value = null
+  }
+
+  return {
+    // State
+    schedules,
+    isLoading,
+    error,
+    pagination,
+    
+    // Actions
+    loadSchedules,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule,
+    clearError
+  }
+})

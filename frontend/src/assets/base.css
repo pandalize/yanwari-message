@@ -1,52 +1,107 @@
-/* color palette from <https://github.com/vuejs/theme> */
+/* やんわり伝言 デザインシステム - Figmaベース */
 :root {
-  --vt-c-white: #ffffff;
-  --vt-c-white-soft: #f8f8f8;
-  --vt-c-white-mute: #f2f2f2;
+  /* ===== カラーパレット ===== */
+  /* Figma Primary Colors */
+  --primary-color: #CDE6FF;
+  --primary-color-dark: #B8DBFF;
+  --primary-color-light: #E8F3FF;
+  
+  /* Figma Secondary Colors (メインカラー) */
+  --secondary-color: #92C9FF;
+  --secondary-color-dark: #7DB8FF;
+  --secondary-color-light: #A7D4FF;
+  
+  /* Basic Colors */
+  --neutral-color: #FFFFFF;
+  --gray-color: #D9D9D9;
+  --gray-color-dark: #C4C4C4;
+  --gray-color-light: #EEEEEE;
+  
+  /* Status Colors */
+  --success-color: #B5FCB0;
+  --error-color: #FF9B9B;
+  
+  /* Text Colors */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-muted: #999999;
+  --text-inverse: #FFFFFF;
+  
+  /* Background Colors */
+  --background-primary: var(--neutral-color);
+  --background-secondary: var(--primary-color-light);
+  --background-tertiary: var(--gray-color-light);
+  --background-muted: var(--gray-color-light);
+  
+  /* Border Colors */
+  --border-color: var(--gray-color);
+  --border-color-hover: var(--gray-color-dark);
+  --border-color-focus: var(--secondary-color);
+  
+  /* ===== Figmaタイポグラフィ ===== */
+  --font-family-main: 'ABeeZee', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', Meiryo, sans-serif;
+  --font-size-base: 18px;
+  --font-weight-regular: 400;
+  --line-height-base: 100%;
+  
+  /* 使用中のフォントサイズのみ */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-size-4xl: 36px;
+  
+  /* 使用中のライン高のみ */
+  --line-height-normal: 140%;
+  --line-height-relaxed: 160%;
+  
+  /* ===== 使用中のスペーシングのみ ===== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  
+  /* ===== 使用中のボーダーラディウスのみ ===== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* ===== 使用中のシャドウのみ ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
-  --vt-c-black: #181818;
-  --vt-c-black-soft: #222222;
-  --vt-c-black-mute: #282828;
-
-  --vt-c-indigo: #2c3e50;
-
-  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
-  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
-  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
-  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
-
-  --vt-c-text-light-1: var(--vt-c-indigo);
-  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
-  --vt-c-text-dark-1: var(--vt-c-white);
-  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+  /* ===== レスポンシブブレークポイント ===== */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1200px;
+  
+  /* ===== レイアウト最大幅 ===== */
+  --max-width-content: 100%;
+  --max-width-narrow: 100%;
+  --max-width-container: 1200px;
+  --max-width-container-narrow: 800px;
 }
 
-/* semantic color variables for this project */
-:root {
-  --color-background: var(--vt-c-white);
-  --color-background-soft: var(--vt-c-white-soft);
-  --color-background-mute: var(--vt-c-white-mute);
-
-  --color-border: var(--vt-c-divider-light-2);
-  --color-border-hover: var(--vt-c-divider-light-1);
-
-  --color-heading: var(--vt-c-text-light-1);
-  --color-text: var(--vt-c-text-light-1);
-
-  --section-gap: 160px;
-}
-
+/* ダークモード対応（将来的に実装） */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: var(--vt-c-black);
-    --color-background-soft: var(--vt-c-black-soft);
-    --color-background-mute: var(--vt-c-black-mute);
-
-    --color-border: var(--vt-c-divider-dark-2);
-    --color-border-hover: var(--vt-c-divider-dark-1);
-
-    --color-heading: var(--vt-c-text-dark-1);
-    --color-text: var(--vt-c-text-dark-2);
+    --background-primary: #1a1a1a;
+    --background-secondary: #2a2a2a;
+    --background-muted: #333333;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #999999;
+    --border-color: #444444;
+    --border-color-hover: #555555;
   }
 }
 
@@ -60,26 +115,15 @@
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
+  color: var(--text-primary);
+  background: var(--background-primary);
   transition:
-    color 0.5s,
-    background-color 0.5s;
-  line-height: 1.6;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
-    sans-serif;
-  font-size: 15px;
+    color 0.3s ease,
+    background-color 0.3s ease;
+  line-height: var(--line-height-base);
+  font-family: var(--font-family-main);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

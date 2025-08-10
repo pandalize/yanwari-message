@@ -16,7 +16,9 @@ import (
 
 	"yanwari-message-backend/database"
 	"yanwari-message-backend/handlers"
+	"yanwari-message-backend/middleware"
 	"yanwari-message-backend/models"
+	"yanwari-message-backend/services"
 )
 
 // サーバー起動時間を記録
@@ -49,11 +51,28 @@ func main() {
 	// ユーザーサービスの初期化
 	userService := models.NewUserService(db.Database)
 	
-	// メールアドレスのユニークインデックスを作成
+	// メッセージサービスの初期化
+	messageService := models.NewMessageService(db.Database, userService)
+	
+	// スケジュールサービスの初期化
+	scheduleService := models.NewScheduleService(db.Database, messageService)
+	
+	// インデックス作成
 	ctx := context.Background()
 	if err := userService.CreateEmailIndex(ctx); err != nil {
 		log.Printf("警告: メールインデックス作成エラー: %v", err)
 	}
+	if err := userService.CreateNameIndex(ctx); err != nil {
+		log.Printf("警告: 名前インデックス作成エラー: %v", err)
+	}
+	if err := messageService.CreateIndexes(ctx); err != nil {
+		log.Printf("警告: メッセージインデックス作成エラー: %v", err)
+	}
+
+	// 配信サービスの初期化
+	deliveryService := services.NewDeliveryService(messageService, scheduleService)
+	// 1分間隔でスケジュール配信をチェック
+	deliveryService.Start(1 * time.Minute)
 
 	// Ginルーターの初期化
 	r := gin.Default()
@@ -144,20 +163,78 @@ func main() {
 		})
 	})
 
-	// 認証ハンドラーの初期化
-	authHandler := handlers.NewAuthHandler(userService)
+	// Firebase サービスの初期化
+	firebaseService, err := services.NewFirebaseService()
+	if err != nil {
+		log.Printf("警告: Firebase初期化エラー (開発モードで継続): %v", err)
+		firebaseService = nil // Firebase無効で継続
+	} else {
+		log.Println("✅ Firebase Admin SDK初期化完了")
+	}
+
+	// サービスの初期化
+	userSettingsService := models.NewUserSettingsService(db.Database, userService)
+	friendRequestService := models.NewFriendRequestService(db.Database)
+	friendshipService := models.NewFriendshipService(db.Database)
+	messageRatingService := models.NewMessageRatingService(db.Database)
+	
+	// ユーザー設定インデックス作成
+	if err := userSettingsService.CreateIndexes(ctx); err != nil {
+		log.Printf("警告: ユーザー設定インデックス作成エラー: %v", err)
+	}
+	
+	// Firebase UIDインデックス作成
+	if err := userService.CreateFirebaseUIDIndex(ctx); err != nil {
+		log.Printf("警告: Firebase UIDインデックス作成エラー: %v", err)
+	}
+
+	// ハンドラーの初期化（JWT認証ハンドラーは廃止）
+	userHandler := handlers.NewUserHandler(userService)
+	messageHandler := handlers.NewMessageHandler(messageService)
+	transformHandler := handlers.NewTransformHandler(messageService)
+	scheduleHandler := handlers.NewScheduleHandler(scheduleService, messageService, deliveryService)
+	settingsHandler := handlers.NewSettingsHandler(userService, userSettingsService)
+	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
+	messageRatingHandler := handlers.NewMessageRatingHandler(messageRatingService, messageService)
+	dashboardHandler := handlers.NewDashboardHandler(messageService, userService)
+	
+	// Firebase認証ハンドラーの初期化
+	var firebaseAuthHandler *handlers.FirebaseAuthHandler
+	var firebaseMiddleware gin.HandlerFunc
+	
+	if firebaseService != nil {
+		firebaseAuthHandler = handlers.NewFirebaseAuthHandler(userService, firebaseService)
+		firebaseMiddleware = middleware.FirebaseAuthMiddleware(firebaseService)
+		log.Println("✅ Firebase認証ハンドラー初期化完了")
+	} else {
+		log.Println("⚠️ Firebase認証ハンドラーをスキップ（Firebase未初期化）")
+	}
+
+	// Firebase認証が必須（JWT認証は廃止）
+	if firebaseService == nil || firebaseMiddleware == nil {
+		log.Fatal("❌ Firebase認証が必須です。Firebase設定を確認してください。")
+	}
 
 	// API v1 ルートグループ
 	v1 := r.Group("/api/v1")
 	{
-		// 認証関連エンドポイント
-		auth := v1.Group("/auth")
-		{
-			auth.POST("/register", authHandler.Register)   // ユーザー登録
-			auth.POST("/login", authHandler.Login)         // ログイン
-			auth.POST("/refresh", authHandler.RefreshToken) // トークンリフレッシュ
-			auth.POST("/logout", authHandler.Logout)       // ログアウト
-		}
+		// Firebase認証関連エンドポイント（認証不要・ユーティリティ）
+		firebaseAuthHandler.RegisterRoutes(v1, firebaseMiddleware)
+
+		// すべてのAPIエンドポイントでFirebase認証を使用
+		userHandler.RegisterRoutes(v1, firebaseMiddleware)
+		messageHandler.RegisterRoutes(v1, firebaseMiddleware)
+		messageRatingHandler.RegisterRoutes(v1, firebaseMiddleware)
+		friendRequestHandler.RegisterRoutes(v1, firebaseMiddleware)
+		transformHandler.RegisterRoutes(v1, firebaseMiddleware)
+		scheduleHandler.RegisterRoutes(v1, firebaseMiddleware)
+		settingsHandler.RegisterRoutes(v1, firebaseMiddleware)
+		
+		// ダッシュボードエンドポイント
+		v1.GET("/dashboard", firebaseMiddleware, dashboardHandler.GetDashboard)
+		v1.GET("/delivery-status", firebaseMiddleware, dashboardHandler.GetDeliveryStatuses)
+		
+		log.Println("✅ 全APIエンドポイントでFirebase認証を使用")
 	}
 
 	// HTTPサーバーの設定
@@ -188,6 +265,10 @@ func main() {
 	// シャットダウンタイムアウト設定（30秒）
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// 配信サービスの停止
+	log.Println("Stopping delivery service...")
+	deliveryService.Stop()
 
 	// HTTPサーバーのグレースフルシャットダウン
 	if err := srv.Shutdown(ctx); err != nil {

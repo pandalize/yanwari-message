@@ -7,13 +7,22 @@ import App from './App.vue'
 import router from './router'
 import { useAuthStore } from '@/stores/auth'
 
-const app = createApp(App)
-const pinia = createPinia()
+// アプリケーション初期化の非同期関数
+async function initializeApp() {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(pinia)
-app.use(router)
+  app.use(pinia)
+  app.use(router)
 
-const authStore = useAuthStore()
-authStore.initializeAuth()
+  // Firebase認証の初期化を待機
+  console.log('🔥 Firebase認証初期化を開始...')
+  const authStore = useAuthStore()
+  await authStore.initializeAuth()
+  console.log('🔥 Firebase認証初期化完了 - アプリをマウント')
 
-app.mount('#app')
+  app.mount('#app')
+}
+
+// アプリケーション初期化実行
+initializeApp().catch(console.error)
