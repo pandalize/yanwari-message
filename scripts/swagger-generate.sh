@@ -14,7 +14,7 @@ fi
 # 2. フロントエンド型定義生成
 cd ../frontend
 echo "🔄 TypeScript型定義生成中..."
-npx swagger-typescript-api -p ../backend/docs/swagger.json -o src/types/api --name api.ts --no-client
+npx swagger-typescript-api generate -p ../backend/docs/swagger.json -o src/types/api --name api.ts --no-client
 
 echo "✅ 生成完了！"
 echo "📋 生成されたファイル:"

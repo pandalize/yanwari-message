@@ -1,4 +1,155 @@
 basePath: /api/v1
+definitions:
+  models.CreateMessageRequest:
+    properties:
+      originalText:
+        maxLength: 1000
+        type: string
+      reason:
+        maxLength: 500
+        type: string
+      recipientEmail:
+        type: string
+    type: object
+  models.GetSentMessagesResponse:
+    properties:
+      data:
+        properties:
+          messages:
+            items:
+              $ref: '#/definitions/models.MessageWithRecipientInfo'
+            type: array
+          pagination:
+            $ref: '#/definitions/models.PaginationResponse'
+        type: object
+      message:
+        type: string
+    type: object
+  models.Message:
+    properties:
+      createdAt:
+        type: string
+      deliveredAt:
+        type: string
+      finalText:
+        type: string
+      id:
+        type: string
+      originalText:
+        type: string
+      readAt:
+        type: string
+      reason:
+        type: string
+      recipientId:
+        type: string
+      scheduledAt:
+        type: string
+      selectedTone:
+        type: string
+      senderId:
+        type: string
+      sentAt:
+        type: string
+      status:
+        $ref: '#/definitions/models.MessageStatus'
+      updatedAt:
+        type: string
+      variations:
+        $ref: '#/definitions/models.MessageVariations'
+    type: object
+  models.MessageResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.Message'
+      message:
+        type: string
+    type: object
+  models.MessageStatus:
+    enum:
+    - draft
+    - processing
+    - scheduled
+    - sent
+    - delivered
+    - read
+    type: string
+    x-enum-comments:
+      MessageStatusDelivered: 配信完了
+      MessageStatusDraft: 下書き
+      MessageStatusProcessing: AI変換中
+      MessageStatusRead: 既読
+      MessageStatusScheduled: 送信予約済み
+      MessageStatusSent: 送信完了
+    x-enum-descriptions:
+    - 下書き
+    - AI変換中
+    - 送信予約済み
+    - 送信完了
+    - 配信完了
+    - 既読
+    x-enum-varnames:
+    - MessageStatusDraft
+    - MessageStatusProcessing
+    - MessageStatusScheduled
+    - MessageStatusSent
+    - MessageStatusDelivered
+    - MessageStatusRead
+  models.MessageVariations:
+    properties:
+      casual:
+        type: string
+      constructive:
+        type: string
+      gentle:
+        type: string
+    type: object
+  models.MessageWithRecipientInfo:
+    properties:
+      createdAt:
+        type: string
+      deliveredAt:
+        type: string
+      finalText:
+        type: string
+      id:
+        type: string
+      originalText:
+        type: string
+      readAt:
+        type: string
+      reason:
+        type: string
+      recipientEmail:
+        type: string
+      recipientId:
+        type: string
+      recipientName:
+        type: string
+      scheduledAt:
+        type: string
+      selectedTone:
+        type: string
+      senderId:
+        type: string
+      sentAt:
+        type: string
+      status:
+        $ref: '#/definitions/models.MessageStatus'
+      updatedAt:
+        type: string
+      variations:
+        $ref: '#/definitions/models.MessageVariations'
+    type: object
+  models.PaginationResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -13,6 +164,48 @@ info:
   title: Yanwari Message API
   version: "1.0"
 paths:
+  /api/v1/messages/draft:
+    post:
+      consumes:
+      - application/json
+      description: ユーザーがメッセージの下書きを作成します。AIによるトーン変換も含まれます。
+      parameters:
+      - description: メッセージ作成リクエスト
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 作成成功
+          schema:
+            $ref: '#/definitions/models.MessageResponse'
+        "400":
+          description: リクエストエラー
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: 認証エラー
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: サーバーエラー
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 下書きメッセージを作成
+      tags:
+      - messages
   /messages/sent:
     get:
       consumes:
@@ -36,10 +229,9 @@ paths:
       - application/json
       responses:
         "200":
-          description: 成功レスポンス
+          description: 送信済みメッセージ一覧（recipientName、recipientEmailフィールド付き）
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/models.GetSentMessagesResponse'
         "401":
           description: 認証エラー
           schema:

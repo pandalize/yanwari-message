@@ -21,6 +21,72 @@
     "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/api/v1/messages/draft": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "ユーザーがメッセージの下書きを作成します。AIによるトーン変換も含まれます。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "下書きメッセージを作成",
+                "parameters": [
+                    {
+                        "description": "メッセージ作成リクエスト",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.CreateMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "作成成功",
+                        "schema": {
+                            "$ref": "#/definitions/models.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "リクエストエラー",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "認証エラー",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/messages/sent": {
             "get": {
                 "security": [
@@ -60,10 +126,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功レスポンス",
+                        "description": "送信済みメッセージ一覧（recipientName、recipientEmailフィールド付き）",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/models.GetSentMessagesResponse"
                         }
                     },
                     "401": {
@@ -80,6 +145,226 @@
                             "additionalProperties": true
                         }
                     }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.CreateMessageRequest": {
+            "type": "object",
+            "properties": {
+                "originalText": {
+                    "type": "string",
+                    "maxLength": 1000
+                },
+                "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "recipientEmail": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GetSentMessagesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "messages": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.MessageWithRecipientInfo"
+                            }
+                        },
+                        "pagination": {
+                            "$ref": "#/definitions/models.PaginationResponse"
+                        }
+                    }
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Message": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deliveredAt": {
+                    "type": "string"
+                },
+                "finalText": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "originalText": {
+                    "type": "string"
+                },
+                "readAt": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "recipientId": {
+                    "type": "string"
+                },
+                "scheduledAt": {
+                    "type": "string"
+                },
+                "selectedTone": {
+                    "type": "string"
+                },
+                "senderId": {
+                    "type": "string"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.MessageStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "variations": {
+                    "$ref": "#/definitions/models.MessageVariations"
+                }
+            }
+        },
+        "models.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.Message"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MessageStatus": {
+            "type": "string",
+            "enum": [
+                "draft",
+                "processing",
+                "scheduled",
+                "sent",
+                "delivered",
+                "read"
+            ],
+            "x-enum-comments": {
+                "MessageStatusDelivered": "配信完了",
+                "MessageStatusDraft": "下書き",
+                "MessageStatusProcessing": "AI変換中",
+                "MessageStatusRead": "既読",
+                "MessageStatusScheduled": "送信予約済み",
+                "MessageStatusSent": "送信完了"
+            },
+            "x-enum-descriptions": [
+                "下書き",
+                "AI変換中",
+                "送信予約済み",
+                "送信完了",
+                "配信完了",
+                "既読"
+            ],
+            "x-enum-varnames": [
+                "MessageStatusDraft",
+                "MessageStatusProcessing",
+                "MessageStatusScheduled",
+                "MessageStatusSent",
+                "MessageStatusDelivered",
+                "MessageStatusRead"
+            ]
+        },
+        "models.MessageVariations": {
+            "type": "object",
+            "properties": {
+                "casual": {
+                    "type": "string"
+                },
+                "constructive": {
+                    "type": "string"
+                },
+                "gentle": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.MessageWithRecipientInfo": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deliveredAt": {
+                    "type": "string"
+                },
+                "finalText": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "originalText": {
+                    "type": "string"
+                },
+                "readAt": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "recipientEmail": {
+                    "type": "string"
+                },
+                "recipientId": {
+                    "type": "string"
+                },
+                "recipientName": {
+                    "type": "string"
+                },
+                "scheduledAt": {
+                    "type": "string"
+                },
+                "selectedTone": {
+                    "type": "string"
+                },
+                "senderId": {
+                    "type": "string"
+                },
+                "sentAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/models.MessageStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "variations": {
+                    "$ref": "#/definitions/models.MessageVariations"
+                }
+            }
+        },
+        "models.PaginationResponse": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         }

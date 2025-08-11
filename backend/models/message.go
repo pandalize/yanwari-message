@@ -78,6 +78,22 @@ type MessageWithRecipientInfo struct {
 	RecipientEmail string `json:"recipientEmail,omitempty"`
 }
 
+// GetSentMessagesResponse 送信済みメッセージ一覧レスポンス
+type GetSentMessagesResponse struct {
+	Data struct {
+		Messages   []MessageWithRecipientInfo `json:"messages"`
+		Pagination PaginationResponse         `json:"pagination"`
+	} `json:"data"`
+	Message string `json:"message"`
+}
+
+// PaginationResponse ページネーション情報
+type PaginationResponse struct {
+	Page  int   `json:"page"`
+	Limit int   `json:"limit"`
+	Total int64 `json:"total"`
+}
+
 // UpdateMessageRequest メッセージ更新リクエスト
 type UpdateMessageRequest struct {
 	RecipientEmail   string            `json:"recipientEmail,omitempty"`

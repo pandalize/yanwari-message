@@ -155,6 +155,7 @@ import scheduleService from '@/services/scheduleService'
 import { apiService } from '@/services/api'
 import MessageContainer from '@/components/common/MessageContainer.vue'
 import MessageListItem from '@/components/common/MessageListItem.vue'
+import type { ModelsGetSentMessagesResponse, ModelsMessageWithRecipientInfo } from '@/types/api/api'
 
 interface HistoryMessage {
   id: string
@@ -553,21 +554,22 @@ const loadScheduledMessages = async () => {
 
 const loadSentMessages = async () => {
   try {
-    // 送信済みメッセージAPIを使用
+    // 送信済みメッセージAPIを使用（新しい型定義を適用）
     const response = await apiService.get('/messages/sent?page=1&limit=100')
     
     console.log('送信済みメッセージAPI レスポンス:', response.data)
-    const sentMessagesData = response.data.data?.messages || []
+    const sentMessagesResponse = response.data as ModelsGetSentMessagesResponse
+    const sentMessagesData = sentMessagesResponse.data?.messages || []
     console.log('取得した送信済みメッセージ数:', sentMessagesData.length)
     
     if (sentMessagesData.length > 0) {
-      // APIレスポンスに含まれる受信者情報を直接使用
-      const formattedMessages = sentMessagesData.map((message: any) => {
-        // APIから返される受信者情報を使用
+      // APIレスポンスに含まれる受信者情報を直接使用（型安全）
+      const formattedMessages = sentMessagesData.map((message: ModelsMessageWithRecipientInfo) => {
+        // APIから返される受信者情報を使用 - recipientNameフィールドが自動的に含まれる
         const recipientName = message.recipientName || 'Unknown User'
         const recipientEmail = message.recipientEmail || 'unknown@example.com'
         
-        console.log('送信済みメッセージ:', {
+        console.log('送信済みメッセージ（型安全）:', {
           id: message.id,
           recipientName,
           recipientEmail,
@@ -575,12 +577,12 @@ const loadSentMessages = async () => {
         })
 
         const formattedMessage = {
-          id: message.id,
+          id: message.id || '',
           recipientName,
           recipientEmail,
           sentAt: message.sentAt || message.updatedAt,
           isRead: message.status === 'read',
-          status: message.status,
+          status: message.status || 'sent',
           originalText: message.originalText || 'メッセージ',
           finalText: message.finalText || message.originalText || 'メッセージ'
         }
