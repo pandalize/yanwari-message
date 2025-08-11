@@ -316,10 +316,8 @@ class _DraftListViewState extends State<DraftListView> {
                                       Text(
                                         truncatedText,
                                         style: YanwariDesignSystem.bodySm.copyWith(
-                                          color: isSelected 
-                                              ? YanwariDesignSystem.primaryColor 
-                                              : YanwariDesignSystem.textPrimary,
-                                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                          color: YanwariDesignSystem.textPrimary,
+                                          fontWeight: FontWeight.normal,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -354,9 +352,7 @@ class _DraftListViewState extends State<DraftListView> {
                                             child: Text(
                                               truncatedReason,
                                               style: YanwariDesignSystem.bodySm.copyWith(
-                                                color: isSelected 
-                                                    ? YanwariDesignSystem.primaryColor 
-                                                    : YanwariDesignSystem.textSecondary,
+                                                color: YanwariDesignSystem.textSecondary,
                                                 fontWeight: FontWeight.normal,
                                                 fontSize: 13,
                                               ),

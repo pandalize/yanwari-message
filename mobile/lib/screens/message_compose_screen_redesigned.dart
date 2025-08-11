@@ -7,8 +7,6 @@ import 'package:dio/dio.dart';
 import '../utils/design_system.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../widgets/layout/page_container.dart';
-import '../widgets/layout/page_title.dart';
 import '../widgets/draft_list_view.dart';
 import 'tone_selection_screen.dart';
 
@@ -538,27 +536,42 @@ class _MessageComposeScreenRedesignedState extends State<MessageComposeScreenRed
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: YanwariDesignSystem.backgroundPrimary,
-      body: PageContainer(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ヘッダー
-              Row(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
+            width: double.infinity,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: YanwariDesignSystem.textPrimary,
+              // ページタイトル（統一デザイン）
+              Container(
+                width: double.infinity,
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: Color(0xFF1F2937),
+                      ),
                     ),
-                  ),
-                  const Expanded(
-                    child: PageTitle(title: 'メッセージ作成'),
-                  ),
-                ],
+                    const Expanded(
+                      child: Text(
+                        'メッセージ作成',
+                        style: TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               
               // 送信先情報
@@ -923,9 +936,11 @@ class _MessageComposeScreenRedesignedState extends State<MessageComposeScreenRed
                 },
               ),
               
-            ],
+              ],
+            ),
           ),
         ),
+      ),
       ),
     );
   }

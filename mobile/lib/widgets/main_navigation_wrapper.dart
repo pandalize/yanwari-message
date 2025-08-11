@@ -3,6 +3,7 @@ import '../screens/recipient_select_screen.dart';
 import '../screens/home_screen_redesigned.dart';
 import '../screens/inbox_only_screen.dart';
 import '../screens/schedule_only_screen.dart';
+import '../screens/friend_management_screen.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
   final int initialIndex;
@@ -28,22 +29,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     const InboxOnlyScreen(),
     // 予定画面 - ScheduleOnlyScreen（送信予定と送信済み）
     const ScheduleOnlyScreen(),
-    // 友達画面
-    const Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.people, size: 64, color: Colors.red),
-            SizedBox(height: 16),
-            Text('友達管理画面', style: TextStyle(fontSize: 24)),
-            SizedBox(height: 8),
-            Text('友達管理機能は準備中です'),
-          ],
-        ),
-      ),
-    ),
+    // 友達画面 - FriendManagementScreen
+    const FriendManagementScreen(),
   ];
 
   @override

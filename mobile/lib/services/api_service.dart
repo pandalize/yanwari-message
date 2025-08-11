@@ -408,6 +408,61 @@ class ApiService {
     });
   }
 
+  // ユーザー検索（友達検索用）
+  Future<Map<String, dynamic>> searchUsers({
+    required String query,
+    int? limit,
+    int? offset,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'q': query,
+    };
+    
+    if (limit != null) queryParams['limit'] = limit;
+    if (offset != null) queryParams['offset'] = offset;
+    
+    try {
+      final response = await _dio.get('/users/search', queryParameters: queryParams);
+      return response.data;
+    } catch (e) {
+      print('ユーザー検索API エラー: $e');
+      // APIがまだ実装されていない場合のフォールバック
+      if (e.toString().contains('404')) {
+        // モックレスポンスを返す（開発中のため）
+        return {
+          'success': true,
+          'data': {
+            'users': [],
+            'total': 0,
+            'query': query,
+          },
+        };
+      }
+      rethrow;
+    }
+  }
+
+  // メールアドレスでユーザー検索
+  Future<Map<String, dynamic>> findUserByEmail(String email) async {
+    try {
+      final response = await _dio.get('/users/find-by-email', queryParameters: {
+        'email': email,
+      });
+      return response.data;
+    } catch (e) {
+      print('メールアドレス検索API エラー: $e');
+      // APIがまだ実装されていない場合のフォールバック
+      if (e.toString().contains('404')) {
+        return {
+          'success': false,
+          'error': 'User not found',
+          'data': null,
+        };
+      }
+      rethrow;
+    }
+  }
+
 
   // ユーザー設定取得
   Future<Map<String, dynamic>> getUserSettings() async {

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 // Import services, screens, and design system
 import 'services/auth_service.dart';
+import 'services/api_service.dart';
+import 'services/friend_service.dart';
 import 'screens/auth_wrapper.dart';
 import 'utils/design_system.dart';
 
@@ -40,6 +42,12 @@ class YanwariApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ProxyProvider<AuthService, ApiService>(
+          update: (_, authService, __) => ApiService(authService),
+        ),
+        ProxyProvider2<AuthService, ApiService, FriendService>(
+          update: (_, authService, apiService, __) => FriendService(apiService, authService),
+        ),
       ],
       child: MaterialApp(
         title: 'やんわり伝言',
