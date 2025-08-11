@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../widgets/treemap_widget.dart';
 
 class InboxOnlyScreen extends StatefulWidget {
   const InboxOnlyScreen({super.key});
@@ -348,201 +349,34 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
   // ツリーマップビュー
   Widget _buildTreemapView() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // ツリーマップヘッダー
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F9FF),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFBAE6FD)),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.auto_graph,
-                  color: Color(0xFF0369A1),
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'メッセージツリーマップ',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF0369A1),
-                        ),
-                      ),
-                      Text(
-                        '受信メッセージ数: ${_receivedMessages.length}件',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // ツリーマップコンテンツ
-          Expanded(
-            child: _buildTreemapContent(),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(8),
+      child: _buildTreemapContent(),
     );
   }
 
   // ツリーマップコンテンツ
   Widget _buildTreemapContent() {
-    if (_receivedMessages.isEmpty) {
-      return const Center(
-        child: Text(
-          'ツリーマップ表示用のメッセージがありません',
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF6B7280),
-          ),
-        ),
-      );
-    }
-
-    // 送信者別にメッセージをグループ化
-    Map<String, List<Map<String, dynamic>>> senderGroups = {};
-    for (var message in _receivedMessages) {
-      final senderName = message['sender']?['name'] ?? 
-                      message['sender']?['email'] ?? 
-                      message['from']?['name'] ?? 
-                      message['from']?['email'] ?? 
-                      message['fromEmail'] ?? 
-                      message['senderName'] ?? 
-                      message['senderEmail'] ?? 
-                      '送信者不明';
-      if (!senderGroups.containsKey(senderName)) {
-        senderGroups[senderName] = [];
-      }
-      senderGroups[senderName]!.add(message);
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(8),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: senderGroups.length,
-      itemBuilder: (context, index) {
-        final senderName = senderGroups.keys.elementAt(index);
-        final messages = senderGroups[senderName]!;
-        final messageCount = messages.length;
-        final unreadCount = messages.where((msg) => msg['readAt'] == null).length;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // コンテナの利用可能なサイズを動的に計算
+        final availableWidth = constraints.maxWidth - 32; // パディング考慮
+        final availableHeight = constraints.maxHeight - 32; // パディング考慮
         
-        // メッセージ数に基づいて色の濃さを決定
-        final intensity = (messageCount / _receivedMessages.length).clamp(0.3, 1.0);
-        final baseColor = Color.lerp(
-          const Color(0xFFE3F2FD),
-          const Color(0xFF1976D2),
-          intensity,
-        )!;
-        
-        return GestureDetector(
-          onTap: () {
-            // 送信者の最新メッセージ（最初のメッセージ）を直接詳細表示
-            if (messages.isNotEmpty) {
-              final latestMessage = messages.first;
-              _showMessageDetail(latestMessage);
-            }
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: baseColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // 送信者アバター
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.white.withOpacity(0.9),
-                    child: Text(
-                      senderName.substring(0, 1).toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: baseColor,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // 送信者名
-                  Text(
-                    senderName,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: intensity > 0.6 ? Colors.white : const Color(0xFF1976D2),
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  // メッセージ数
-                  Text(
-                    '${messageCount}件',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: intensity > 0.6 ? Colors.white : const Color(0xFF1976D2),
-                    ),
-                  ),
-                  
-                  // 未読数（未読がある場合のみ）
-                  if (unreadCount > 0) ...[
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF5722),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '未読${unreadCount}件',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+        return Container(
+          width: availableWidth,
+          height: availableHeight,
+          child: TreemapWidget(
+            messages: _receivedMessages,
+            width: availableWidth,
+            height: availableHeight,
+            onMessageTap: (message) {
+              // メッセージタップ時の処理
+              final messageId = message['_id'] ?? message['id'];
+              if (messageId != null && message['readAt'] == null) {
+                _markAsRead(messageId);
+              }
+              _showMessageDetail(message);
+            },
           ),
         );
       },
