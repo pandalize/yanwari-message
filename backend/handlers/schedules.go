@@ -185,8 +185,8 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 		limit = 20
 	}
 
-	// スケジュール一覧取得
-	schedules, total, err := h.scheduleService.GetSchedules(c.Request.Context(), currentUserID, status, page, limit)
+	// スケジュール一覧取得（受信者詳細情報付き）
+	schedules, total, err := h.scheduleService.GetSchedulesWithDetails(c.Request.Context(), currentUserID, status, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュール一覧の取得に失敗しました"})
 		return

@@ -39,6 +39,12 @@ export interface Schedule {
   updatedAt: string
   retryCount: number
   timezone: string
+  // 受信者詳細情報（サーバーから追加される）
+  recipientName?: string
+  recipientEmail?: string
+  originalText?: string
+  finalText?: string
+  selectedTone?: string
 }
 
 // スケジュール更新リクエスト

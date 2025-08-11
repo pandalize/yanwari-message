@@ -60,8 +60,15 @@
         
         <div class="schedule-content">
           <div class="message-info">
+            <div class="recipient-info">
+              <p class="recipient-name">👤 送信先: {{ schedule.recipientName || 'Unknown User' }}</p>
+              <p class="recipient-email" v-if="schedule.recipientEmail">📧 {{ schedule.recipientEmail }}</p>
+            </div>
+            <div class="message-preview" v-if="schedule.originalText || schedule.finalText">
+              <p class="message-text">💬 {{ schedule.finalText || schedule.originalText || 'メッセージなし' }}</p>
+              <p class="message-tone" v-if="schedule.selectedTone">🎭 トーン: {{ schedule.selectedTone }}</p>
+            </div>
             <p class="message-id">📄 メッセージID: {{ schedule.messageId }}</p>
-            <!-- TODO: メッセージ詳細を取得して表示 -->
           </div>
           
           <div class="schedule-meta">
@@ -407,10 +414,56 @@ onMounted(() => {
   gap: 1rem;
 }
 
-.message-id {
-  font-family: 'Courier New', monospace;
+.message-info {
+  display: grid;
+  gap: 1rem;
+}
+
+.recipient-info {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.recipient-name {
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.recipient-email {
   font-size: 0.875rem;
   color: #666;
+  margin: 0;
+}
+
+.message-preview {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.message-text {
+  color: #374151;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.message-tone {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin: 0;
+}
+
+.message-id {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #9ca3af;
   margin: 0;
 }
 

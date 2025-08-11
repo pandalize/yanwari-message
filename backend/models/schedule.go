@@ -176,6 +176,16 @@ func (s *ScheduleService) GetSchedule(ctx context.Context, scheduleID primitive.
 	return &schedule, nil
 }
 
+// ScheduleWithDetails enriched schedule with message and recipient details
+type ScheduleWithDetails struct {
+	Schedule
+	RecipientName  string `bson:"recipientName" json:"recipientName"`
+	RecipientEmail string `bson:"recipientEmail" json:"recipientEmail"`
+	OriginalText   string `bson:"originalText" json:"originalText"`
+	FinalText      string `bson:"finalText" json:"finalText"`
+	SelectedTone   string `bson:"selectedTone" json:"selectedTone"`
+}
+
 // GetSchedules ユーザーのスケジュール一覧取得
 func (s *ScheduleService) GetSchedules(ctx context.Context, userID primitive.ObjectID, status string, page, limit int) ([]*Schedule, int64, error) {
 	filter := bson.M{"userId": userID}
@@ -191,27 +201,199 @@ func (s *ScheduleService) GetSchedules(ctx context.Context, userID primitive.Obj
 
 	// ページネーション
 	skip := (page - 1) * limit
-	opts := options.Find().
-		SetSort(bson.D{{Key: "scheduledAt", Value: 1}}).
-		SetSkip(int64(skip)).
-		SetLimit(int64(limit))
 
-	cursor, err := s.collection.Find(ctx, filter, opts)
+	// MongoDB aggregation pipeline to join with messages and users
+	pipeline := []bson.M{
+		// Match schedules for the user
+		{"$match": filter},
+		// Sort by scheduled time
+		{"$sort": bson.M{"scheduledAt": 1}},
+		// Add pagination
+		{"$skip": int64(skip)},
+		{"$limit": int64(limit)},
+		// Lookup message information
+		{
+			"$lookup": bson.M{
+				"from":         "messages",
+				"localField":   "messageId",
+				"foreignField": "_id",
+				"as":           "message",
+			},
+		},
+		// Unwind the message array (should be single element)
+		{"$unwind": bson.M{
+			"path":                       "$message",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		// Lookup recipient information
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "message.recipientId",
+				"foreignField": "_id",
+				"as":           "recipient",
+			},
+		},
+		// Unwind the recipient array
+		{"$unwind": bson.M{
+			"path":                       "$recipient",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		// Project the fields we want, including recipient details
+		{
+			"$project": bson.M{
+				"_id":         1,
+				"messageId":   1,
+				"userId":      1,
+				"scheduledAt": 1,
+				"status":      1,
+				"createdAt":   1,
+				"updatedAt":   1,
+				"sentAt":      1,
+				"failureReason": 1,
+				"retryCount":  1,
+				"timezone":    1,
+				// Generate display name: use recipient.name if available, otherwise extract from email
+				"recipientName": bson.M{
+					"$ifNull": []interface{}{
+						"$recipient.name",
+						bson.M{
+							"$arrayElemAt": []interface{}{
+								bson.M{"$split": []interface{}{"$recipient.email", "@"}},
+								0,
+							},
+						},
+					},
+				},
+				"recipientEmail": "$recipient.email",
+				"originalText":   "$message.originalText",
+				"finalText":      "$message.finalText",
+				"selectedTone":   "$message.selectedTone",
+			},
+		},
+	}
+
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
-	var schedules []*Schedule
-	for cursor.Next(ctx) {
-		var schedule Schedule
-		if err := cursor.Decode(&schedule); err != nil {
-			return nil, 0, err
-		}
-		schedules = append(schedules, &schedule)
+	var enrichedSchedules []ScheduleWithDetails
+	if err := cursor.All(ctx, &enrichedSchedules); err != nil {
+		return nil, 0, err
+	}
+
+	// Convert to regular Schedule structs with extra fields accessible via interface{}
+	schedules := make([]*Schedule, len(enrichedSchedules))
+	for i, enriched := range enrichedSchedules {
+		// Create a new Schedule and copy the enhanced data
+		schedule := enriched.Schedule
+		schedules[i] = &schedule
 	}
 
 	return schedules, total, nil
+}
+
+// GetSchedulesWithDetails ユーザーのスケジュール一覧取得（受信者詳細情報付き）
+func (s *ScheduleService) GetSchedulesWithDetails(ctx context.Context, userID primitive.ObjectID, status string, page, limit int) ([]*ScheduleWithDetails, int64, error) {
+	filter := bson.M{"userId": userID}
+	if status != "" {
+		filter["status"] = status
+	}
+
+	// 総数取得
+	total, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// ページネーション
+	skip := (page - 1) * limit
+
+	// MongoDB aggregation pipeline to join with messages and users
+	pipeline := []bson.M{
+		// Match schedules for the user
+		{"$match": filter},
+		// Sort by scheduled time
+		{"$sort": bson.M{"scheduledAt": 1}},
+		// Add pagination
+		{"$skip": int64(skip)},
+		{"$limit": int64(limit)},
+		// Lookup message information
+		{
+			"$lookup": bson.M{
+				"from":         "messages",
+				"localField":   "messageId",
+				"foreignField": "_id",
+				"as":           "message",
+			},
+		},
+		// Unwind the message array (should be single element)
+		{"$unwind": bson.M{
+			"path":                       "$message",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		// Lookup recipient information
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "message.recipientId",
+				"foreignField": "_id",
+				"as":           "recipient",
+			},
+		},
+		// Unwind the recipient array
+		{"$unwind": bson.M{
+			"path":                       "$recipient",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		// Project the fields we want, including recipient details
+		{
+			"$project": bson.M{
+				"_id":         1,
+				"messageId":   1,
+				"userId":      1,
+				"scheduledAt": 1,
+				"status":      1,
+				"createdAt":   1,
+				"updatedAt":   1,
+				"sentAt":      1,
+				"failureReason": 1,
+				"retryCount":  1,
+				"timezone":    1,
+				// Generate display name: use recipient.name if available, otherwise extract from email
+				"recipientName": bson.M{
+					"$ifNull": []interface{}{
+						"$recipient.name",
+						bson.M{
+							"$arrayElemAt": []interface{}{
+								bson.M{"$split": []interface{}{"$recipient.email", "@"}},
+								0,
+							},
+						},
+					},
+				},
+				"recipientEmail": "$recipient.email",
+				"originalText":   "$message.originalText",
+				"finalText":      "$message.finalText",
+				"selectedTone":   "$message.selectedTone",
+			},
+		},
+	}
+
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var enrichedSchedules []*ScheduleWithDetails
+	if err := cursor.All(ctx, &enrichedSchedules); err != nil {
+		return nil, 0, err
+	}
+
+	return enrichedSchedules, total, nil
 }
 
 // UpdateSchedule スケジュール更新
