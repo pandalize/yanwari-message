@@ -23,23 +23,28 @@
 
 ## 開発コマンド
 
+### 🚀 基本コマンド
 ```bash
-# セットアップ
-npm run install:all
-npm run setup:env
+# 初回セットアップ
+npm run setup           # 全体セットアップ（推奨）
 
 # 開発サーバー起動
-npm run dev              # Web + Backend同時起動
-./yanwari-start          # 全環境起動（Web・Mobile・Backend）
+npm run dev             # インタラクティブメニュー（推奨）
+npm run dev:firebase    # Firebase付き起動
+npm run dev:local       # ローカルのみ起動
 
-# 個別起動
-npm run dev:backend      # Go サーバー :8080
-npm run dev:frontend     # Vue 開発サーバー :5173
-cd mobile && flutter run # Flutter モバイルアプリ
+# 環境管理
+npm run reset           # 完全リセット
+npm run status          # 状況確認  
+npm run stop            # サーバー停止
+```
 
-# テスト・品質チェック
-npm run test
-npm run lint
+### 🔧 開発ツール
+```bash
+npm run api:sync        # API型定義同期
+npm run test            # テスト実行
+npm run lint            # コード品質チェック
+npm run build           # プロダクションビルド
 ```
 
 ## ブランチ戦略

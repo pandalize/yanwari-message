@@ -25,7 +25,18 @@ func NewMessageHandler(messageService *models.MessageService) *MessageHandler {
 }
 
 // CreateDraft 下書きメッセージを作成
-// POST /api/v1/messages/draft
+// @Summary 下書きメッセージを作成
+// @Description ユーザーがメッセージの下書きを作成します。AIによるトーン変換も含まれます。
+// @Tags messages
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body models.CreateMessageRequest true "メッセージ作成リクエスト"
+// @Success 201 {object} models.MessageResponse "作成成功"
+// @Failure 400 {object} map[string]string "リクエストエラー"
+// @Failure 401 {object} map[string]string "認証エラー" 
+// @Failure 500 {object} map[string]string "サーバーエラー"
+// @Router /api/v1/messages/draft [post]
 func (h *MessageHandler) CreateDraft(c *gin.Context) {
 	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {

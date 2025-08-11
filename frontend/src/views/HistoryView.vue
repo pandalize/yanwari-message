@@ -561,40 +561,32 @@ const loadSentMessages = async () => {
     console.log('取得した送信済みメッセージ数:', sentMessagesData.length)
     
     if (sentMessagesData.length > 0) {
-      // 送信済みメッセージを表示用に変換（受信者情報を取得）
-      const formattedMessages = await Promise.all(
-        sentMessagesData.map(async (message: any) => {
-          let recipientName = 'Unknown User'
-          let recipientEmail = 'unknown@example.com'
-          
-          // 受信者情報を取得
-          console.log('送信済みメッセージ受信者ID:', message.recipientId)
-          if (message.recipientId && message.recipientId !== '000000000000000000000000') {
-            try {
-              const userInfo = await getUserInfo(message.recipientId)
-              console.log('送信済み受信者情報:', userInfo)
-              console.log('userInfo.name:', userInfo.name, 'userInfo.email:', userInfo.email)
-              recipientName = userInfo.name || userInfo.email || '未登録の受信者'
-              recipientEmail = userInfo.email || 'unknown@example.com'
-            } catch (error) {
-              console.warn('受信者情報の取得に失敗:', error)
-            }
-          }
-
-          const formattedMessage = {
-            id: message.id,
-            recipientName,
-            recipientEmail,
-            sentAt: message.sentAt || message.updatedAt,
-            isRead: message.status === 'read',
-            status: message.status,
-            originalText: message.originalText || 'メッセージ',
-            finalText: message.finalText || message.originalText || 'メッセージ'
-          }
-          console.log('フォーマット済み送信済みメッセージ:', formattedMessage)
-          return formattedMessage
+      // APIレスポンスに含まれる受信者情報を直接使用
+      const formattedMessages = sentMessagesData.map((message: any) => {
+        // APIから返される受信者情報を使用
+        const recipientName = message.recipientName || 'Unknown User'
+        const recipientEmail = message.recipientEmail || 'unknown@example.com'
+        
+        console.log('送信済みメッセージ:', {
+          id: message.id,
+          recipientName,
+          recipientEmail,
+          status: message.status
         })
-      )
+
+        const formattedMessage = {
+          id: message.id,
+          recipientName,
+          recipientEmail,
+          sentAt: message.sentAt || message.updatedAt,
+          isRead: message.status === 'read',
+          status: message.status,
+          originalText: message.originalText || 'メッセージ',
+          finalText: message.finalText || message.originalText || 'メッセージ'
+        }
+        console.log('フォーマット済み送信済みメッセージ:', formattedMessage)
+        return formattedMessage
+      })
       
       sentMessages.value = formattedMessages
     } else {

@@ -65,6 +65,19 @@ type CreateMessageRequest struct {
 	Reason         string `json:"reason,omitempty" binding:"max=500"`
 }
 
+// MessageResponse APIレスポンス統一型
+type MessageResponse struct {
+	Data    *Message `json:"data"`
+	Message string   `json:"message"`
+}
+
+// MessageWithRecipientInfo 受信者情報付きメッセージ
+type MessageWithRecipientInfo struct {
+	Message
+	RecipientName  string `json:"recipientName,omitempty"`
+	RecipientEmail string `json:"recipientEmail,omitempty"`
+}
+
 // UpdateMessageRequest メッセージ更新リクエスト
 type UpdateMessageRequest struct {
 	RecipientEmail   string            `json:"recipientEmail,omitempty"`
@@ -664,24 +677,10 @@ func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive
 			"path":                       "$recipient",
 			"preserveNullAndEmptyArrays": true,
 		}},
-		// Project to include recipient details
+		// Add recipient information fields
 		{
-			"$project": bson.M{
-				"id":           "$_id",
-				"senderId":     1,
-				"recipientId":  1,
-				"originalText": 1,
-				"reason":       1,
-				"variations":   1,
-				"selectedTone": 1,
-				"finalText":    1,
-				"scheduledAt":  1,
-				"status":       1,
-				"createdAt":    1,
-				"updatedAt":    1,
-				"sentAt":       1,
-				"deliveredAt":  1,
-				"readAt":       1,
+			"$addFields": bson.M{
+				"id": "$_id", // _idをidフィールドとして追加
 				"recipientName": bson.M{
 					"$ifNull": []interface{}{
 						"$recipient.name",
