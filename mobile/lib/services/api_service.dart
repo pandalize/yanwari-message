@@ -253,7 +253,7 @@ class ApiService {
 
   // メッセージを既読にする
   Future<Map<String, dynamic>> markMessageAsRead(String messageId) async {
-    final response = await _dio.put('/messages/$messageId/read');
+    final response = await _dio.post('/messages/$messageId/read');
     return response.data;
   }
 

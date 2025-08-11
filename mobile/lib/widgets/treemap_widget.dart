@@ -81,11 +81,10 @@ class _TreemapWidgetState extends State<TreemapWidget> {
   @override
   void didUpdateWidget(TreemapWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.messages != widget.messages || 
-        oldWidget.width != widget.width || 
-        oldWidget.height != widget.height) {
-      _generateTreemapData();
-    }
+    // メッセージの内容が変わった場合も再描画するため、常に再生成
+    // (リストの参照が同じでも内容が変わっている可能性があるため)
+    print('TreemapWidget.didUpdateWidget called');
+    _generateTreemapData();
   }
 
   /// メッセージを階層構造にグループ化
@@ -121,14 +120,18 @@ class _TreemapWidgetState extends State<TreemapWidget> {
       // 評価別にグループ化（Web版と同じロジック）
       for (var message in messages) {
         String ratingKey;
-        // Web版と同じ条件: statusで判定、なければreadAtで判定
-        if (message['status'] != 'read' || message['readAt'] == null) {
-          ratingKey = '未読';
-        } else if (message['rating'] == null || message['rating'] == 0) {
-          ratingKey = '未評価';
-        } else {
+        // 評価がある場合は評価で分類、評価がない場合はreadAtで未読/未評価を判定
+        if (message['rating'] != null && message['rating'] > 0) {
           ratingKey = '★${message['rating']}';
+        } else if (message['readAt'] == null) {
+          ratingKey = '未読';
+        } else {
+          ratingKey = '未評価';
         }
+        
+        // Message IDを正しく取得（APIレスポンスではidフィールドを使用）
+        String messageId = message['id'] ?? message['_id'] ?? 'unknown';
+        print('Message ID: $messageId, Rating: ${message['rating']}, ReadAt: ${message['readAt']}, Key: $ratingKey');
         
         if (!ratingGroups.containsKey(ratingKey)) {
           ratingGroups[ratingKey] = [];
@@ -146,10 +149,12 @@ class _TreemapWidgetState extends State<TreemapWidget> {
         List<Map<String, dynamic>> ratingMessages = ratingGroups[ratingName]!;
         double ratingWeight = _getRatingWeight(ratingName);
         
+        print('Rating group: $ratingName, Weight: $ratingWeight, Count: ${ratingMessages.length}');
+        
         // 個別メッセージのノードを作成
         List<TreemapNode> messageNodes = ratingMessages.map((message) {
           return TreemapNode(
-            id: message['_id'] ?? message['id'] ?? '',
+            id: message['id'] ?? message['_id'] ?? '',
             name: _getMessagePreview(message),
             value: ratingWeight,
             data: message,
@@ -158,10 +163,13 @@ class _TreemapWidgetState extends State<TreemapWidget> {
           );
         }).toList();
         
+        double totalValue = ratingMessages.length * ratingWeight;
+        print('Total value for $ratingName: $totalValue');
+        
         ratingNodes.add(TreemapNode(
           id: '${senderName}-${ratingName}',
           name: ratingName,
-          value: ratingMessages.length * ratingWeight,
+          value: totalValue,
           children: messageNodes,
           color: _getRatingColor(ratingName),
           level: 2,
@@ -244,7 +252,7 @@ class _TreemapWidgetState extends State<TreemapWidget> {
     return hslColor.toColor();
   }
 
-  /// 評価の色を取得（Web版と同じ色）
+  /// 評価の色を取得（緑色を削除）
   Color _getRatingColor(String ratingName) {
     switch (ratingName) {
       case '未読': return const Color(0xFF3B82F6);   // #3b82f6
@@ -252,33 +260,21 @@ class _TreemapWidgetState extends State<TreemapWidget> {
       case '★1': return const Color(0xFFEF4444);     // #ef4444
       case '★2': return const Color(0xFFF97316);     // #f97316
       case '★3': return const Color(0xFFEAB308);     // #eab308
-      case '★4': return const Color(0xFF84CC16);     // #84cc16
-      case '★5': return const Color(0xFF22C55E);     // #22c55e
+      case '★4': return const Color(0xFF8B5CF6);     // #8b5cf6 (紫色)
+      case '★5': return const Color(0xFF3B82F6);     // #3b82f6 (青色)
       default: return const Color(0xFF6B7280);       // #6b7280
     }
   }
 
-  /// メッセージの色を取得（Web版と同じ色）
+  /// メッセージの色を取得（未読/既読のみで区別）
   Color _getMessageColor(Map<String, dynamic> message) {
     // 未読メッセージは特別な色（目立つ青色）
-    if (message['readAt'] == null || message['status'] != 'read') {
+    if (message['readAt'] == null) {
       return const Color(0xFFDBEAFE); // #dbeafe
     }
     
-    // 評価に基づく色分け（薄い色合い）
-    final rating = message['rating'] as int?;
-    if (rating == null || rating == 0) {
-      return const Color(0xFFF3F4F6); // #f3f4f6 未評価は薄い灰色
-    }
-    
-    switch (rating) {
-      case 1: return const Color(0xFF87CEFA);  // #87cefa
-      case 2: return const Color(0xFFB0E0E6);  // #b0e0e6
-      case 3: return const Color(0xFFFEF3C7);  // #fef3c7
-      case 4: return const Color(0xFFFFB6C1);  // #ffb6c1
-      case 5: return const Color(0xFFFF7F50);  // #ff7f50
-      default: return const Color(0xFFF3F4F6); // #f3f4f6
-    }
+    // 既読メッセージは全て同じ色（薄い灰色）
+    return const Color(0xFFF3F4F6); // #f3f4f6
   }
 
   /// ツリーマップデータを生成
@@ -327,7 +323,7 @@ class _TreemapWidgetState extends State<TreemapWidget> {
     // 子ノードの総値を計算
     double totalValue = node.children!.fold(0.0, (sum, child) => sum + child.value);
     
-    // Squarifyアルゴリズムで矩形を計算
+    // Web版と同じSquarifyアルゴリズムを使用
     List<_Rectangle> rectangles = _squarify(node.children!, x, y, width, height, totalValue);
     
     for (int i = 0; i < rectangles.length; i++) {
@@ -363,6 +359,96 @@ class _TreemapWidgetState extends State<TreemapWidget> {
     }
     
     return result;
+  }
+
+  /// グリッド配置アルゴリズム（完全な矩形形成版）
+  List<_Rectangle> _layoutGrid(List<TreemapNode> children, double x, double y, double width, double height, double totalValue) {
+    if (children.isEmpty) return [];
+    
+    List<_Rectangle> rectangles = [];
+    
+    // 境界マージンを設定
+    const double margin = 2.0;
+    double availableWidth = width - (margin * 2);
+    double availableHeight = height - (margin * 2);
+    double startX = x + margin;
+    double startY = y + margin;
+    
+    // 総面積を計算
+    double totalArea = availableWidth * availableHeight;
+    
+    // 最適なグリッド配置を計算
+    int gridCols = _calculateOptimalColumns(children.length, availableWidth, availableHeight);
+    int gridRows = (children.length / gridCols).ceil();
+    
+    // セルサイズを計算（完全に矩形領域を埋める）
+    double cellWidth = availableWidth / gridCols;
+    double cellHeight = availableHeight / gridRows;
+    
+    // 各アイテムを配置
+    for (int i = 0; i < children.length; i++) {
+      final child = children[i];
+      final childValue = child.value;
+      final areaRatio = childValue / totalValue;
+      
+      // グリッド位置を計算（左から右、上から下）
+      int col = i % gridCols;
+      int row = i ~/ gridCols;
+      
+      // 基本矩形を計算
+      double rectX = startX + (col * cellWidth);
+      double rectY = startY + (row * cellHeight);
+      double rectWidth = cellWidth;
+      double rectHeight = cellHeight;
+      
+      // 評価による重み付けでサイズを調整
+      double sizeMultiplier = math.sqrt(areaRatio * children.length);
+      sizeMultiplier = math.max(0.6, math.min(sizeMultiplier, 1.4)); // 範囲制限
+      
+      // 重み付けを適用した新しいサイズ
+      double adjustedWidth = rectWidth * sizeMultiplier;
+      double adjustedHeight = rectHeight * sizeMultiplier;
+      
+      // セル内でセンタリング
+      double centerX = rectX + (rectWidth - adjustedWidth) / 2;
+      double centerY = rectY + (rectHeight - adjustedHeight) / 2;
+      
+      // 境界チェック（必要に応じて調整）
+      if (centerX < startX) centerX = startX;
+      if (centerY < startY) centerY = startY;
+      if (centerX + adjustedWidth > startX + availableWidth) {
+        adjustedWidth = startX + availableWidth - centerX;
+      }
+      if (centerY + adjustedHeight > startY + availableHeight) {
+        adjustedHeight = startY + availableHeight - centerY;
+      }
+      
+      // 最小サイズを保証
+      adjustedWidth = math.max(adjustedWidth, 30);
+      adjustedHeight = math.max(adjustedHeight, 25);
+      
+      rectangles.add(_Rectangle(
+        x: centerX,
+        y: centerY,
+        width: adjustedWidth,
+        height: adjustedHeight,
+      ));
+    }
+    
+    return rectangles;
+  }
+  
+  /// 最適な列数を計算
+  int _calculateOptimalColumns(int itemCount, double width, double height) {
+    if (itemCount <= 1) return 1;
+    if (itemCount <= 2) return 2;
+    if (itemCount <= 4) return 2;
+    if (itemCount <= 6) return 3;
+    if (itemCount <= 9) return 3;
+    if (itemCount <= 12) return 4;
+    if (itemCount <= 16) return 4;
+    if (itemCount <= 20) return 5;
+    return math.min(6, math.sqrt(itemCount).ceil());
   }
 
   /// Squarifyアルゴリズム（Web版と同じ実装）
@@ -428,10 +514,14 @@ class _TreemapWidgetState extends State<TreemapWidget> {
     return rectangles;
   }
 
-  /// テキストの色を取得（背景色に応じて）
+  /// テキストの色を取得（Web版と同じアルゴリズム）
   Color _getTextColor(Color bgColor) {
-    final luminance = bgColor.computeLuminance();
-    return luminance > 0.5 ? Colors.black : Colors.white;
+    // Web版と同じ輝度計算
+    final r = bgColor.red;
+    final g = bgColor.green;
+    final b = bgColor.blue;
+    final brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? Colors.black : Colors.white;
   }
 
   /// メッセージを複数行に分割

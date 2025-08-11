@@ -59,25 +59,59 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
     try {
       // 受信メッセージのみ取得
       final result = await _apiService.getInboxWithRatings();
+      
+      print('API Response: $result'); // デバッグログ
+      if (result is Map<String, dynamic> && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        if (data['messages'] is List) {
+          final messages = data['messages'] as List;
+          print('📊 受信メッセージ詳細:');
+          for (int i = 0; i < messages.length && i < 3; i++) {
+            final msg = messages[i] as Map<String, dynamic>;
+            print('  メッセージ#${i + 1}:');
+            print('    id: ${msg['id'] ?? msg['_id']}');
+            print('    readAt: ${msg['readAt']}');
+            print('    rating: ${msg['rating']}');
+            print('    senderName: ${msg['senderName'] ?? msg['sender']?['name']}');
+          }
+        }
+      }
 
       setState(() {
         // 受信メッセージ
         _receivedMessages = <Map<String, dynamic>>[];
-        if (result != null && result is Map<String, dynamic>) {
-          List<dynamic>? messagesList;
-          if (result['data'] is Map && (result['data'] as Map)['messages'] is List) {
-            messagesList = (result['data'] as Map)['messages'] as List<dynamic>;
-          } else if (result['messages'] is List) {
-            messagesList = result['messages'] as List<dynamic>;
-          }
-          if (messagesList != null) {
-            for (var msg in messagesList) {
+        if (result != null) {
+          // 直接リストの場合
+          if (result is List<dynamic>) {
+            final List<dynamic> resultList = result as List<dynamic>;
+            print('Response is List with ${resultList.length} items');
+            for (var msg in resultList) {
               if (msg is Map<String, dynamic>) {
                 _receivedMessages.add(msg);
               }
             }
           }
+          // Mapの場合
+          else if (result is Map<String, dynamic>) {
+            print('Response is Map');
+            List<dynamic>? messagesList;
+            if (result['data'] is Map && (result['data'] as Map)['messages'] is List) {
+              messagesList = (result['data'] as Map)['messages'] as List<dynamic>;
+              print('Found messages in data.messages: ${messagesList.length} items');
+            } else if (result['messages'] is List) {
+              messagesList = result['messages'] as List<dynamic>;
+              print('Found messages in messages: ${messagesList.length} items');
+            }
+            if (messagesList != null) {
+              for (var msg in messagesList) {
+                if (msg is Map<String, dynamic>) {
+                  _receivedMessages.add(msg);
+                }
+              }
+            }
+          }
         }
+        print('Total received messages: ${_receivedMessages.length}');
 
         if (!silent) _isLoading = false;
       });
@@ -93,10 +127,44 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
 
   Future<void> _markAsRead(String messageId) async {
     try {
-      await _apiService.markAsRead(messageId);
-      _loadReceivedMessages();
+      print('🔖 既読マーク開始: messageId=$messageId');
+      
+      // 1. バックエンドAPIを呼び出して既読にする
+      final response = await _apiService.markAsRead(messageId);
+      print('🔖 既読マークAPI成功: $response');
+      
+      // 2. ローカル状態を即座に更新（UIの応答性向上）
+      setState(() {
+        for (int i = 0; i < _receivedMessages.length; i++) {
+          String msgId = _receivedMessages[i]['id'] ?? _receivedMessages[i]['_id'] ?? '';
+          if (msgId == messageId) {
+            _receivedMessages[i] = Map<String, dynamic>.from(_receivedMessages[i]);
+            _receivedMessages[i]['readAt'] = DateTime.now().toIso8601String();
+            print('🔖 ローカル状態更新: messageId=$msgId, readAt=${_receivedMessages[i]['readAt']}');
+            break;
+          }
+        }
+      });
+      
+      // 3. バックエンドから最新データを取得
+      print('🔖 メッセージリストを再読み込み中...');
+      await _loadReceivedMessages();
+      print('🔖 メッセージリスト再読み込み完了');
+      
     } catch (e) {
-      print('既読マークエラー: $e');
+      print('❌ 既読マークエラー: $e');
+      
+      // エラー時はユーザーに通知
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('既読マークに失敗しました'),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -371,7 +439,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
             height: availableHeight,
             onMessageTap: (message) {
               // メッセージタップ時の処理
-              final messageId = message['_id'] ?? message['id'];
+              final messageId = message['id'] ?? message['_id'];
               if (messageId != null && message['readAt'] == null) {
                 _markAsRead(messageId);
               }
@@ -535,8 +603,9 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
           print('   メッセージID: ${message['_id']}');
           print('   既読状態: $isRead');
           
-          if (!isRead && message['_id'] != null) {
-            _markAsRead(message['_id']);
+          final messageId = message['id'] ?? message['_id'];
+          if (!isRead && messageId != null) {
+            _markAsRead(messageId);
           }
           _showMessageDetail(message);
         },
@@ -574,7 +643,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                             ),
                           ),
                           Text(
-                            _formatDate(message['createdAt']),
+                            _formatDate(message['sentAt'] ?? message['createdAt']),
                             style: const TextStyle(
                               color: Color(0xFF6B7280),
                               fontSize: 12,
@@ -595,7 +664,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
-                        '新着',
+                        '未読',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -742,7 +811,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                             ),
                           ),
                           Text(
-                            _formatDate(_selectedMessage!['createdAt']),
+                            _formatDate(_selectedMessage!['sentAt'] ?? _selectedMessage!['createdAt']),
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF6B7280),
@@ -946,7 +1015,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                             ),
                           ),
                           Text(
-                            _formatDate(message['createdAt']),
+                            _formatDate(message['sentAt'] ?? message['createdAt']),
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF6B7280),
@@ -1092,24 +1161,6 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                                     );
                                   }),
                                 ),
-                                const SizedBox(height: 12),
-                                
-                                // 評価説明テキスト
-                                Text(
-                                  message['isRatingInProgress'] == true 
-                                    ? '評価を更新中...' 
-                                    : _getRatingText(getModalCurrentRating()),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: message['isRatingInProgress'] == true 
-                                      ? const Color(0xFF6B7280)
-                                      : (getModalCurrentRating() > 0 ? const Color(0xFF059669) : const Color(0xFF6B7280)),
-                                    fontWeight: message['isRatingInProgress'] == true 
-                                      ? FontWeight.normal
-                                      : (getModalCurrentRating() > 0 ? FontWeight.w600 : FontWeight.normal),
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
                               ],
                             ),
                           ),
@@ -1231,23 +1282,6 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
                                           }),
                                         ),
                                         const SizedBox(height: 12),
-                                        
-                                        // 評価説明テキスト
-                                        Text(
-                                          message['isRatingInProgress'] == true 
-                                            ? '評価を更新中...' 
-                                            : _getRatingText(getModalCurrentRating()),
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: message['isRatingInProgress'] == true 
-                                              ? const Color(0xFF6B7280)
-                                              : (getModalCurrentRating() > 0 ? const Color(0xFF059669) : const Color(0xFF6B7280)),
-                                            fontWeight: message['isRatingInProgress'] == true 
-                                              ? FontWeight.normal
-                                              : (getModalCurrentRating() > 0 ? FontWeight.w600 : FontWeight.normal),
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
                                       ],
                                     ),
                                   ),
@@ -1302,7 +1336,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
       } else if (difference.inDays < 7) {
         return '${difference.inDays}日前';
       } else {
-        return '${date.month}/${date.day}';
+        return '${date.month}月${date.day}日';
       }
     } catch (e) {
       return '';
@@ -1317,16 +1351,8 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
         border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          const Text(
-            '受信メッセージ',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF111827),
-            ),
-          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
@@ -1402,18 +1428,6 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
               );
             }),
           ),
-          const SizedBox(height: 12),
-          
-          // 評価説明テキスト
-          Text(
-            _getRatingText(currentRating),
-            style: TextStyle(
-              fontSize: 14,
-              color: currentRating > 0 ? const Color(0xFF059669) : const Color(0xFF6B7280),
-              fontWeight: currentRating > 0 ? FontWeight.w600 : FontWeight.normal,
-            ),
-            textAlign: TextAlign.center,
-          ),
         ],
       ),
     );
@@ -1423,15 +1437,15 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
   String _getRatingText(int rating) {
     switch (rating) {
       case 1:
-        return '😔 あまり良くなかった';
+        return '★';
       case 2:
-        return '🙁 少し物足りなかった';
+        return '★★';
       case 3:
-        return '😐 普通だった';
+        return '★★★';
       case 4:
-        return '😊 良かった';
+        return '★★★★';
       case 5:
-        return '🤗 とても良かった';
+        return '★★★★★';
       default:
         return 'タップして評価してください';
     }
@@ -1459,14 +1473,28 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
       // ローカル状態を更新（モーダル内とメインリスト両方）
       setModalState(() {
         message['rating'] = rating;
+        // 評価時に自動的に既読にする
+        if (message['readAt'] == null) {
+          message['readAt'] = DateTime.now().toIso8601String();
+        }
         message['isRatingInProgress'] = false;
       });
       
       setState(() {
         // メッセージリスト内の対応するメッセージも更新
+        // 新しいリストを作成してTreemapWidgetの再レンダリングを確実にする
+        _receivedMessages = List<Map<String, dynamic>>.from(_receivedMessages);
         for (int i = 0; i < _receivedMessages.length; i++) {
-          if (_receivedMessages[i]['_id'] == messageId) {
+          // APIレスポンスではidフィールドを使用
+          String msgId = _receivedMessages[i]['id'] ?? _receivedMessages[i]['_id'] ?? '';
+          if (msgId == messageId) {
+            _receivedMessages[i] = Map<String, dynamic>.from(_receivedMessages[i]);
             _receivedMessages[i]['rating'] = rating;
+            // 評価時に自動的に既読にする
+            if (_receivedMessages[i]['readAt'] == null) {
+              _receivedMessages[i]['readAt'] = DateTime.now().toIso8601String();
+            }
+            print('Updated message rating: ID=$msgId, New Rating=$rating, ReadAt=${_receivedMessages[i]['readAt']}');
             break;
           }
         }
@@ -1477,7 +1505,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('評価を${rating}星で登録しました'),
-            backgroundColor: const Color(0xFF059669),
+            backgroundColor: const Color(0xFF3B82F6),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
@@ -1517,11 +1545,25 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
       // 一時的にローカル状態のみ更新（API実装後に上記のコメントを外す）
       setState(() {
         _selectedMessage!['rating'] = rating;
+        // 評価時に自動的に既読にする
+        if (_selectedMessage!['readAt'] == null) {
+          _selectedMessage!['readAt'] = DateTime.now().toIso8601String();
+        }
         
         // メッセージリスト内の対応するメッセージも更新
+        // 新しいリストを作成してTreemapWidgetの再レンダリングを確実にする
+        _receivedMessages = List<Map<String, dynamic>>.from(_receivedMessages);
         for (int i = 0; i < _receivedMessages.length; i++) {
-          if (_receivedMessages[i]['_id'] == _selectedMessage!['_id']) {
+          // APIレスポンスではidフィールドを使用
+          String msgId = _receivedMessages[i]['id'] ?? _receivedMessages[i]['_id'] ?? '';
+          String selectedMsgId = _selectedMessage!['id'] ?? _selectedMessage!['_id'] ?? '';
+          if (msgId == selectedMsgId) {
+            _receivedMessages[i] = Map<String, dynamic>.from(_receivedMessages[i]);
             _receivedMessages[i]['rating'] = rating;
+            // 評価時に自動的に既読にする
+            if (_receivedMessages[i]['readAt'] == null) {
+              _receivedMessages[i]['readAt'] = DateTime.now().toIso8601String();
+            }
             break;
           }
         }
@@ -1532,7 +1574,7 @@ class _InboxOnlyScreenState extends State<InboxOnlyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('評価を${rating}星で登録しました'),
-            backgroundColor: const Color(0xFF059669),
+            backgroundColor: const Color(0xFF3B82F6),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
