@@ -13,8 +13,11 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	swaggerFiles "github.com/swaggo/files"
 
 	"yanwari-message-backend/database"
+	_ "yanwari-message-backend/docs"
 	"yanwari-message-backend/handlers"
 	"yanwari-message-backend/middleware"
 	"yanwari-message-backend/models"
@@ -24,6 +27,25 @@ import (
 // サーバー起動時間を記録
 var serverStartTime = time.Now()
 
+// @title Yanwari Message API
+// @version 1.0
+// @description やんわり伝言サービス - AIを使って気まずい用件を優しく伝えるサービスのAPI
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.url http://www.swagger.io/support
+// @contact.email support@swagger.io
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+// @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// 環境変数の読み込み
 	if err := godotenv.Load(); err != nil {
@@ -230,6 +252,13 @@ func main() {
 		settingsHandler.RegisterRoutes(v1, firebaseMiddleware)
 		
 		log.Println("✅ 全APIエンドポイントでFirebase認証を使用")
+	}
+
+	// Swagger UI endpoints (development only)
+	if gin.Mode() == gin.DebugMode {
+		r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+		log.Println("📖 Swagger UI enabled at: http://localhost:8080/docs/index.html")
 	}
 
 	// HTTPサーバーの設定

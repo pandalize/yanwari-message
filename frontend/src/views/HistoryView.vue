@@ -256,6 +256,11 @@ const editMessage = async (messageId: string) => {
     }
     
     // メッセージの詳細を取得
+    if (!schedule.messageId || schedule.messageId === '000000000000000000000000') {
+      console.error('無効なメッセージIDです:', schedule.messageId)
+      alert('編集対象のメッセージIDが無効です')
+      return
+    }
     const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
     const message = messageResponse.data.data
     
@@ -326,7 +331,14 @@ const loadScheduleDetail = async (scheduleId: string) => {
     if (cachedMessage) {
       // キャッシュからメッセージ詳細を追加で取得
       try {
-        const messageResponse = await apiService.get(`/messages/${cachedMessage.messageId || scheduleId}`)
+        // 無効なObjectIDや空値をチェック
+        const messageIdToFetch = cachedMessage.messageId || scheduleId
+        if (!messageIdToFetch || messageIdToFetch === '000000000000000000000000') {
+          console.warn('無効なメッセージIDのためAPI呼び出しをスキップ:', messageIdToFetch)
+          selectedMessage.value = cachedMessage
+          return
+        }
+        const messageResponse = await apiService.get(`/messages/${messageIdToFetch}`)
         const message = messageResponse.data.data
         
         selectedMessage.value = {
@@ -349,7 +361,7 @@ const loadScheduleDetail = async (scheduleId: string) => {
         let recipientName = 'Unknown User'
         let recipientEmail = 'unknown@example.com'
         
-        if (schedule.messageId) {
+        if (schedule.messageId && schedule.messageId !== '000000000000000000000000') {
           try {
             const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
             const message = messageResponse.data.data
@@ -487,7 +499,7 @@ const loadScheduledMessages = async () => {
           let recipientEmail = 'unknown@example.com'
           
           // メッセージIDから受信者情報を取得（簡略化）
-          if (schedule.messageId) {
+          if (schedule.messageId && schedule.messageId !== '000000000000000000000000') {
             try {
               const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
               const message = messageResponse.data.data

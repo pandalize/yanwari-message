@@ -258,14 +258,22 @@ func (s *ScheduleService) GetSchedules(ctx context.Context, userID primitive.Obj
 					"$ifNull": []interface{}{
 						"$recipient.name",
 						bson.M{
-							"$arrayElemAt": []interface{}{
-								bson.M{"$split": []interface{}{"$recipient.email", "@"}},
-								0,
+							"$ifNull": []interface{}{
+								bson.M{
+									"$arrayElemAt": []interface{}{
+										bson.M{"$split": []interface{}{"$recipient.email", "@"}},
+										0,
+									},
+								},
+								"Unknown User",
 							},
 						},
 					},
 				},
-				"recipientEmail": "$recipient.email",
+				"recipientEmail": bson.M{
+					"$ifNull": []interface{}{"$recipient.email", ""},
+				},
+				"recipientId": "$message.recipientId",
 				"originalText":   "$message.originalText",
 				"finalText":      "$message.finalText",
 				"selectedTone":   "$message.selectedTone",
@@ -367,14 +375,22 @@ func (s *ScheduleService) GetSchedulesWithDetails(ctx context.Context, userID pr
 					"$ifNull": []interface{}{
 						"$recipient.name",
 						bson.M{
-							"$arrayElemAt": []interface{}{
-								bson.M{"$split": []interface{}{"$recipient.email", "@"}},
-								0,
+							"$ifNull": []interface{}{
+								bson.M{
+									"$arrayElemAt": []interface{}{
+										bson.M{"$split": []interface{}{"$recipient.email", "@"}},
+										0,
+									},
+								},
+								"Unknown User",
 							},
 						},
 					},
 				},
-				"recipientEmail": "$recipient.email",
+				"recipientEmail": bson.M{
+					"$ifNull": []interface{}{"$recipient.email", ""},
+				},
+				"recipientId": "$message.recipientId",
 				"originalText":   "$message.originalText",
 				"finalText":      "$message.finalText",
 				"selectedTone":   "$message.selectedTone",

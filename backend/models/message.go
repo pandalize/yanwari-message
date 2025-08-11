@@ -623,9 +623,7 @@ func (s *MessageService) GetReceivedMessagesWithSender(ctx context.Context, reci
 }
 
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
-func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
-	var messages []Message
-	
+func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive.ObjectID, page, limit int) ([]map[string]interface{}, int64, error) {
 	// 送信者が送信したメッセージで、送信済み以上の状態のメッセージを取得
 	filter := bson.M{
 		"senderId": senderID,
@@ -646,22 +644,80 @@ func (s *MessageService) GetSentMessages(ctx context.Context, senderID primitive
 	skip := int64((page - 1) * limit)
 	limitInt64 := int64(limit)
 	
-	cursor, err := s.collection.Find(ctx, filter, &options.FindOptions{
-		Sort:  bson.D{{Key: "sentAt", Value: -1}}, // 送信日時の降順
-		Skip:  &skip,
-		Limit: &limitInt64,
-	})
+	// Aggregation pipeline to include recipient information
+	pipeline := []bson.M{
+		{"$match": filter},
+		{"$sort": bson.M{"sentAt": -1}}, // 送信日時の降順
+		{"$skip": skip},
+		{"$limit": limitInt64},
+		// Lookup recipient information
+		{
+			"$lookup": bson.M{
+				"from":         "users",
+				"localField":   "recipientId",
+				"foreignField": "_id",
+				"as":           "recipient",
+			},
+		},
+		// Unwind the recipient array
+		{"$unwind": bson.M{
+			"path":                       "$recipient",
+			"preserveNullAndEmptyArrays": true,
+		}},
+		// Project to include recipient details
+		{
+			"$project": bson.M{
+				"id":           "$_id",
+				"senderId":     1,
+				"recipientId":  1,
+				"originalText": 1,
+				"reason":       1,
+				"variations":   1,
+				"selectedTone": 1,
+				"finalText":    1,
+				"scheduledAt":  1,
+				"status":       1,
+				"createdAt":    1,
+				"updatedAt":    1,
+				"sentAt":       1,
+				"deliveredAt":  1,
+				"readAt":       1,
+				"recipientName": bson.M{
+					"$ifNull": []interface{}{
+						"$recipient.name",
+						bson.M{
+							"$ifNull": []interface{}{
+								bson.M{
+									"$arrayElemAt": []interface{}{
+										bson.M{"$split": []interface{}{"$recipient.email", "@"}},
+										0,
+									},
+								},
+								"Unknown User",
+							},
+						},
+					},
+				},
+				"recipientEmail": bson.M{
+					"$ifNull": []interface{}{"$recipient.email", ""},
+				},
+			},
+		},
+	}
+	
+	cursor, err := s.collection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
+	var messages []map[string]interface{}
 	if err = cursor.All(ctx, &messages); err != nil {
 		return nil, 0, err
 	}
 
 	if messages == nil {
-		messages = []Message{}
+		messages = []map[string]interface{}{}
 	}
 
 	return messages, total, nil

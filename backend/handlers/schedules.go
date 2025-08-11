@@ -296,8 +296,16 @@ func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
 	syncCount := 0
 	for _, msg := range sentMessages {
 		// メッセージIDに対応するスケジュールのステータスを更新
-		if err := h.scheduleService.UpdateScheduleStatusByMessageID(c.Request.Context(), msg.ID, "sent"); err != nil {
-			fmt.Printf("スケジュール同期エラー: MessageID=%s, エラー=%v\n", msg.ID.Hex(), err)
+		msgID, ok := msg["id"].(primitive.ObjectID)
+		if !ok {
+			// Try to get from "_id" field
+			msgID, ok = msg["_id"].(primitive.ObjectID)
+			if !ok {
+				continue
+			}
+		}
+		if err := h.scheduleService.UpdateScheduleStatusByMessageID(c.Request.Context(), msgID, "sent"); err != nil {
+			fmt.Printf("スケジュール同期エラー: MessageID=%s, エラー=%v\n", msgID.Hex(), err)
 		} else {
 			syncCount++
 		}

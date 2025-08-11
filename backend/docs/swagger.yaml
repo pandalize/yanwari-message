@@ -1,0 +1,65 @@
+basePath: /api/v1
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: やんわり伝言サービス - AIを使って気まずい用件を優しく伝えるサービスのAPI
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Yanwari Message API
+  version: "1.0"
+paths:
+  /messages/sent:
+    get:
+      consumes:
+      - application/json
+      description: 認証されたユーザーが送信した送信済みメッセージの一覧を取得します。受信者の名前も含まれます。
+      parameters:
+      - default: 1
+        description: ページ番号
+        in: query
+        minimum: 1
+        name: page
+        type: integer
+      - default: 20
+        description: 1ページあたりの件数
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功レスポンス
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: 認証エラー
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: サーバーエラー
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 送信済みメッセージ一覧を取得
+      tags:
+      - messages
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

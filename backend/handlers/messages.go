@@ -306,7 +306,18 @@ func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 }
 
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
-// GET /api/v1/messages/sent
+// @Summary 送信済みメッセージ一覧を取得
+// @Description 認証されたユーザーが送信した送信済みメッセージの一覧を取得します。受信者の名前も含まれます。
+// @Tags messages
+// @Accept json
+// @Produce json
+// @Param page query int false "ページ番号" default(1) minimum(1)
+// @Param limit query int false "1ページあたりの件数" default(20) minimum(1) maximum(100)
+// @Success 200 {object} map[string]interface{} "成功レスポンス"
+// @Failure 401 {object} map[string]interface{} "認証エラー"
+// @Failure 500 {object} map[string]interface{} "サーバーエラー"
+// @Router /messages/sent [get]
+// @Security BearerAuth
 func (h *MessageHandler) GetSentMessages(c *gin.Context) {
 	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
 	if err != nil {
