@@ -18,8 +18,40 @@ class ApiService {
       }
     })
 
-    // Firebase IDトークンは認証ストアで管理されるため、
-    // ここではリクエスト・レスポンスインターセプターは最小限
+    // レスポンスインターセプター（自動トークン更新 + エラー処理）
+    this.api.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        console.error('API Error:', error.response?.data || error.message)
+        
+        // 401エラーの場合、トークンリフレッシュを試みる
+        if (error.response?.status === 401) {
+          console.log('🔄 401エラー - トークンリフレッシュを試行')
+          try {
+            // authStoreをdynamic importで取得
+            const { useAuthStore } = await import('@/stores/auth')
+            const authStore = useAuthStore()
+            
+            // トークンリフレッシュ
+            const newToken = await authStore.refreshIdToken()
+            if (newToken) {
+              console.log('✅ トークンリフレッシュ成功 - リクエスト再試行')
+              // 元のリクエストを新しいトークンで再試行
+              error.config.headers['Authorization'] = `Bearer ${newToken}`
+              return this.api.request(error.config)
+            }
+          } catch (refreshError) {
+            console.error('❌ トークンリフレッシュ失敗:', refreshError)
+            // リフレッシュ失敗時はログアウト処理
+            const { useAuthStore } = await import('@/stores/auth')
+            const authStore = useAuthStore()
+            await authStore.logout()
+          }
+        }
+        
+        return Promise.reject(error)
+      }
+    )
   }
 
 

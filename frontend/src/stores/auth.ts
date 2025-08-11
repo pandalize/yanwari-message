@@ -142,6 +142,9 @@ export const useAuthStore = defineStore('auth', () => {
         firebaseUser: user.email, 
         appUser: appUser.value?.name 
       })
+      
+      // 定期トークン更新を開始
+      startTokenRefresh()
     } catch (err) {
       console.error('❌ ログインエラー:', err)
       error.value = err instanceof Error ? err.message : 'ログインに失敗しました'
@@ -204,6 +207,9 @@ export const useAuthStore = defineStore('auth', () => {
       apiService.clearAuthToken()
       
       console.log('✅ ログアウト完了')
+      
+      // 定期トークン更新を停止
+      stopTokenRefresh()
     } catch (err) {
       console.error('❌ ログアウトエラー:', err)
       error.value = err instanceof Error ? err.message : 'ログアウトに失敗しました'
@@ -218,10 +224,35 @@ export const useAuthStore = defineStore('auth', () => {
       const token = await firebaseUser.value.getIdToken(true) // 強制更新
       idToken.value = token
       apiService.setAuthToken(token)
+      console.log('🎫 IDトークン更新完了')
       return token
     } catch (err) {
       console.error('❌ IDトークン更新エラー:', err)
       throw err
+    }
+  }
+
+  // 定期的なトークン更新（50分ごと）
+  let tokenRefreshInterval: number | null = null
+  
+  const startTokenRefresh = () => {
+    stopTokenRefresh() // 既存のタイマーをクリア
+    tokenRefreshInterval = window.setInterval(async () => {
+      if (firebaseUser.value && isAuthenticated.value) {
+        console.log('🔄 定期トークン更新を実行')
+        try {
+          await refreshIdToken()
+        } catch (err) {
+          console.error('❌ 定期トークン更新失敗:', err)
+        }
+      }
+    }, 50 * 60 * 1000) // 50分
+  }
+  
+  const stopTokenRefresh = () => {
+    if (tokenRefreshInterval) {
+      clearInterval(tokenRefreshInterval)
+      tokenRefreshInterval = null
     }
   }
 

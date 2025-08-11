@@ -20,6 +20,41 @@ type FirebaseService struct {
 func NewFirebaseService() (*FirebaseService, error) {
 	ctx := context.Background()
 	
+	// Firebase Emulatorの確認
+	emulatorHost := os.Getenv("FIREBASE_AUTH_EMULATOR_HOST")
+	isEmulator := emulatorHost != ""
+	
+	if isEmulator {
+		// Firebase Emulator用の初期化
+		projectID := os.Getenv("FIREBASE_PROJECT_ID")
+		if projectID == "" {
+			projectID = "yanwari-message" // デフォルトプロジェクトID
+		}
+		
+		config := &firebase.Config{
+			ProjectID: projectID,
+		}
+		
+		// Emulator環境設定を確実に設定
+		os.Setenv("FIREBASE_AUTH_EMULATOR_HOST", emulatorHost)
+		
+		app, err := firebase.NewApp(ctx, config)
+		if err != nil {
+			return nil, fmt.Errorf("Firebase Emulatorアプリの初期化に失敗しました: %v", err)
+		}
+		
+		authClient, err := app.Auth(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("Firebase Emulator認証クライアントの初期化に失敗しました: %v", err)
+		}
+		
+		fmt.Printf("✅ Firebase Emulator接続成功 (%s)\n", emulatorHost)
+		return &FirebaseService{
+			Auth: authClient,
+			ctx:  ctx,
+		}, nil
+	}
+	
 	// Firebase Admin SDKの認証情報を環境変数から取得
 	privateKeyPath := os.Getenv("FIREBASE_PRIVATE_KEY_PATH")
 	if privateKeyPath == "" {

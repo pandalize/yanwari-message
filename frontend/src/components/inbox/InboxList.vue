@@ -234,22 +234,34 @@ const fetchInboxData = async (): Promise<void> => {
       
       if (response.data?.messages && Array.isArray(response.data.messages)) {
         // データの整形
-        const processedMessages = response.data.messages.map((msg: any) => ({
-          id: msg.id,
-          senderId: msg.senderId || '',
-          senderEmail: msg.senderEmail || '',
-          senderName: msg.senderName || 'Unknown User',
-          recipientId: msg.recipientId || '',
-          recipientEmail: msg.recipientEmail || '',
-          originalText: msg.originalText || '',
-          finalText: msg.finalText || '',
-          selectedTone: msg.selectedTone || '',
-          scheduledAt: msg.scheduledAt || null,
-          sentAt: msg.sentAt || null,
-          status: msg.status || 'sent',
-          rating: msg.rating || null,
-          readAt: msg.readAt || null
-        }))
+        const processedMessages = response.data.messages.map((msg: any) => {
+          console.log('📧 処理中のメッセージデータ:', JSON.stringify({
+            id: msg.id,
+            senderName: msg.senderName,
+            rating: msg.rating,
+            ratingType: typeof msg.rating,
+            hasRating: !!msg.rating,
+            status: msg.status,
+            finalText: (msg.finalText || '').substring(0, 30) + '...'
+          }, null, 2))
+          
+          return {
+            id: msg.id,
+            senderId: msg.senderId || '',
+            senderEmail: msg.senderEmail || '',
+            senderName: msg.senderName || 'Unknown User',
+            recipientId: msg.recipientId || '',
+            recipientEmail: msg.recipientEmail || '',
+            originalText: msg.originalText || '',
+            finalText: msg.finalText || '',
+            selectedTone: msg.selectedTone || '',
+            scheduledAt: msg.scheduledAt || null,
+            sentAt: msg.sentAt || null,
+            status: msg.status || 'sent',
+            rating: msg.rating || null,
+            readAt: msg.readAt || null
+          }
+        })
         
         // ステート更新
         inboxMessages.value = processedMessages
@@ -331,6 +343,22 @@ const paginatedListData = computed<InboxMessageWithRating[]>(() => {
 // ツリーマップ用データ
 const treemapData = computed<InboxMessageWithRating[]>(() => {
   console.log('📊 treemapData computed:', inboxMessages.value.length, 'messages')
+  
+  // 🔍 初期レンダリング時のデータ詳細確認
+  console.log('🔍 treemapData 初期状態確認:', JSON.stringify({
+    messageCount: inboxMessages.value.length,
+    firstThreeMessages: inboxMessages.value.slice(0, 3).map(msg => ({
+      id: msg.id,
+      senderName: msg.senderName,
+      rating: msg.rating,
+      status: msg.status,
+      hasRating: msg.rating !== null && msg.rating !== undefined,
+      ratingValue: msg.rating
+    })),
+    allRatings: inboxMessages.value.map(msg => msg.rating).filter(r => r !== null && r !== undefined),
+    computedTriggerTime: new Date().toISOString()
+  }, null, 2))
+  
   return inboxMessages.value
 })
 

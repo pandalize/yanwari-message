@@ -5,9 +5,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && go run main.go",
-    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "./scripts/dev-start.sh",
+    "dev:simple": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 PORT=8080 go run main.go",
+    "dev:frontend": "cd frontend && npm run dev -- --port=5173 --host=localhost",
     "build": "cd frontend && npm run build",
     "build:backend": "cd backend && go build -o bin/server main.go",
     "test": "concurrently \"npm run test:backend\" \"npm run test:frontend\"",
@@ -29,7 +30,19 @@
     "setup:env": "cp backend/.env.example backend/.env || echo 'backend/.env already exists'",
     "start": "npm run dev",
     "docker:build": "docker build -t yanwari-message .",
-    "docker:run": "docker run -p 8080:8080 -p 5173:5173 yanwari-message"
+    "docker:run": "docker run -p 8080:8080 -p 5173:5173 yanwari-message",
+    "db:reset": "node backend/scripts/db-reset.cjs",
+    "db:seed": "node backend/scripts/db-seed.cjs",
+    "db:seed:auth-only": "node backend/scripts/db-seed.cjs --dataset=auth-only",
+    "db:seed:messages": "node backend/scripts/db-seed.cjs --dataset=messages",
+    "db:seed:full": "node backend/scripts/db-seed.cjs --dataset=full",
+    "test-env:reset": "npm run db:reset && npm run db:seed:full",
+    "test:firebase-integration": "node backend/scripts/test-firebase-integration.cjs",
+    "test-env:full": "firebase emulators:start --only auth & sleep 3 && npm run test-env:reset && npm run test:firebase-integration",
+    "dev:with-emulator": "concurrently \"firebase emulators:start --only auth\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "test-env:start": "concurrently \"firebase emulators:start --only auth\" \"npm run test-env:reset\"",
+    "dev:stop": "./scripts/dev-stop.sh",
+    "dev:status": "echo '=== ポート使用状況 ===' && (lsof -i:5173 -i:8080 -i:9099 | head -1 && (lsof -i:5173 -i:8080 -i:9099 | grep -v COMMAND || echo '使用中のポートはありません')) && echo '' && echo '=== Firebase Emulator ===' && (ps aux | grep firebase | grep -v grep || echo 'Firebase Emulator は起動していません')"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
@@ -56,5 +69,10 @@
   "bugs": {
     "url": "https://github.com/your-org/yanwari-message/issues"
   },
-  "homepage": "https://github.com/your-org/yanwari-message#readme"
+  "homepage": "https://github.com/your-org/yanwari-message#readme",
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "firebase-admin": "^13.4.0",
+    "mongodb": "^6.18.0"
+  }
 }

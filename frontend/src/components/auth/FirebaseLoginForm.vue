@@ -35,6 +35,9 @@
         type="submit" 
         :disabled="isLoading || !email || !password"
         class="login-button"
+        @click="handleLogin"
+        @mousedown="() => console.log('🖱️ ログインボタンがマウスダウンされました')"
+        @mouseup="() => console.log('🖱️ ログインボタンがマウスアップされました')"
       >
         <span v-if="isLoading">🔄 ログイン中...</span>
         <span v-else>🚀 ログイン</span>
@@ -77,24 +80,59 @@ const password = ref('')
 const { isLoading, error } = authStore
 
 // ログイン処理
-const handleLogin = async () => {
+const handleLogin = async (event?: Event) => {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  
+  console.log('🚀 ログインボタンがクリックされました')
+  console.log('📧 Email:', email.value)
+  console.log('🔒 Password:', password.value ? '***設定済み***' : '未設定')
+  console.log('🔄 Loading状態:', authStore.isLoading)
+  console.log('❌ Error状態:', authStore.error)
+  
+  // 状態チェック
+  if (authStore.isLoading) {
+    console.log('⚠️ 既にログイン処理中です')
+    return
+  }
+  
+  if (!email.value || !password.value) {
+    console.log('⚠️ メールアドレスまたはパスワードが入力されていません')
+    return
+  }
+  
   try {
+    console.log('🔥 authStore.login を呼び出し中...')
     await authStore.login(email.value, password.value)
+    
+    // IDトークンをコンソールに出力（テスト用）
+    if (authStore.idToken) {
+      console.log('🎫 新しいIDトークン取得完了:')
+      console.log('Token:', authStore.idToken.substring(0, 100) + '...')
+    }
+    
+    console.log('✅ ログイン成功、ホームページにリダイレクト中...')
     router.push('/') // ログイン成功後にホームページにリダイレクト
   } catch (err) {
-    console.error('ログイン失敗:', err)
+    console.error('❌ ログイン失敗:', err)
   }
 }
 
 // デモアカウントを設定
 const setDemoAccount = (account: 'alice' | 'bob') => {
+  console.log('🧪 デモアカウントボタンがクリックされました:', account)
+  
   if (account === 'alice') {
     email.value = 'alice@yanwari.com'
-    password.value = 'AliceDemo123!'
+    password.value = 'testpassword123'
   } else {
     email.value = 'bob@yanwari.com'
-    password.value = 'BobDemo123!'
+    password.value = 'testpassword123'
   }
+  
+  console.log('✅ デモアカウント設定完了:', email.value)
 }
 </script>
 

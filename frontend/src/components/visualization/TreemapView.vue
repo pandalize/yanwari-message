@@ -144,10 +144,24 @@ const svgHeight = ref<number>(600)
 
 // ツリーマップデータの計算
 const treemapData = computed(() => {
+  console.log('🔄 treemapData computed triggered:', {
+    messageCount: props.messages.length,
+    messagesWithRating: props.messages.filter(m => m.rating !== null && m.rating !== undefined).length,
+    firstMessageRating: props.messages[0]?.rating || 'no rating',
+    timestamp: new Date().toISOString()
+  })
+  
   if (!props.messages.length) return []
 
   const hierarchyData = groupMessages()
-  return calculateTreemap(hierarchyData)
+  const result = calculateTreemap(hierarchyData)
+  
+  console.log('✅ treemapData computed result:', {
+    totalItems: result.length,
+    itemsWithRating: result.filter(item => item.rating).length
+  })
+  
+  return result
 })
 
 // 階層構造を持つツリーマップデータ構造
@@ -273,13 +287,24 @@ const calculateTreemap = (hierarchyData: TreemapNode) => {
 
     if (!node.children || node.children.length === 0) {
       // 葉ノード（個別メッセージ）
+      const leafColor = node.color || getMessageColor(node.message)
+      console.log('🍃 葉ノード処理:', JSON.stringify({
+        nodeId: node.id,
+        messageId: node.message?.id,
+        rating: node.message?.rating,
+        status: node.message?.status,
+        nodeColor: node.color,
+        calculatedColor: leafColor,
+        finalResult: 'leaf node'
+      }, null, 2))
+      
       return [{
         id: node.id,
         x: x,
         y: y,
         width: width,
         height: height,
-        color: node.color || getMessageColor(node.message),
+        color: leafColor,
         label: node.name,
         message: node.message,
         level: node.level,
@@ -305,14 +330,29 @@ const calculateTreemap = (hierarchyData: TreemapNode) => {
         const childRects = layoutHierarchy(child, rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4)
         result.push(...childRects)
       } else {
-        // 葉ノード
-        result.push({
+        // 葉ノード - より詳細なデバッグログ
+        const calculatedColor = child.color || getMessageColor(child.message)
+        console.log('🎨 SVG描画用データ作成:', JSON.stringify({
+          messageId: child.id,
+          rating: child.message?.rating,
+          status: child.message?.status,
+          childColor: child.color,
+          calculatedColor,
+          level: child.level,
+          isLeafNode: true,
+          rectX: rect.x,
+          rectY: rect.y,
+          rectWidth: rect.width,
+          rectHeight: rect.height
+        }, null, 2))
+        
+        const svgItem = {
           id: child.id,
           x: rect.x,
           y: rect.y,
           width: rect.width,
           height: rect.height,
-          color: child.color || getMessageColor(child.message),
+          color: calculatedColor,
           label: child.name,
           message: child.message,
           level: child.level,
@@ -321,14 +361,39 @@ const calculateTreemap = (hierarchyData: TreemapNode) => {
           rating: child.message?.rating,
           senderName: child.message?.senderName || child.message?.senderEmail,
           value: child.value
-        })
+        }
+        
+        // SVGアイテムの最終確認ログ
+        console.log('🖼️ 最終SVGアイテム:', JSON.stringify({
+          id: svgItem.id,
+          color: svgItem.color,
+          rating: svgItem.rating,
+          hasValidColor: !!svgItem.color && svgItem.color !== '#f3f4f6',
+          isColoredByRating: svgItem.rating && svgItem.rating > 0
+        }, null, 2))
+        
+        result.push(svgItem)
       }
     })
 
     return result
   }
 
-  return layoutHierarchy(hierarchyData, 10, 10, containerWidth, containerHeight)
+  const finalResult = layoutHierarchy(hierarchyData, 10, 10, containerWidth, containerHeight)
+  
+  // 全体の結果サマリーログ
+  console.log('📊 ツリーマップ計算完了:', JSON.stringify({
+    totalItems: finalResult.length,
+    itemsWithRating: finalResult.filter(item => item.rating > 0).length,
+    itemsWithNonDefaultColor: finalResult.filter(item => item.color && item.color !== '#f3f4f6').length,
+    firstThreeItemColors: finalResult.slice(0, 3).map(item => ({
+      id: item.id,
+      rating: item.rating,
+      color: item.color
+    }))
+  }, null, 2))
+  
+  return finalResult
 }
 
 // 最もシンプルな面積比例分割アルゴリズム
@@ -431,15 +496,46 @@ const getRatingColor = (ratingName: string) => {
 }
 
 const getMessageColor = (message: any) => {
+  console.log('🎨 getMessageColor called:', JSON.stringify({
+    messageId: message?.id,
+    status: message?.status,
+    rating: message?.rating,
+    ratingType: typeof message?.rating,
+    hasRating: !!message?.rating,
+    senderName: message?.senderName
+  }, null, 2))
+  
   if (!message) return '#f3f4f6'
 
-  // 未読メッセージは特別な色（目立つ青色）
-  if (message.status !== 'read') return '#dbeafe'
+  // 送信済みでない場合（下書き・処理中など）は薄い青色
+  if (message.status === 'draft' || message.status === 'processing') return '#dbeafe'
 
   // 評価に基づく色分け（薄い色合い）
-  if (!message.rating) return '#f3f4f6' // 未評価は薄い灰色
+  if (!message.rating) {
+    console.log('🎨 未評価メッセージ:', JSON.stringify({
+      messageId: message.id,
+      rating: message.rating,
+      senderName: message.senderName,
+      status: message.status
+    }, null, 2))
+    return '#f3f4f6' // 未評価は薄い灰色
+  }
 
   const rating = message.rating
+  console.log('🎨 評価に基づく色付け:', JSON.stringify({ 
+    messageId: message.id, 
+    rating, 
+    color: getColorByRating(rating) 
+  }, null, 2))
+  
+  if (rating <= 1) return '#87cefa'
+  if (rating <= 2) return '#b0e0e6'
+  if (rating === 3) return '#fef3c7'
+  if (rating === 4) return '#ffb6c1'
+  return '#ff7f50'
+}
+
+const getColorByRating = (rating: number): string => {
   if (rating <= 1) return '#87cefa'
   if (rating <= 2) return '#b0e0e6'
   if (rating === 3) return '#fef3c7'
@@ -576,10 +672,33 @@ onMounted(() => {
 })
 
 // メッセージデータの変更を監視してツリーマップを更新
-watch(() => props.messages, () => {
+watch(() => props.messages, (newMessages, oldMessages) => {
+  console.log('🔄 TreemapView props.messages changed:', {
+    newCount: newMessages?.length || 0,
+    oldCount: oldMessages?.length || 0,
+    hasRatingData: newMessages?.some(m => m.rating !== null && m.rating !== undefined) || false
+  })
+  
+  // 🔍 初期props受信時の詳細確認
+  if (newMessages && newMessages.length > 0) {
+    console.log('🔍 TreemapView 受信データ詳細:', JSON.stringify({
+      totalMessages: newMessages.length,
+      messagesWithRating: newMessages.filter(m => m.rating !== null && m.rating !== undefined).length,
+      allRatingValues: newMessages.map(m => m.rating).filter(r => r !== null && r !== undefined),
+      sampleMessage: newMessages[0] ? {
+        id: newMessages[0].id,
+        senderName: newMessages[0].senderName,
+        rating: newMessages[0].rating,
+        status: newMessages[0].status
+      } : null,
+      propsChangeTimestamp: new Date().toISOString()
+    }, null, 2))
+  }
+  
   // 強制的に再レンダリングをトリガー
   if (treemapContainer.value) {
     nextTick(() => {
+      console.log('🎨 TreemapView forcing re-render after data change')
       updateDimensions()
     })
   }

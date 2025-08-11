@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, type User } from 'firebase/auth'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, type User, connectAuthEmulator } from 'firebase/auth'
 
 // Firebase設定
 const firebaseConfig = {
@@ -11,6 +11,23 @@ const firebaseConfig = {
 // Firebase初期化
 const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
+
+// Firebase Emulator接続（開発環境）
+if (import.meta.env.DEV) {
+  console.log('🔥 Firebase Emulator に接続中...')
+  try {
+    // Emulator接続は一度のみ実行
+    if (!auth.config.emulator) {
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+      console.log('✅ Firebase Authentication Emulator に接続しました (127.0.0.1:9099)')
+    } else {
+      console.log('✅ Firebase Authentication Emulator は既に接続済みです')
+    }
+  } catch (error) {
+    console.log('⚠️ Firebase Emulator接続エラー:', error)
+    console.log('Firebase Emulatorが起動していることを確認してください')
+  }
+}
 
 // Firebase認証サービス
 export class FirebaseAuthService {
