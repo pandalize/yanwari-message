@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -41,12 +42,45 @@ func (h *FirebaseAuthHandler) GetUserProfile(c *gin.Context) {
 	// MongoDBからユーザー情報を取得
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		log.Printf("Firebase認証ハンドラー: ユーザー取得エラー: %v", err)
-		c.JSON(http.StatusNotFound, gin.H{
-			"error":   "ユーザーが見つかりません",
-			"message": "指定されたFirebase UIDのユーザーが存在しません",
-		})
-		return
+		log.Printf("🔄 Firebase認証ハンドラー: MongoDB にユーザーが見つかりません: %v", err)
+		log.Printf("🔄 Firebase UID: %s の自動同期を試行中...", firebaseUID)
+		
+		// Firebase上でのユーザー情報を取得して自動作成
+		firebaseUser, fbErr := h.firebaseService.GetUserByUID(firebaseUID)
+		if fbErr != nil {
+			log.Printf("❌ Firebase ユーザー情報取得エラー: %v", fbErr)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+				"message": "Firebase UID " + firebaseUID + " のユーザーが見つかりません",
+			})
+			return
+		}
+
+		// 新しいユーザーをMongoDBに作成
+		newUser := &models.User{
+			Email:       firebaseUser.Email,
+			FirebaseUID: firebaseUID,
+			Name:        firebaseUser.DisplayName,
+			Timezone:    "Asia/Tokyo",
+		}
+
+		// 表示名が空の場合はメールアドレスから生成
+		if newUser.Name == "" {
+			newUser.Name = firebaseUser.Email
+		}
+
+		createErr := h.userService.CreateUserWithFirebaseUID(c.Request.Context(), newUser)
+		if createErr != nil {
+			log.Printf("❌ 自動同期失敗 - ユーザー作成エラー: %v", createErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "ユーザー自動作成エラー",
+				"message": "MongoDBへのユーザー作成に失敗しました",
+			})
+			return
+		}
+
+		log.Printf("✅ 自動同期成功: %s (Firebase UID: %s)", newUser.Email, firebaseUID)
+		user = newUser
 	}
 
 	// レスポンス
@@ -56,6 +90,47 @@ func (h *FirebaseAuthHandler) GetUserProfile(c *gin.Context) {
 			"user": user,
 		},
 	})
+}
+
+// GetOrCreateUserFromFirebase Firebase UIDからMongoDBユーザーを取得し、存在しない場合は自動作成
+func (h *FirebaseAuthHandler) GetOrCreateUserFromFirebase(ctx context.Context, firebaseUID string) (*models.User, error) {
+	// MongoDBからユーザー情報を取得
+	user, err := h.userService.GetUserByFirebaseUID(ctx, firebaseUID)
+	if err == nil {
+		// ユーザーが見つかった場合はそのまま返す
+		return user, nil
+	}
+
+	log.Printf("🔄 ユーザー自動同期開始: Firebase UID %s", firebaseUID)
+
+	// Firebase上でのユーザー情報を取得
+	firebaseUser, fbErr := h.firebaseService.GetUserByUID(firebaseUID)
+	if fbErr != nil {
+		log.Printf("❌ Firebase ユーザー情報取得エラー: %v", fbErr)
+		return nil, fbErr
+	}
+
+	// 新しいユーザーをMongoDBに作成
+	newUser := &models.User{
+		Email:       firebaseUser.Email,
+		FirebaseUID: firebaseUID,
+		Name:        firebaseUser.DisplayName,
+		Timezone:    "Asia/Tokyo",
+	}
+
+	// 表示名が空の場合はメールアドレスから生成
+	if newUser.Name == "" {
+		newUser.Name = firebaseUser.Email
+	}
+
+	createErr := h.userService.CreateUserWithFirebaseUID(ctx, newUser)
+	if createErr != nil {
+		log.Printf("❌ 自動同期失敗 - ユーザー作成エラー: %v", createErr)
+		return nil, createErr
+	}
+
+	log.Printf("✅ ユーザー自動同期成功: %s (Firebase UID: %s)", newUser.Email, firebaseUID)
+	return newUser, nil
 }
 
 // SyncUserFromFirebase Firebase認証でログインした際にMongoDBにユーザー情報を同期

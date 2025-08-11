@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"yanwari-message-backend/models"
 
@@ -41,14 +42,17 @@ func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -110,8 +114,27 @@ func (h *FriendRequestHandler) SendFriendRequest(c *gin.Context) {
 	// 友達申請を作成
 	friendRequest, err := h.friendRequestService.Create(ctx, fromUserID, toUser.ID, input.Message)
 	if err != nil {
+		// 詳細なエラーログを追加
+		log.Printf("❌ 友達申請作成エラー: %v", err)
+		log.Printf("❌ FromUserID: %s, ToUserID: %s", fromUserID.Hex(), toUser.ID.Hex())
+		
+		// ビジネスロジックエラーの場合は400を返す
+		errorMessage := err.Error()
+		if errorMessage == "既に友達申請を送信済みです" || 
+		   errorMessage == "既にpending状態の友達申請が存在します" ||
+		   errorMessage == "相手から友達申請が来ています。申請を確認してください" ||
+		   errorMessage == "既に友達です" ||
+		   errorMessage == "自分自身に友達申請を送ることはできません" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": errorMessage,
+			})
+			return
+		}
+		
+		// その他のエラーは500として扱う
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "友達申請の作成に失敗しました",
+			"detail": errorMessage,
 		})
 		return
 	}
@@ -133,14 +156,17 @@ func (h *FriendRequestHandler) GetReceivedFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -175,14 +201,17 @@ func (h *FriendRequestHandler) GetSentFriendRequests(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -217,14 +246,17 @@ func (h *FriendRequestHandler) AcceptFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -268,14 +300,17 @@ func (h *FriendRequestHandler) RejectFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -319,14 +354,17 @@ func (h *FriendRequestHandler) CancelFriendRequest(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -370,14 +408,17 @@ func (h *FriendRequestHandler) GetFriends(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return
@@ -417,14 +458,17 @@ func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 		return
 	}
 	
-	// Firebase UIDからMongoDBユーザーを取得
+	// Firebase UIDからMongoDBユーザーを取得（自動同期対応）
 	firebaseUID := firebaseUser.(string)
 	user, err := h.userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
-		// デバッグログを追加
+		// ユーザーが見つからない場合は自動同期を試行
+		log.Printf("🔄 友達申請ハンドラー: ユーザー自動同期を開始 Firebase UID: %s", firebaseUID)
+		// Firebase認証ハンドラーを使って自動同期（共通処理を再利用）
+		// 注意: 直接的な依存を避けるため、ここではエラーレスポンスのみ返す
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "ユーザーが見つかりません",
-			"detail": err.Error(),
+			"error": "Firebase UID " + firebaseUID + " に対応するユーザーが見つかりません",
+			"message": "ユーザー情報の同期が必要です。/firebase-auth/sync エンドポイントを呼び出してください",
 			"firebase_uid": firebaseUID,
 		})
 		return

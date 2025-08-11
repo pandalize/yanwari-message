@@ -43,13 +43,20 @@ func NewFriendRequestService(db *mongo.Database) *FriendRequestService {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	
-	// 複合インデックス（同じユーザー間の重複申請を防ぐ）
+	// 古いインデックスを削除（初回実行時のみ必要）
+	collection.Indexes().DropOne(ctx, "from_user_id_1_to_user_id_1")
+	
+	// 複合インデックス（同じユーザー間のpending申請の重複を防ぐ）
+	// PartialFilterを使用して、pendingステータスのみにユニーク制約を適用
 	collection.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "from_user_id", Value: 1},
 			{Key: "to_user_id", Value: 1},
 		},
-		Options: options.Index().SetUnique(true),
+		Options: options.Index().
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{"status": "pending"}).
+			SetName("pending_friend_requests_unique"),
 	})
 	
 	// ステータスインデックス
@@ -109,7 +116,8 @@ func (s *FriendRequestService) Create(ctx context.Context, fromUserID, toUserID 
 	result, err := s.collection.InsertOne(ctx, request)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return nil, errors.New("既に友達申請を送信済みです")
+			// より具体的なエラーメッセージを提供
+			return nil, errors.New("既にpending状態の友達申請が存在します")
 		}
 		return nil, err
 	}
@@ -266,8 +274,28 @@ func (s *FriendRequestService) Accept(ctx context.Context, requestID, userID pri
 	return err
 }
 
-// Reject は友達申請を拒否
+// Reject は友達申請を拒否（完全削除）
 func (s *FriendRequestService) Reject(ctx context.Context, requestID, userID primitive.ObjectID) error {
+	// pending状態の申請を完全に削除
+	result, err := s.collection.DeleteOne(ctx, bson.M{
+		"_id":        requestID,
+		"to_user_id": userID,
+		"status":     "pending",
+	})
+	
+	if err != nil {
+		return err
+	}
+	
+	if result.DeletedCount == 0 {
+		return errors.New("友達申請が見つかりません")
+	}
+	
+	return nil
+}
+
+// RejectSoft は友達申請をソフト拒否（ステータス変更）
+func (s *FriendRequestService) RejectSoft(ctx context.Context, requestID, userID primitive.ObjectID) error {
 	result, err := s.collection.UpdateOne(ctx, bson.M{
 		"_id":        requestID,
 		"to_user_id": userID,
@@ -290,8 +318,28 @@ func (s *FriendRequestService) Reject(ctx context.Context, requestID, userID pri
 	return nil
 }
 
-// Cancel は送信した友達申請をキャンセル
+// Cancel は送信した友達申請をキャンセル（完全削除）
 func (s *FriendRequestService) Cancel(ctx context.Context, requestID, userID primitive.ObjectID) error {
+	// pending状態の申請を完全に削除
+	result, err := s.collection.DeleteOne(ctx, bson.M{
+		"_id":          requestID,
+		"from_user_id": userID,
+		"status":       "pending",
+	})
+	
+	if err != nil {
+		return err
+	}
+	
+	if result.DeletedCount == 0 {
+		return errors.New("友達申請が見つかりません")
+	}
+	
+	return nil
+}
+
+// CancelSoft は送信した友達申請をソフトキャンセル（ステータス変更）
+func (s *FriendRequestService) CancelSoft(ctx context.Context, requestID, userID primitive.ObjectID) error {
 	result, err := s.collection.UpdateOne(ctx, bson.M{
 		"_id":          requestID,
 		"from_user_id": userID,
@@ -322,4 +370,21 @@ func (s *FriendRequestService) GetByID(ctx context.Context, requestID primitive.
 		return nil, err
 	}
 	return &request, nil
+}
+
+// CleanupCanceledAndRejected はキャンセル・拒否済みの古い友達申請を削除
+func (s *FriendRequestService) CleanupCanceledAndRejected(ctx context.Context) (int64, error) {
+	// 30日以上古いキャンセル・拒否済み申請を削除
+	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+	
+	result, err := s.collection.DeleteMany(ctx, bson.M{
+		"status": bson.M{"$in": []string{"canceled", "rejected"}},
+		"updated_at": bson.M{"$lt": thirtyDaysAgo},
+	})
+	
+	if err != nil {
+		return 0, err
+	}
+	
+	return result.DeletedCount, nil
 }
