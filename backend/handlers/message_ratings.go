@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -188,6 +189,9 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 		return
 	}
 	recipientID := recipient.ID
+	
+	// デバッグログ: 認証情報確認
+	log.Printf("[DEBUG] GetInboxWithRatings - 認証ユーザー: %s (ObjectID: %s)", recipient.Email, recipientID.Hex())
 
 	// ページネーション
 	pageStr := c.DefaultQuery("page", "1")
@@ -204,11 +208,14 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	}
 
 	// 受信メッセージを取得
+	log.Printf("[DEBUG] GetInboxWithRatings - メッセージ検索開始: recipientID=%s, page=%d, limit=%d", recipientID.Hex(), page, limit)
 	messages, total, err := mrh.messageService.GetReceivedMessagesWithPagination(c.Request.Context(), recipientID, page, limit)
 	if err != nil {
+		log.Printf("[DEBUG] GetInboxWithRatings - メッセージ取得エラー: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージの取得に失敗しました"})
 		return
 	}
+	log.Printf("[DEBUG] GetInboxWithRatings - メッセージ取得結果: %d件取得 (総数: %d)", len(messages), total)
 
 	// メッセージIDリストを作成
 	messageIDs := make([]primitive.ObjectID, len(messages))
@@ -309,6 +316,28 @@ func (mrh *MessageRatingHandler) DeleteMessageRating(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "評価を削除しました"})
 }
 
+// DebugAlice Alice 専用デバッグエンドポイント
+// GET /api/v1/messages/debug-alice
+func (mrh *MessageRatingHandler) DebugAlice(c *gin.Context) {
+	// 認証チェック
+	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	
+	// Alice のデバッグ情報を返す
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Alice デバッグ情報",
+		"debug": gin.H{
+			"authUser":     recipient.Email,
+			"authUserID":   recipient.ID.Hex(),
+			"authUserName": recipient.Name,
+			"firebaseUID":  recipient.FirebaseUID,
+		},
+	})
+}
+
 // convertTimeToDateTime *time.Time を *primitive.DateTime に変換するヘルパー関数
 func convertTimeToDateTime(t *time.Time) *primitive.DateTime {
 	if t == nil {
@@ -326,6 +355,9 @@ func (mrh *MessageRatingHandler) RegisterRoutes(rg *gin.RouterGroup, firebaseMid
 		messages.POST("/:id/rate", mrh.RateMessage)
 		messages.GET("/:id/rating", mrh.GetMessageRating)
 		messages.DELETE("/:id/rating", mrh.DeleteMessageRating)
+		
+		// デバッグエンドポイント (/:id より前に配置)
+		messages.GET("/debug-alice", mrh.DebugAlice)
 		
 		// 評価付き受信トレイ
 		messages.GET("/inbox-with-ratings", mrh.GetInboxWithRatings)

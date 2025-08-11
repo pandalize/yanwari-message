@@ -91,7 +91,7 @@ async function seedAuthOnly(db) {
             _id: new ObjectId(),
             email: 'alice@yanwari.com',
             name: 'Alice テスター',
-            firebase_uid: 'test_firebase_uid_001',
+            firebaseUid: 'test_firebase_uid_001',
             timezone: 'Asia/Tokyo',
             createdAt: new Date('2025-01-01T00:00:00Z'),
             updatedAt: new Date('2025-01-01T00:00:00Z')
@@ -100,7 +100,7 @@ async function seedAuthOnly(db) {
             _id: new ObjectId(),
             email: 'bob@yanwari.com',
             name: 'Bob デモ',
-            firebase_uid: 'test_firebase_uid_002',
+            firebaseUid: 'test_firebase_uid_002',
             timezone: 'Asia/Tokyo',
             createdAt: new Date('2025-01-01T00:00:00Z'),
             updatedAt: new Date('2025-01-01T00:00:00Z')
@@ -109,7 +109,7 @@ async function seedAuthOnly(db) {
             _id: new ObjectId(),
             email: 'charlie@yanwari.com',
             name: 'Charlie サンプル',
-            firebase_uid: 'test_firebase_uid_003',
+            firebaseUid: 'test_firebase_uid_003',
             timezone: 'Asia/Tokyo',
             createdAt: new Date('2025-01-01T00:00:00Z'),
             updatedAt: new Date('2025-01-01T00:00:00Z')

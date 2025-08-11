@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,11 +18,14 @@ func getUserByFirebaseUID(c *gin.Context, userService *models.UserService) (*mod
 		return nil, fmt.Errorf("Firebase認証が必要です")
 	}
 
+	log.Printf("[DEBUG] getUserByFirebaseUID - Firebase UID: %s", firebaseUID)
 	user, err := userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
 	if err != nil {
+		log.Printf("[DEBUG] getUserByFirebaseUID - ユーザー検索失敗: %v", err)
 		return nil, fmt.Errorf("Firebase UID %s に対応するユーザーが見つかりません: %v", firebaseUID, err)
 	}
 
+	log.Printf("[DEBUG] getUserByFirebaseUID - ユーザー発見: %s (ObjectID: %s)", user.Email, user.ID.Hex())
 	return user, nil
 }
 

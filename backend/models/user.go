@@ -16,12 +16,12 @@ type User struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name         string             `bson:"name" json:"name"`
 	Email        string             `bson:"email" json:"email"`
-	FirebaseUID  string             `bson:"firebase_uid,omitempty" json:"firebase_uid,omitempty"` // Firebase UID追加
+	FirebaseUID  string             `bson:"firebaseUid,omitempty" json:"firebaseUid,omitempty"` // Firebase UID追加
 	PasswordHash string             `bson:"password_hash" json:"-"` // JSONには含めない（セキュリティ上重要）
 	Salt         string             `bson:"salt" json:"-"`
 	Timezone     string             `bson:"timezone" json:"timezone"`
-	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
+	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt    time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
 
 // UserService ユーザー関連のデータベース操作を担当
@@ -354,8 +354,8 @@ func (s *UserService) UpdateFirebaseUID(ctx context.Context, userID primitive.Ob
 	filter := bson.M{"_id": userID}
 	update := bson.M{
 		"$set": bson.M{
-			"firebase_uid": firebaseUID,
-			"updated_at":   now,
+			"firebaseUid": firebaseUID,
+			"updatedAt":   now,
 		},
 	}
 	
@@ -378,7 +378,7 @@ func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID stri
 	}
 	
 	var user User
-	filter := bson.M{"firebase_uid": firebaseUID}
+	filter := bson.M{"firebaseUid": firebaseUID}
 	
 	err := s.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
@@ -439,7 +439,7 @@ func (s *UserService) GetAllUsers(ctx context.Context) ([]User, error) {
 // CreateFirebaseUIDIndex Firebase UIDにインデックスを作成
 func (s *UserService) CreateFirebaseUIDIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "firebase_uid", Value: 1}}, // 昇順インデックス
+		Keys:    bson.D{{Key: "firebaseUid", Value: 1}}, // 昇順インデックス
 		Options: options.Index().SetUnique(true).SetSparse(true), // ユニーク制約、スパースインデックス
 	}
 	

@@ -38,6 +38,12 @@ const TEST_USERS = [
         email: 'bob@yanwari.com',
         password: 'testpassword123',
         displayName: 'Bob デモ'
+    },
+    {
+        uid: 'test_firebase_uid_003',
+        email: 'charlie@yanwari.com',
+        password: 'testpassword123',
+        displayName: 'Charlie サンプル'
     }
 ];
 
@@ -87,6 +93,13 @@ async function testFirebaseIntegration() {
         const firebaseUsers = [];
         for (const testUser of TEST_USERS) {
             try {
+                // 既存ユーザーを削除してから作成（重複を防ぐ）
+                try {
+                    await auth.deleteUser(testUser.uid);
+                } catch (deleteErr) {
+                    // ユーザーが存在しない場合は無視
+                }
+                
                 const userRecord = await auth.createUser({
                     uid: testUser.uid,
                     email: testUser.email,
@@ -109,16 +122,16 @@ async function testFirebaseIntegration() {
         const linkedUsers = [];
         
         for (const user of users) {
-            if (user.firebase_uid) {
+            if (user.firebaseUid) {
                 try {
-                    const firebaseUser = await auth.getUser(user.firebase_uid);
-                    console.log(`  ✅ ${user.email} → Firebase UID: ${user.firebase_uid}`);
+                    const firebaseUser = await auth.getUser(user.firebaseUid);
+                    console.log(`  ✅ ${user.email} → Firebase UID: ${user.firebaseUid}`);
                     linkedUsers.push({
                         mongodb: user,
                         firebase: firebaseUser
                     });
                 } catch (error) {
-                    console.log(`  ❌ ${user.email} → Firebase UID: ${user.firebase_uid} (未作成)`);
+                    console.log(`  ❌ ${user.email} → Firebase UID: ${user.firebaseUid} (未作成)`);
                 }
             } else {
                 console.log(`  ⚠️  ${user.email} → Firebase UID: (未設定)`);
