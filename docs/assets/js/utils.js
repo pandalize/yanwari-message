@@ -86,7 +86,7 @@ const AgileUtils = (() => {
     const getAvailableSprints = async () => {
         try {
             console.log('🔍 Debug: Fetching sprints for', REPO_OWNER, '/', REPO_NAME);
-            const files = await fetchGitHubData('contents/docs/burndown');
+            const files = await fetchGitHubData('contents/docs/burndown?ref=feature/shared-test-data-initialization');
             console.log('📁 Debug: Files found:', files);
             const sprints = files
                 .filter(file => file.name.startsWith('sprint-') && file.name.endsWith('.json'))
