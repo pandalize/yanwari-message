@@ -85,8 +85,10 @@ const AgileUtils = (() => {
     
     const getAvailableSprints = async () => {
         try {
+            console.log('🔍 Debug: Fetching sprints for', REPO_OWNER, '/', REPO_NAME);
             const files = await fetchGitHubData('contents/docs/burndown');
-            return files
+            console.log('📁 Debug: Files found:', files);
+            const sprints = files
                 .filter(file => file.name.startsWith('sprint-') && file.name.endsWith('.json'))
                 .map(file => {
                     const match = file.name.match(/sprint-(\d+)\.json/);
@@ -94,6 +96,8 @@ const AgileUtils = (() => {
                 })
                 .filter(num => num !== null)
                 .sort((a, b) => b - a);
+            console.log('🏃‍♂️ Debug: Available sprints:', sprints);
+            return sprints;
         } catch (error) {
             console.error('Failed to get available sprints:', error);
             return [];
