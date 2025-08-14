@@ -2,7 +2,7 @@ const AgileUtils = (() => {
     
     const API_BASE = 'https://api.github.com';
     const REPO_OWNER = 'pandalize';
-    const REPO_NAME = 'yanwari-message';
+    const REPO_NAME = 'agile';
     
     const formatDate = (dateString, locale = 'ja-JP') => {
         if (!dateString) return '未設定';
