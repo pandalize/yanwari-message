@@ -200,3 +200,4 @@ settings.local.*
 
 # Performance monitoring
 .clinic/agile/
+agile-backup-*
