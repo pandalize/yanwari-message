@@ -386,16 +386,42 @@ async function seedFullData(db) {
     console.log('📅 スケジュールデータを投入中...');
     
     const users = global.testUsers;
+    const messages = global.testMessages;
     const [alice, bob] = users;
+    
+    // スケジュール用の新しいメッセージを作成
+    const scheduleMessage = {
+        _id: new ObjectId(),
+        senderId: alice._id,
+        recipientId: bob._id,
+        originalText: '明日の会議の資料を共有します',
+        variations: {
+            gentle: '明日の会議の資料を共有させていただきます。ご確認のほどよろしくお願いいたします。',
+            constructive: '明日の会議に向けて資料を共有します。事前にご確認いただければ幸いです。',
+            casual: '明日の会議の資料送るね！チェックよろしく〜'
+        },
+        selectedTone: 'gentle',
+        finalText: '明日の会議の資料を共有させていただきます。ご確認のほどよろしくお願いいたします。',
+        status: 'scheduled',
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+    
+    // メッセージを先に作成
+    await db.collection('messages').insertOne(scheduleMessage);
+    console.log(`  ✓ スケジュール用メッセージを作成`);
     
     const schedules = [
         {
+            _id: new ObjectId(),
+            messageId: scheduleMessage._id,  // 正しいmessageIdを設定
             userId: alice._id,
-            messageText: 'テスト用スケジュールメッセージです',
-            recipientEmail: 'bob@yanwari.com',
             scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 明日
+            status: 'pending',
             createdAt: new Date(),
-            status: 'pending'
+            updatedAt: new Date(),
+            retryCount: 0,
+            timezone: 'Asia/Tokyo'
         }
     ];
     

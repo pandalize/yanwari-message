@@ -68,6 +68,7 @@
   },
   "homepage": "https://github.com/your-org/yanwari-message#readme",
   "dependencies": {
+    "@pandalize/agile-github-suite": "^2.0.2",
     "dotenv": "^17.2.1",
     "firebase": "^12.1.0",
     "firebase-admin": "^13.4.0",

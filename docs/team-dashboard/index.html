@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チームダッシュボード - pandalize チーム</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/enhanced-ui.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👥 チームダッシュボード</h1>
+            <p>pandalize チーム - リアルタイムメトリクス＆進捗状況</p>
+        </div>
+        
+        <div id="dashboard-container">
+            <div class="loading">ダッシュボードを読み込み中</div>
+        </div>
+    </div>
+    
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/team-dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            new TeamDashboard({
+                containerId: 'dashboard-container',
+                refreshInterval: 300000 // 5 minutes
+            });
+        });
+    </script>
+</body>
+</html>

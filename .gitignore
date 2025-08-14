@@ -199,4 +199,4 @@ config.local.*
 settings.local.*
 
 # Performance monitoring
-.clinic/
+.clinic/agile/
