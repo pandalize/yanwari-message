@@ -1,0 +1,94 @@
+name: 🐛 Bug Report
+description: Create a report to help us improve
+title: "[Bug] "
+labels: ["type/bug", "status/backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report Template
+        バグレポートを作成してください。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: バグの詳細な説明
+      placeholder: "何が起こっているか、期待される動作との違いを記述"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: バグを再現する手順
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: 期待される正しい動作
+      placeholder: "何が起こるべきかを記述"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: 実際に起こっている動作
+      placeholder: "実際に何が起こっているかを記述"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: バグの深刻度
+      options:
+        - "Critical - System unusable"
+        - "High - Major functionality broken"
+        - "Medium - Minor functionality affected"
+        - "Low - Cosmetic issue"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Story Points
+      description: 修正の見積もりポイント
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: 環境情報
+      placeholder: |
+        - OS: [e.g. macOS 13.0]
+        - Browser: [e.g. Chrome 108]
+        - Version: [e.g. v1.2.3]
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: スクリーンショット、ログ、その他の関連情報
+      placeholder: "エラーメッセージ、スクリーンショット、ログなど"

@@ -1,0 +1,409 @@
+name: Team Metrics Collection
+
+on:
+  schedule:
+    # 毎日朝8時と夕方6時に実行 (JST)
+    - cron: '0 23 * * *'  # 朝8時 JST (UTC 23時前日)
+    - cron: '0 9 * * *'   # 夕方6時 JST (UTC 9時)
+  workflow_dispatch:
+
+jobs:
+  collect-metrics:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Create metrics directory
+        run: mkdir -p docs/metrics
+
+      - name: Collect team metrics
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            console.log('Collecting team metrics...');
+            
+            // 現在のマイルストーン取得
+            const milestones = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'due_on',
+              direction: 'asc'
+            });
+            
+            if (milestones.data.length === 0) {
+              console.log('No active milestones found');
+              return;
+            }
+            
+            const currentMilestone = milestones.data[0];
+            
+            // Issues取得
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              milestone: currentMilestone.number,
+              state: 'all',
+              per_page: 100
+            });
+            
+            // Pull Requests取得
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+            
+            // Collaborators取得
+            const collaborators = await github.rest.repos.listCollaborators({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            
+            // メトリクス計算
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 基本統計
+            const totalIssues = issues.data.length;
+            const openIssues = issues.data.filter(i => i.state === 'open').length;
+            const closedIssues = issues.data.filter(i => i.state === 'closed').length;
+            
+            // Story Points計算
+            const totalPoints = issues.data.reduce((sum, issue) => {
+              const estimateLabel = issue.labels.find(label => 
+                label.name.startsWith('estimate/')
+              );
+              return sum + (estimateLabel ? parseInt(estimateLabel.name.split('/')[1]) : 0);
+            }, 0);
+            
+            const completedPoints = issues.data
+              .filter(issue => issue.state === 'closed')
+              .reduce((sum, issue) => {
+                const estimateLabel = issue.labels.find(label => 
+                  label.name.startsWith('estimate/')
+                );
+                return sum + (estimateLabel ? parseInt(estimateLabel.name.split('/')[1]) : 0);
+              }, 0);
+            
+            // 担当者別統計
+            const assigneeStats = {};
+            issues.data.forEach(issue => {
+              if (issue.assignee) {
+                const login = issue.assignee.login;
+                if (!assigneeStats[login]) {
+                  assigneeStats[login] = {
+                    name: issue.assignee.login,
+                    avatar_url: issue.assignee.avatar_url,
+                    total_issues: 0,
+                    open_issues: 0,
+                    closed_issues: 0,
+                    total_points: 0,
+                    completed_points: 0
+                  };
+                }
+                
+                assigneeStats[login].total_issues++;
+                if (issue.state === 'open') {
+                  assigneeStats[login].open_issues++;
+                } else {
+                  assigneeStats[login].closed_issues++;
+                }
+                
+                const estimateLabel = issue.labels.find(label => 
+                  label.name.startsWith('estimate/')
+                );
+                const points = estimateLabel ? parseInt(estimateLabel.name.split('/')[1]) : 0;
+                assigneeStats[login].total_points += points;
+                if (issue.state === 'closed') {
+                  assigneeStats[login].completed_points += points;
+                }
+              }
+            });
+            
+            // 週別進捗計算（過去4週間）
+            const weeklyProgress = [];
+            for (let i = 3; i >= 0; i--) {
+              const weekStart = new Date();
+              weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
+              const weekEnd = new Date();
+              weekEnd.setDate(weekEnd.getDate() - (i * 7));
+              
+              const weekIssues = issues.data.filter(issue => {
+                if (!issue.closed_at) return false;
+                const closedDate = new Date(issue.closed_at);
+                return closedDate >= weekStart && closedDate <= weekEnd;
+              });
+              
+              const weekPoints = weekIssues.reduce((sum, issue) => {
+                const estimateLabel = issue.labels.find(label => 
+                  label.name.startsWith('estimate/')
+                );
+                return sum + (estimateLabel ? parseInt(estimateLabel.name.split('/')[1]) : 0);
+              }, 0);
+              
+              weeklyProgress.push({
+                week: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
+                issues_completed: weekIssues.length,
+                points_completed: weekPoints
+              });
+            }
+            
+            // Issue type別統計
+            const typeStats = {
+              feature: { count: 0, points: 0 },
+              bug: { count: 0, points: 0 },
+              task: { count: 0, points: 0 },
+              epic: { count: 0, points: 0 }
+            };
+            
+            issues.data.forEach(issue => {
+              const typeLabel = issue.labels.find(label => 
+                label.name.startsWith('type/')
+              );
+              const estimateLabel = issue.labels.find(label => 
+                label.name.startsWith('estimate/')
+              );
+              const points = estimateLabel ? parseInt(estimateLabel.name.split('/')[1]) : 0;
+              
+              if (typeLabel) {
+                const type = typeLabel.name.split('/')[1];
+                if (typeStats[type]) {
+                  typeStats[type].count++;
+                  typeStats[type].points += points;
+                }
+              }
+            });
+            
+            // ベロシティ計算
+            const velocity = weeklyProgress.length > 0 ? 
+              weeklyProgress.reduce((sum, week) => sum + week.points_completed, 0) / weeklyProgress.length : 0;
+            
+            // メトリクスデータ生成
+            const metrics = {
+              collected_at: new Date().toISOString(),
+              milestone: {
+                number: currentMilestone.number,
+                title: currentMilestone.title,
+                due_on: currentMilestone.due_on,
+                open_issues: currentMilestone.open_issues,
+                closed_issues: currentMilestone.closed_issues
+              },
+              sprint_summary: {
+                total_issues: totalIssues,
+                open_issues: openIssues,
+                closed_issues: closedIssues,
+                completion_rate: totalIssues > 0 ? Math.round((closedIssues / totalIssues) * 100) : 0,
+                total_points: totalPoints,
+                completed_points: completedPoints,
+                remaining_points: totalPoints - completedPoints,
+                points_completion_rate: totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0
+              },
+              team_stats: {
+                total_members: Object.keys(assigneeStats).length,
+                average_velocity: velocity,
+                assignee_breakdown: Object.values(assigneeStats)
+              },
+              weekly_progress: weeklyProgress,
+              type_breakdown: typeStats,
+              pull_requests: {
+                total: prs.data.length,
+                open: prs.data.filter(pr => pr.state === 'open').length,
+                merged: prs.data.filter(pr => pr.merged_at).length
+              }
+            };
+            
+            // JSONファイルに保存
+            const metricsPath = `docs/metrics/team-metrics-${today}.json`;
+            fs.writeFileSync(metricsPath, JSON.stringify(metrics, null, 2));
+            
+            // 最新データのリンク更新
+            fs.writeFileSync('docs/metrics/latest.json', JSON.stringify(metrics, null, 2));
+            
+            console.log(`Team metrics collected and saved to ${metricsPath}`);
+            console.log(`Sprint: ${currentMilestone.title}`);
+            console.log(`Completion: ${metrics.sprint_summary.completion_rate}% (${closedIssues}/${totalIssues} issues)`);
+            console.log(`Points: ${completedPoints}/${totalPoints} (${metrics.sprint_summary.points_completion_rate}%)`);
+            console.log(`Team velocity: ${velocity.toFixed(1)} points/week`);
+
+      - name: Generate team dashboard
+        run: |
+          # Update team dashboard navigation
+          cat > docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>pandalize Team - Agile Dashboard</title>
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+                      margin: 0;
+                      padding: 20px;
+                      background-color: #f6f8fa;
+                  }
+                  .container { 
+                      max-width: 800px; 
+                      margin: 0 auto; 
+                      background: white;
+                      padding: 40px;
+                      border-radius: 8px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  }
+                  .header {
+                      text-align: center;
+                      margin-bottom: 40px;
+                  }
+                  .header h1 {
+                      margin: 0 0 8px 0;
+                      color: #24292f;
+                      font-size: 2.5em;
+                  }
+                  .header p {
+                      color: #656d76;
+                      font-size: 1.1em;
+                      margin: 0;
+                  }
+                  .nav-grid {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                      gap: 20px;
+                      margin: 30px 0;
+                  }
+                  .nav-card {
+                      background: #f6f8fa;
+                      border: 1px solid #d0d7de;
+                      border-radius: 8px;
+                      padding: 24px;
+                      text-decoration: none;
+                      color: inherit;
+                      transition: all 0.2s ease;
+                  }
+                  .nav-card:hover {
+                      background: #fff;
+                      border-color: #0969da;
+                      transform: translateY(-2px);
+                      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  }
+                  .nav-card h3 {
+                      margin: 0 0 12px 0;
+                      color: #0969da;
+                      font-size: 1.3em;
+                  }
+                  .nav-card p {
+                      margin: 0;
+                      color: #656d76;
+                      line-height: 1.5;
+                  }
+                  .quick-links {
+                      background: #fff8c5;
+                      border: 1px solid #d4a72c;
+                      border-radius: 6px;
+                      padding: 20px;
+                      margin: 30px 0;
+                  }
+                  .quick-links h3 {
+                      margin: 0 0 16px 0;
+                      color: #9a6700;
+                  }
+                  .quick-links ul {
+                      margin: 0;
+                      padding-left: 20px;
+                  }
+                  .quick-links li {
+                      margin: 8px 0;
+                  }
+                  .quick-links a {
+                      color: #9a6700;
+                      text-decoration: none;
+                  }
+                  .quick-links a:hover {
+                      text-decoration: underline;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🚀 pandalize Team</h1>
+                      <p>Agile Development Dashboard</p>
+                  </div>
+                  
+                  <div class="nav-grid">
+                      <a href="team-dashboard/" class="nav-card">
+                          <h3>👥 Team Dashboard</h3>
+                          <p>リアルタイムチーム状況・メトリクス・進捗概要</p>
+                      </a>
+                      
+                      <a href="burndown/" class="nav-card">
+                          <h3>📊 Burndown Charts</h3>
+                          <p>スプリント進捗の可視化とベロシティ分析</p>
+                      </a>
+                      
+                      <a href="https://github.com/pandalize/agile/issues" class="nav-card">
+                          <h3>📋 Issues</h3>
+                          <p>タスク管理、バグトラッキング、User Story管理</p>
+                      </a>
+                      
+                      <a href="https://github.com/pandalize/agile/projects" class="nav-card">
+                          <h3>🏃‍♂️ Project Board</h3>
+                          <p>カンバンボードでのスプリント管理</p>
+                      </a>
+                      
+                      <a href="https://github.com/pandalize/agile/milestones" class="nav-card">
+                          <h3>🎯 Milestones</h3>
+                          <p>スプリント計画と期限管理</p>
+                      </a>
+                      
+                      <a href="https://github.com/pandalize/agile/actions" class="nav-card">
+                          <h3>⚙️ Actions</h3>
+                          <p>自動化ワークフロー・メトリクス収集状況</p>
+                      </a>
+                  </div>
+                  
+                  <div class="quick-links">
+                      <h3>🔗 Quick Links</h3>
+                      <ul>
+                          <li><a href="https://github.com/pandalize/agile">📁 GitHub Repository</a></li>
+                          <li><a href="https://github.com/pandalize/agile/discussions">💬 Discussions</a></li>
+                          <li><a href="https://github.com/pandalize/agile/wiki">📖 Documentation</a></li>
+                          <li><a href="https://github.com/pandalize/agile/releases">🚀 Releases</a></li>
+                      </ul>
+                  </div>
+                  
+                  <div style="text-align: center; color: #656d76; font-size: 0.9em; margin-top: 40px;">
+                      <p>Powered by GitHub Projects v2 + GitHub Actions + GitHub Pages</p>
+                      <p>Last updated: $(date)</p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/
+          git diff --staged --quiet || git commit -m "📈 Update team metrics and dashboard
+
+          📊 Metrics collected: $(date)
+          🎯 Sprint progress and team statistics updated
+          👥 Team dashboard refreshed with latest data
+
+          🤖 Generated with GitHub Actions"
+          git push

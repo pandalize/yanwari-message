@@ -1,0 +1,112 @@
+name: ⚙️ Task
+description: Create a technical task or improvement
+title: "[Task] "
+labels: ["type/task", "status/backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Task Template
+        技術的なタスクや改善項目を作成してください。
+
+  - type: input
+    id: task-title
+    attributes:
+      label: Task Summary
+      description: タスクの概要を1行で
+      placeholder: "Set up CI/CD pipeline for deployment automation"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: タスクの詳細な説明
+      placeholder: |
+        何をするのか、なぜ必要なのかを記述
+        - 現在の状況
+        - 問題点
+        - 解決策
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: 完了条件
+      placeholder: |
+        - [ ] CI pipeline が正常に動作する
+        - [ ] テストが自動実行される
+        - [ ] デプロイが自動化される
+        - [ ] ドキュメントが更新される
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Task Type
+      description: タスクの種類
+      options:
+        - "Setup/Configuration"
+        - "Refactoring"
+        - "Performance"
+        - "Security"
+        - "Documentation"
+        - "Testing"
+        - "DevOps"
+        - "Research"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Story Points
+      description: 見積もりポイント
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: 優先度
+      options:
+        - "High"
+        - "Medium"
+        - "Low"
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      description: 技術的な考慮事項、制約、依存関係など
+      placeholder: |
+        - 使用する技術・ツール
+        - 依存関係
+        - リスク・制約事項
+        - 参考資料
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Task Checklist
+      options:
+        - label: Requirements clarified
+        - label: Technical approach decided
+        - label: Implementation completed
+        - label: Testing completed
+        - label: Documentation updated
+        - label: Code review completed

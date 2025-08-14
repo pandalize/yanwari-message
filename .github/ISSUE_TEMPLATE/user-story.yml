@@ -1,0 +1,78 @@
+name: 📋 User Story
+description: Create a user story for feature development
+title: "[Story] "
+labels: ["type/feature", "status/backlog"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## User Story Template
+        このテンプレートを使用してユーザーストーリーを作成してください。
+
+  - type: input
+    id: user-story
+    attributes:
+      label: User Story
+      description: "As a [role], I want [goal] so that [benefit]"
+      placeholder: "As a developer, I want to see burndown charts so that I can track sprint progress"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: "Given/When/Then format で受け入れ条件を記述"
+      placeholder: |
+        - Given I am on the dashboard page
+        - When I select a sprint milestone  
+        - Then I should see the burndown chart
+        - And I should see remaining story points
+    validations:
+      required: true
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Story Points
+      description: 見積もりポイント（フィボナッチ数列）
+      options:
+        - "1"
+        - "2" 
+        - "3"
+        - "5"
+        - "8"
+        - "13"
+        - "21"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: 優先度
+      options:
+        - "High"
+        - "Medium"
+        - "Low"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: 追加情報、設計メモ、関連リンクなど
+      placeholder: "関連するドキュメント、デザイン、技術的な考慮事項など"
+
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Code implementation completed
+        - label: Unit tests written and passing
+        - label: Code review completed
+        - label: Documentation updated
+        - label: Acceptance criteria validated
