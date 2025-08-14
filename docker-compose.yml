@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # MongoDB ローカル開発用
+  mongodb:
+    image: mongo:7
+    container_name: yanwari-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: yanwari-message
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - yanwari-mongo-data:/data/db
+      - ./backend/scripts/mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - yanwari-network
+
+  # Mongo Express (MongoDB管理GUI)
+  mongo-express:
+    image: mongo-express:latest
+    container_name: yanwari-mongo-express
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password123
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password123@mongodb:27017/
+      ME_CONFIG_BASICAUTH: false
+    depends_on:
+      - mongodb
+    networks:
+      - yanwari-network
+
+volumes:
+  yanwari-mongo-data:
+    driver: local
+
+networks:
+  yanwari-network:
+    driver: bridge

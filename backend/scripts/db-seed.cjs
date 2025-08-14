@@ -12,7 +12,15 @@
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+
+// ローカル環境判定
+const isLocal = process.argv.includes('--local');
+if (isLocal) {
+    console.log('🏠 ローカル環境用設定を使用');
+    require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
+} else {
+    require('dotenv').config({ path: path.join(__dirname, '../.env') });
+}
 
 // 本番環境での実行を防止
 if (process.env.NODE_ENV === 'production') {
@@ -41,12 +49,13 @@ async function seedDatabase() {
         console.log(`🌱 サンプルデータ投入開始 (データセット: ${dataset})\n`);
         
         // MongoDB接続
-        console.log('📡 MongoDB Atlas に接続中...');
+        const dbLocation = isLocal ? 'ローカルMongoDB' : 'MongoDB Atlas';
+        console.log(`📡 ${dbLocation} に接続中...`);
         client = new MongoClient(MONGODB_URI);
         await client.connect();
         
         const db = client.db();
-        console.log('✅ MongoDB Atlas 接続成功\n');
+        console.log(`✅ ${dbLocation} 接続成功\n`);
         
         // データセット別の投入
         switch (dataset) {

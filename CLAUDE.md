@@ -26,26 +26,46 @@
 ### 🚀 基本コマンド
 ```bash
 # 初回セットアップ
-npm run setup           # 全体セットアップ（推奨）
+npm run install:all      # 依存関係インストール
+npm run setup:local      # ローカル環境のデータセットアップ
 
 # 開発サーバー起動
-npm run dev             # インタラクティブメニュー（推奨）
-npm run dev:firebase    # Firebase付き起動
-npm run dev:local       # ローカルのみ起動
+npm run dev:local        # ローカル環境（MongoDB + Firebase Emulator）
+npm run dev:cloud        # クラウド環境（MongoDB Atlas + Firebase Emulator）
 
 # 環境管理
-npm run reset           # 完全リセット
-npm run status          # 状況確認  
+npm run status           # 状況確認  
 npm run stop            # サーバー停止
 ```
 
 ### 🔧 開発ツール
 ```bash
-npm run api:sync        # API型定義同期
+# API・テスト
+npm run api:sync         # API型定義同期
 npm run test            # テスト実行
 npm run lint            # コード品質チェック
 npm run build           # プロダクションビルド
+
+# データ管理（ローカル開発用）
+npm run setup:local      # 全データ一括セットアップ（推奨）
+npm run mongodb:seed     # MongoDBテストデータ投入
+npm run firebase:seed    # Firebase Emulatorユーザー作成
+npm run sync:users       # Firebase UIDとMongoDB同期
 ```
+
+### 📍 開発環境アクセスURL
+
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8080  
+- **Swagger UI**: http://localhost:8080/docs
+- **MongoDB管理**: http://localhost:8081
+- **Firebase Auth**: http://localhost:4000/auth
+
+### 📚 詳細ドキュメント
+
+- [ローカル開発環境ガイド](docs/LOCAL_DEVELOPMENT_GUIDE.md)
+- [APIリファレンス](docs/API_REFERENCE.md)
+- [テストワークフロー](docs/TESTING_WORKFLOW.md)
 
 ## ブランチ戦略
 
@@ -78,6 +98,11 @@ git push origin feature/xxx
 1. **日本語コメント必須**
 2. **Firebase認証**: 全APIで認証必須
 3. **品質チェック**: 実装後は `npm run lint` と `npm run test` を実行
+4. **⚠️ 開発サーバー起動の重要ルール**:
+   - **Claude Code は自動で開発サーバーを起動してはいけません**
+   - 開発サーバー起動(`npm run dev`、`npm run dev:local`等)は必ずユーザーが手動で実行する
+   - Claude と ユーザーが同時に起動するとポート競合やプロセス重複が発生する
+   - Claude Code は起動方法の説明やデバッグのみ行い、実際の起動コマンド実行は避ける
 
 ## 完了済み機能
 

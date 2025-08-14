@@ -39,19 +39,21 @@ AI を使って気まずい用件を優しく伝えるサービスです。
 ### クイックスタート
 
 ```bash
-# 1. 依存関係のインストール
+# 1. リポジトリのクローン
+git clone https://github.com/your-org/yanwari-message.git
+cd yanwari-message
+
+# 2. 依存関係インストール
 npm run install:all
 
-# 2. 環境変数の設定
-npm run setup:env
-# backend/.env を編集して実際の値を設定
+# 3. 開発環境起動（ターミナル1）
+npm run dev:local
 
-# 3. 開発サーバー起動
-npm run dev
-# または統合スクリプト
-./yanwari-start
+# 4. データセットアップ（ターミナル2、初回のみ）
+npm run setup:local
 ```
 
+✅ **完了！** 詳細は [ローカル開発環境ガイド](docs/LOCAL_DEVELOPMENT_GUIDE.md) を参照。
 ### 各プラットフォーム個別起動
 
 ```bash

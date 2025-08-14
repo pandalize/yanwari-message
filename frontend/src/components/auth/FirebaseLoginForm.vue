@@ -35,9 +35,6 @@
         type="submit" 
         :disabled="isLoading || !email || !password"
         class="login-button"
-        @click="handleLogin"
-        @mousedown="() => console.log('🖱️ ログインボタンがマウスダウンされました')"
-        @mouseup="() => console.log('🖱️ ログインボタンがマウスアップされました')"
       >
         <span v-if="isLoading">🔄 ログイン中...</span>
         <span v-else>🚀 ログイン</span>
@@ -126,10 +123,10 @@ const setDemoAccount = (account: 'alice' | 'bob') => {
   
   if (account === 'alice') {
     email.value = 'alice@yanwari.com'
-    password.value = 'testpassword123'
+    password.value = 'password123'  // Firebase Emulatorで作成したパスワード
   } else {
     email.value = 'bob@yanwari.com'
-    password.value = 'testpassword123'
+    password.value = 'password123'  // Firebase Emulatorで作成したパスワード
   }
   
   console.log('✅ デモアカウント設定完了:', email.value)
