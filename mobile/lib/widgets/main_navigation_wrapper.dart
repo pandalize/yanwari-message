@@ -4,6 +4,7 @@ import '../screens/home_screen_redesigned.dart';
 import '../screens/inbox_only_screen.dart';
 import '../screens/schedule_only_screen.dart';
 import '../screens/friend_management_screen.dart';
+import '../screens/settings_screen.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
   final int initialIndex;
@@ -31,6 +32,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     const ScheduleOnlyScreen(),
     // 友達画面 - FriendManagementScreen
     const FriendManagementScreen(),
+    // 設定画面 - SettingsScreen
+    const SettingsScreen(),
   ];
 
   @override
@@ -68,6 +71,10 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
           BottomNavigationBarItem(
             icon: Icon(Icons.people),
             label: '友達',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: '設定',
           ),
         ],
       ),
