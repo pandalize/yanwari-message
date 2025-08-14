@@ -1,8 +1,27 @@
 const AgileUtils = (() => {
     
     const API_BASE = 'https://api.github.com';
-    const REPO_OWNER = 'pandalize';
-    const REPO_NAME = 'agile';
+    
+    // 🚀 Auto-detect repository information
+    const getRepoInfo = () => {
+        // 1. GitHub Pages URL detection
+        if (window.location.hostname.endsWith('.github.io')) {
+            const parts = window.location.hostname.split('.');
+            const pathParts = window.location.pathname.split('/').filter(p => p);
+            return {
+                owner: parts[0],
+                name: pathParts[0] || parts[0]
+            };
+        }
+        
+        // 2. Local development fallback
+        return {
+            owner: 'pandalize',
+            name: 'agile'
+        };
+    };
+    
+    const { owner: REPO_OWNER, name: REPO_NAME } = getRepoInfo();
     
     const formatDate = (dateString, locale = 'ja-JP') => {
         if (!dateString) return '未設定';
