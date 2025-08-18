@@ -43,8 +43,8 @@
           <p>デバッグ情報:</p>
           <pre>{{ JSON.stringify({
             isAuthenticated: authStore.isAuthenticated,
-            hasToken: !!authStore.idToken,
-            userEmail: authStore.appUser?.email,
+            hasToken: !!authStore.accessToken,
+            userEmail: authStore.user?.email,
             messagesCount: inboxMessages.length
           }, null, 2) }}</pre>
         </div>
@@ -144,14 +144,14 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ratingService, type InboxMessageWithRating } from '../../services/ratingService'
 import TreemapView from '../visualization/TreemapView.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useJwtAuthStore } from '@/stores/jwtAuth'
 
 // ================================================
 // 1. データ層（Data Layer）
 // ================================================
 
 // 認証ストア
-const authStore = useAuthStore()
+const authStore = useJwtAuthStore()
 
 // データ状態
 const inboxMessages = ref<InboxMessageWithRating[]>([])
@@ -168,11 +168,10 @@ const fetchInboxData = async (): Promise<void> => {
     console.log('🔑 認証状態:', {
       isAuthenticated: authStore.isAuthenticated,
       isInitializing: authStore.isInitializing,
-      hasFirebaseUser: !!authStore.firebaseUser,
-      hasAppUser: !!authStore.appUser,
-      hasIdToken: !!authStore.idToken,
-      userEmail: authStore.appUser?.email,
-      tokenLength: authStore.idToken?.length
+      hasUser: !!authStore.user,
+      hasAccessToken: !!authStore.accessToken,
+      userEmail: authStore.user?.email,
+      tokenLength: authStore.accessToken?.length
     })
     
     // 認証チェック
@@ -190,10 +189,10 @@ const fetchInboxData = async (): Promise<void> => {
     }
     
     // API呼び出し前にトークンを再設定
-    if (authStore.idToken) {
+    if (authStore.accessToken) {
       console.log('🔑 APIサービスにトークンを設定中...')
       const { apiService } = await import('../../services/api')
-      apiService.setAuthToken(authStore.idToken)
+      apiService.setAuthToken(authStore.accessToken)
     }
     
     console.log('📡 API呼び出し開始: /messages/inbox-with-ratings')
@@ -544,9 +543,8 @@ onMounted(async () => {
         console.log('✅ 認証初期化完了')
         console.log('🔑 認証状態:', {
           isAuthenticated: authStore.isAuthenticated,
-          hasFirebaseUser: !!authStore.firebaseUser,
-          hasAppUser: !!authStore.appUser,
-          hasIdToken: !!authStore.idToken
+          hasUser: !!authStore.user,
+          hasAccessToken: !!authStore.accessToken
         })
         
         // 少し待機してから実行
@@ -563,9 +561,8 @@ onMounted(async () => {
     console.log('✅ 既に認証初期化済み')
     console.log('🔑 認証状態:', {
       isAuthenticated: authStore.isAuthenticated,
-      hasFirebaseUser: !!authStore.firebaseUser,
-      hasAppUser: !!authStore.appUser,
-      hasIdToken: !!authStore.idToken
+      hasUser: !!authStore.user,
+      hasAccessToken: !!authStore.accessToken
     })
     
     // 少し待機してから実行
