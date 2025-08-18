@@ -16,9 +16,7 @@ type User struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name         string             `bson:"name" json:"name"`
 	Email        string             `bson:"email" json:"email"`
-	FirebaseUID  string             `bson:"firebase_uid,omitempty" json:"firebase_uid,omitempty"` // Firebase UID追加
 	PasswordHash string             `bson:"password_hash" json:"-"` // JSONには含めない（セキュリティ上重要）
-	Salt         string             `bson:"salt" json:"-"`
 	Timezone     string             `bson:"timezone" json:"timezone"`
 	CreatedAt    time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt    time.Time          `bson:"updated_at" json:"updated_at"`
@@ -124,7 +122,6 @@ func (s *UserService) UpdateUser(ctx context.Context, user *User) error {
 			"name":          user.Name,
 			"email":         user.Email,
 			"password_hash": user.PasswordHash,
-			"salt":          user.Salt,
 			"timezone":      user.Timezone,
 			"updated_at":    user.UpdatedAt,
 		},
@@ -342,83 +339,6 @@ func (s *UserService) UpdateEmail(ctx context.Context, userID primitive.ObjectID
 	return nil
 }
 
-// Firebase対応メソッド
-
-// UpdateFirebaseUID ユーザーのFirebase UIDを更新
-func (s *UserService) UpdateFirebaseUID(ctx context.Context, userID primitive.ObjectID, firebaseUID string) error {
-	if firebaseUID == "" {
-		return fmt.Errorf("Firebase UIDが空です")
-	}
-	
-	now := time.Now()
-	filter := bson.M{"_id": userID}
-	update := bson.M{
-		"$set": bson.M{
-			"firebase_uid": firebaseUID,
-			"updated_at":   now,
-		},
-	}
-	
-	result, err := s.collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return fmt.Errorf("Firebase UID更新エラー: %w", err)
-	}
-	
-	if result.MatchedCount == 0 {
-		return fmt.Errorf("更新対象のユーザーが見つかりません")
-	}
-	
-	return nil
-}
-
-// GetUserByFirebaseUID Firebase UIDでユーザーを取得
-func (s *UserService) GetUserByFirebaseUID(ctx context.Context, firebaseUID string) (*User, error) {
-	if firebaseUID == "" {
-		return nil, fmt.Errorf("Firebase UIDが空です")
-	}
-	
-	var user User
-	filter := bson.M{"firebase_uid": firebaseUID}
-	
-	err := s.collection.FindOne(ctx, filter).Decode(&user)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("Firebase UID %s のユーザーが見つかりません", firebaseUID)
-		}
-		return nil, fmt.Errorf("Firebase UIDでのユーザー取得エラー: %w", err)
-	}
-	
-	return &user, nil
-}
-
-// CreateUserWithFirebaseUID Firebase UIDを持つユーザーを作成
-func (s *UserService) CreateUserWithFirebaseUID(ctx context.Context, user *User) error {
-	if user.FirebaseUID == "" {
-		return fmt.Errorf("Firebase UIDが必要です")
-	}
-	
-	// 既存のCreateUserロジックを使用
-	now := time.Now()
-	user.CreatedAt = now
-	user.UpdatedAt = now
-	
-	// タイムゾーンのデフォルト設定
-	if user.Timezone == "" {
-		user.Timezone = "Asia/Tokyo"
-	}
-	
-	result, err := s.collection.InsertOne(ctx, user)
-	if err != nil {
-		// 重複エラーをチェック
-		if mongo.IsDuplicateKeyError(err) {
-			return fmt.Errorf("このメールアドレスまたはFirebase UIDは既に使用されています")
-		}
-		return fmt.Errorf("Firebase対応ユーザー作成エラー: %w", err)
-	}
-	
-	user.ID = result.InsertedID.(primitive.ObjectID)
-	return nil
-}
 
 // GetAllUsers 全ユーザーを取得（移行用）
 func (s *UserService) GetAllUsers(ctx context.Context) ([]User, error) {
@@ -436,17 +356,3 @@ func (s *UserService) GetAllUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-// CreateFirebaseUIDIndex Firebase UIDにインデックスを作成
-func (s *UserService) CreateFirebaseUIDIndex(ctx context.Context) error {
-	indexModel := mongo.IndexModel{
-		Keys:    bson.D{{Key: "firebase_uid", Value: 1}}, // 昇順インデックス
-		Options: options.Index().SetUnique(true).SetSparse(true), // ユニーク制約、スパースインデックス
-	}
-	
-	_, err := s.collection.Indexes().CreateOne(ctx, indexModel)
-	if err != nil {
-		return fmt.Errorf("Firebase UIDインデックス作成エラー: %w", err)
-	}
-	
-	return nil
-}

@@ -5,7 +5,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-import { useAuthStore } from '@/stores/auth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 
 // アプリケーション初期化の非同期関数
 async function initializeApp() {
@@ -15,11 +15,11 @@ async function initializeApp() {
   app.use(pinia)
   app.use(router)
 
-  // Firebase認証の初期化を待機
-  console.log('🔥 Firebase認証初期化を開始...')
-  const authStore = useAuthStore()
+  // JWT認証の初期化を待機
+  console.log('🔑 JWT認証初期化を開始...')
+  const authStore = useJWTAuthStore()
   await authStore.initializeAuth()
-  console.log('🔥 Firebase認証初期化完了 - アプリをマウント')
+  console.log('🔑 JWT認証初期化完了 - アプリをマウント')
 
   app.mount('#app')
 }

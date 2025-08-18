@@ -1,0 +1,42 @@
+[
+  {
+    "_id": "rating_001_meeting_reminder",
+    "message_id": "msg_001_meeting_reminder",
+    "user_id": "user_002_bob",
+    "rating": 5,
+    "comment": "とても丁寧で配慮のある言い回しでした。プレッシャーを感じることなく、建設的に対応できました。",
+    "helpful_aspects": ["tone", "timing", "clarity"],
+    "created_at": "2025-01-18T09:00:00.000Z",
+    "updated_at": "2025-01-18T09:00:00.000Z"
+  },
+  {
+    "_id": "rating_002_deadline_concern",
+    "message_id": "msg_002_deadline_concern",
+    "user_id": "user_003_charlie",
+    "rating": 4,
+    "comment": "問題解決志向のアプローチが良かったです。チームワークを感じられるメッセージでした。",
+    "helpful_aspects": ["tone", "collaborative_approach"],
+    "created_at": "2025-01-18T11:30:00.000Z",
+    "updated_at": "2025-01-18T11:30:00.000Z"
+  },
+  {
+    "_id": "rating_003_lunch_invitation",
+    "message_id": "msg_003_lunch_invitation",
+    "user_id": "user_001_alice",
+    "rating": 5,
+    "comment": "カジュアルで親しみやすく、楽しい気持ちになりました。気負わずに返事ができます。",
+    "helpful_aspects": ["tone", "emotional_impact"],
+    "created_at": "2025-01-18T12:30:00.000Z",
+    "updated_at": "2025-01-18T12:30:00.000Z"
+  },
+  {
+    "_id": "rating_004_helpful_feedback",
+    "message_id": "msg_001_meeting_reminder",
+    "user_id": "user_001_alice",
+    "rating": 4,
+    "comment": "自分のメッセージがどう受け取られたかがわかって勉強になりました。次回はもう少し具体的な提案も含めたいと思います。",
+    "helpful_aspects": ["self_reflection", "improvement_insights"],
+    "created_at": "2025-01-18T14:00:00.000Z",
+    "updated_at": "2025-01-18T14:00:00.000Z"
+  }
+]

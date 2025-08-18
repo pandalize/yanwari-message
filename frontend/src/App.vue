@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 
-const authStore = useAuthStore()
+const authStore = useJWTAuthStore()
 
 const handleLogout = async () => {
   await authStore.logout()
@@ -67,7 +67,7 @@ const handleHistoryClick = () => {
       <div class="header-content">
         <h1>やんわり伝言</h1>
         <div class="auth-buttons">
-          <RouterLink to="/login" class="auth-btn firebase">🔥 ログイン</RouterLink>
+          <RouterLink to="/login" class="auth-btn jwt">🔑 ログイン</RouterLink>
           <RouterLink to="/register" class="auth-btn primary">新規登録</RouterLink>
         </div>
       </div>
@@ -201,14 +201,14 @@ const handleHistoryClick = () => {
   box-shadow: var(--shadow-md);
 }
 
-.auth-btn.firebase {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+.auth-btn.jwt {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: white;
-  border: 1px solid #ff6b35;
+  border: 1px solid #007bff;
 }
 
-.auth-btn.firebase:hover {
-  background: linear-gradient(135deg, #e85a31 0%, #e0841c 100%);
+.auth-btn.jwt:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
   color: white;
 }
 

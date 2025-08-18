@@ -1,0 +1,77 @@
+[
+  {
+    "_id": "settings_001_alice",
+    "user_id": "user_001_alice",
+    "notification_settings": {
+      "email_notifications": true,
+      "push_notifications": true,
+      "daily_digest": true,
+      "message_received": true,
+      "message_delivered": true,
+      "friend_requests": true
+    },
+    "message_settings": {
+      "default_tone": "gentle",
+      "auto_save_drafts": true,
+      "time_restriction": "work_hours",
+      "preferred_delivery_times": ["09:00", "13:00", "17:00"]
+    },
+    "privacy_settings": {
+      "profile_visibility": "friends",
+      "show_online_status": true,
+      "allow_message_rating": true
+    },
+    "created_at": "2025-01-15T09:00:00.000Z",
+    "updated_at": "2025-01-18T10:00:00.000Z"
+  },
+  {
+    "_id": "settings_002_bob",
+    "user_id": "user_002_bob",
+    "notification_settings": {
+      "email_notifications": true,
+      "push_notifications": false,
+      "daily_digest": false,
+      "message_received": true,
+      "message_delivered": false,
+      "friend_requests": true
+    },
+    "message_settings": {
+      "default_tone": "constructive",
+      "auto_save_drafts": true,
+      "time_restriction": "business_hours",
+      "preferred_delivery_times": ["08:30", "12:00", "16:30"]
+    },
+    "privacy_settings": {
+      "profile_visibility": "public",
+      "show_online_status": false,
+      "allow_message_rating": true
+    },
+    "created_at": "2025-01-16T10:30:00.000Z",
+    "updated_at": "2025-01-18T08:45:00.000Z"
+  },
+  {
+    "_id": "settings_003_charlie",
+    "user_id": "user_003_charlie",
+    "notification_settings": {
+      "email_notifications": false,
+      "push_notifications": true,
+      "daily_digest": true,
+      "message_received": true,
+      "message_delivered": true,
+      "friend_requests": true
+    },
+    "message_settings": {
+      "default_tone": "casual",
+      "auto_save_drafts": false,
+      "time_restriction": "flexible",
+      "preferred_delivery_times": ["10:00", "14:00", "19:00"]
+    },
+    "privacy_settings": {
+      "profile_visibility": "friends",
+      "show_online_status": true,
+      "allow_message_rating": true
+    },
+    "created_at": "2025-01-17T14:15:00.000Z",
+    "updated_at": "2025-01-18T16:20:00.000Z"
+  }
+]

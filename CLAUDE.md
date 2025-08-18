@@ -17,7 +17,7 @@
 ## 技術スタック
 
 - **バックエンド**: Go 1.23+ + Gin + JWT認証 + MongoDB
-- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia + Nginx
+- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia + Nginx + JWT認証
 - **モバイル**: Flutter (iOS/Android)
 - **AI**: Anthropic Claude API
 - **インフラ**: Docker + Docker Compose（完全コンテナ化）
@@ -104,6 +104,25 @@ npm run db:backup
 npm run db:restore
 ```
 
+#### 🗃️ サンプルデータ管理
+```bash
+# 開発用テストデータの管理
+npm run db:seed         # 全サンプルデータを投入
+npm run db:clean        # 全データをクリア
+npm run db:reset        # クリア後、再投入
+npm run db:status       # データベースの状況確認
+
+# 個別データ操作
+npm run db:seed:users   # ユーザーデータのみ投入
+```
+
+**📋 テストユーザー情報**（パスワード: `password123`）:
+- 👩 田中 あかり（デザイナー） - `alice@yanwari-message.com`
+- 👨 佐藤 ひろし（エンジニア） - `bob@yanwari-message.com`  
+- 👩 鈴木 みゆき（PM） - `charlie@yanwari-message.com`
+
+> 詳細なテストアカウント情報: [docs/TEST_ACCOUNTS.md](docs/TEST_ACCOUNTS.md)
+
 ### 📍 開発環境アクセスURL
 
 | サービス | URL | 説明 |
@@ -186,13 +205,14 @@ git push origin feature/xxx
 
 ## 📊 完了済み機能
 
-- ✅ JWT認証システム（Firebase廃止済み）
+- ✅ JWT認証システム（バックエンド・フロントエンド完全移行、Firebase廃止済み）
 - ✅ メッセージ作成・AIトーン変換  
 - ✅ スケジュール・時間提案機能
 - ✅ 友達申請システム
 - ✅ メッセージ評価システム
 - ✅ Flutter iOSアプリ
 - ✅ 完全コンテナ化（Docker Compose）
+- ✅ サンプルデータ管理システム
 
 ## 重要なファイル構成
 

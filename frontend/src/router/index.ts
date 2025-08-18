@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,13 +14,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/FirebaseLoginView.vue'),
+      component: () => import('../views/JWTLoginView.vue'),
       meta: { requiresAuth: false }
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/FirebaseRegisterView.vue'),
+      component: () => import('../views/JWTRegisterView.vue'),
       meta: { requiresAuth: false }
     },
     {
@@ -111,9 +111,9 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useJWTAuthStore()
   
-  console.log('🔥 Router navigation:', {
+  console.log('🔑 Router navigation:', {
     from: from.path,
     to: to.path,
     authenticated: authStore.isAuthenticated,
@@ -124,20 +124,20 @@ router.beforeEach(async (to, from, next) => {
   
   // 初期化中は待機
   if (authStore.isInitializing) {
-    console.log('🔥 Firebase認証初期化中 - 待機...')
+    console.log('🔑 JWT認証初期化中 - 待機...')
     await authStore.initializeAuth()
-    console.log('🔥 Firebase認証初期化完了 - ナビゲーション続行')
+    console.log('🔑 JWT認証初期化完了 - ナビゲーション続行')
   }
   
-  // Firebase認証ルートガード
+  // JWT認証ルートガード
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log('🔥 Redirecting to login - authentication required')
+    console.log('🔑 Redirecting to login - authentication required')
     next('/login')
   } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
-    console.log('🔥 Redirecting to home - already authenticated')
+    console.log('🔑 Redirecting to home - already authenticated')
     next('/')
   } else {
-    console.log('🔥 Navigation allowed - proceeding to:', to.path)
+    console.log('🔑 Navigation allowed - proceeding to:', to.path)
     next()
   }
 })

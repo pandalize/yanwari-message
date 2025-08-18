@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "user_001_alice",
+    "name": "田中 あかり",
+    "email": "alice@yanwari-message.com",
+    "password_hash": "$2a$10$k9YqGBjBJ8VfLqNwX0Kj7.OwB3T8NhS5T6P1KdY8A1QvB2C3D4E5F6",
+    "timezone": "Asia/Tokyo",
+    "created_at": "2025-01-15T09:00:00.000Z",
+    "updated_at": "2025-01-15T09:00:00.000Z",
+    "profile": {
+      "bio": "プロジェクトマネージャーとして働いています。やんわり伝言で円滑なコミュニケーションを心がけています。",
+      "avatar_url": "/avatars/alice.jpg"
+    }
+  },
+  {
+    "_id": "user_002_bob",
+    "name": "佐藤 ひろし",
+    "email": "bob@yanwari-message.com",
+    "password_hash": "$2a$10$k9YqGBjBJ8VfLqNwX0Kj7.OwB3T8NhS5T6P1KdY8A1QvB2C3D4E5F6",
+    "timezone": "Asia/Tokyo",
+    "created_at": "2025-01-16T10:30:00.000Z",
+    "updated_at": "2025-01-16T10:30:00.000Z",
+    "profile": {
+      "bio": "エンジニアリーダーです。チームメンバーとの建設的な対話を大切にしています。",
+      "avatar_url": "/avatars/bob.jpg"
+    }
+  },
+  {
+    "_id": "user_003_charlie",
+    "name": "鈴木 みゆき",
+    "email": "charlie@yanwari-message.com",
+    "password_hash": "$2a$10$k9YqGBjBJ8VfLqNwX0Kj7.OwB3T8NhS5T6P1KdY8A1QvB2C3D4E5F6",
+    "timezone": "Asia/Tokyo",
+    "created_at": "2025-01-17T14:15:00.000Z",
+    "updated_at": "2025-01-17T14:15:00.000Z",
+    "profile": {
+      "bio": "デザイナーとして働いています。クリエイティブで温かいコミュニケーションが好きです。",
+      "avatar_url": "/avatars/charlie.jpg"
+    }
+  }
+]

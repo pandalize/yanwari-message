@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/argon2"
+	"golang.org/x/crypto/bcrypt"
 
 	"yanwari-message-backend/models"
 )
@@ -39,95 +37,19 @@ type AuthResponse struct {
 	User         *models.User `json:"user"`
 }
 
-// PasswordConfig Argon2パスワードハッシュ化設定
-// プロダクション環境では適切な値に調整が必要
-type PasswordConfig struct {
-	Memory      uint32 // メモリ使用量（KB）
-	Iterations  uint32 // 反復回数
-	Parallelism uint8  // 並列数
-	SaltLength  uint32 // ソルト長
-	KeyLength   uint32 // ハッシュ長
+// hashPassword bcryptを使用してパスワードをハッシュ化
+func hashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("パスワードハッシュ化エラー: %w", err)
+	}
+	return string(hash), nil
 }
 
-// デフォルトのパスワード設定（セキュリティとパフォーマンスのバランス）
-var defaultPasswordConfig = PasswordConfig{
-	Memory:      64 * 1024, // 64MB
-	Iterations:  3,         // 3回反復
-	Parallelism: 2,         // 2並列
-	SaltLength:  32,        // 32バイトソルト
-	KeyLength:   32,        // 32バイトハッシュ
-}
-
-// generateSalt 暗号学的に安全なランダムソルトを生成
-func generateSalt(length uint32) ([]byte, error) {
-	salt := make([]byte, length)
-	_, err := rand.Read(salt)
-	if err != nil {
-		return nil, fmt.Errorf("ソルト生成エラー: %w", err)
-	}
-	return salt, nil
-}
-
-// hashPassword Argon2を使用してパスワードをハッシュ化
-// 戻り値: ハッシュ値, ソルト, エラー
-func hashPassword(password string, config PasswordConfig) (string, string, error) {
-	// ランダムソルト生成
-	salt, err := generateSalt(config.SaltLength)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Argon2でハッシュ化（IDバリアント使用 - 最もセキュア）
-	hash := argon2.IDKey(
-		[]byte(password),    // パスワード
-		salt,                // ソルト
-		config.Iterations,   // 反復回数
-		config.Memory,       // メモリ使用量
-		config.Parallelism,  // 並列数
-		config.KeyLength,    // 出力ハッシュ長
-	)
-
-	// Base64エンコードで保存用文字列に変換
-	hashB64 := base64.StdEncoding.EncodeToString(hash)
-	saltB64 := base64.StdEncoding.EncodeToString(salt)
-
-	return hashB64, saltB64, nil
-}
-
-// verifyPassword パスワードとハッシュの照合
-func verifyPassword(password, storedHash, storedSalt string, config PasswordConfig) bool {
-	// Base64デコード
-	salt, err := base64.StdEncoding.DecodeString(storedSalt)
-	if err != nil {
-		return false
-	}
-
-	storedHashBytes, err := base64.StdEncoding.DecodeString(storedHash)
-	if err != nil {
-		return false
-	}
-
-	// 入力パスワードを同じ設定でハッシュ化
-	hash := argon2.IDKey(
-		[]byte(password),
-		salt,
-		config.Iterations,
-		config.Memory,
-		config.Parallelism,
-		config.KeyLength,
-	)
-
-	// 定数時間での比較（タイミング攻撃対策）
-	if len(hash) != len(storedHashBytes) {
-		return false
-	}
-
-	var result byte
-	for i := 0; i < len(hash); i++ {
-		result |= hash[i] ^ storedHashBytes[i]
-	}
-
-	return result == 0
+// verifyPassword パスワードとbcryptハッシュの照合
+func verifyPassword(password, storedHash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(storedHash), []byte(password))
+	return err == nil
 }
 
 // JWTClaims JWT用のカスタムクレーム
@@ -285,7 +207,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 	
 	// 4. パスワードハッシュ化
-	hashedPassword, salt, err := hashPassword(req.Password, defaultPasswordConfig)
+	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "パスワード処理中にエラーが発生しました",
@@ -298,7 +220,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Name:         req.Name,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
-		Salt:         salt,
 	}
 	
 	// 6. データベース保存
@@ -348,22 +269,28 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	
 	// 2. データベースからユーザー情報を取得
 	ctx := context.Background()
+	fmt.Printf("🔍 [Login] ユーザー検索: %s\n", req.Email)
 	user, err := h.userService.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		// ユーザーが見つからない場合も、セキュリティのため詳細なエラーは返さない
+		fmt.Printf("❌ [Login] ユーザー取得エラー: %v\n", err)
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "メールアドレスまたはパスワードが正しくありません",
 		})
 		return
 	}
+	fmt.Printf("✅ [Login] ユーザー取得成功: %s (Hash: %s)\n", user.Email, user.PasswordHash[:20]+"...")
 	
 	// 3. パスワード検証
-	if !verifyPassword(req.Password, user.PasswordHash, user.Salt, defaultPasswordConfig) {
+	fmt.Printf("🔍 [Login] パスワード検証中...\n")
+	if !verifyPassword(req.Password, user.PasswordHash) {
+		fmt.Printf("❌ [Login] パスワード検証失敗\n")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "メールアドレスまたはパスワードが正しくありません",
 		})
 		return
 	}
+	fmt.Printf("✅ [Login] パスワード検証成功\n")
 	
 	// 4. JWTトークン生成
 	tokenPair, err := h.jwtService.GenerateTokenPair(user.ID.Hex(), user.Email)
