@@ -17,7 +17,7 @@
 ## 技術スタック
 
 - **バックエンド**: Go 1.23+ + Gin + JWT認証 + MongoDB
-- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia + Nginx + JWT認証
+- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia + Nginx
 - **モバイル**: Flutter (iOS/Android)
 - **AI**: Anthropic Claude API
 - **インフラ**: Docker + Docker Compose（完全コンテナ化）
@@ -41,9 +41,6 @@ cp .env.example .env
 
 # 3. 全サービスを起動（初回は自動ビルド）
 npm run dev
-
-# または
-docker-compose up --build
 ```
 
 ### 🎯 基本コマンド
@@ -156,29 +153,30 @@ http://localhost/test/jwt-auth-test.html
 - 新しいAPIエンドポイントのテスト
 - 認証フローのデバッグ
 
-## JWT認証システム
+## 🔐 JWT認証システム
 
-### 🔐 認証エンドポイント
+### 認証エンドポイント
 - `POST /api/v1/auth/register` - ユーザー登録
 - `POST /api/v1/auth/login` - ログイン
 - `POST /api/v1/auth/refresh` - トークン更新
 - `POST /api/v1/auth/logout` - ログアウト
 
+### トークン設定
+- **アクセストークン有効期限**: 15分
+- **リフレッシュトークン有効期限**: 7日間
+- **認証対象**: 全APIエンドポイント（/auth エンドポイント除く）
+
 ### 環境変数設定（.env）
 ```bash
-# JWT認証（必須）
-JWT_SECRET_KEY=your-super-secret-jwt-key-change-this-in-production-minimum-32-characters
-JWT_REFRESH_SECRET_KEY=your-super-secret-refresh-key-change-this-in-production-minimum-32-characters
+# AI API（必須）
+ANTHROPIC_API_KEY=sk-ant-api03-your-anthropic-api-key-here
 
-# MongoDB
-MONGODB_URI=mongodb://localhost:27017/
-MONGODB_DATABASE=yanwari-message
+# JWT認証（開発環境はDocker Composeで自動設定）
+JWT_SECRET_KEY=production-jwt-secret-key-minimum-32-characters-required
+JWT_REFRESH_SECRET_KEY=production-refresh-secret-key-minimum-32-characters-required
 
-# AI API
-ANTHROPIC_API_KEY=sk-ant-api03-...
-
-# CORS
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+# 本番環境用MongoDB認証
+MONGODB_ROOT_PASSWORD=your-super-secure-mongodb-password
 ```
 
 ### JWT認証テスト
@@ -188,8 +186,8 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"テストユーザー","email":"test@example.com","password":"password123"}'
 
-# ブラウザテスト
-open jwt-auth-test.html  # JWT認証テスト用HTMLページ
+# ブラウザテスト（推奨）
+http://localhost/test/jwt-auth-test.html
 ```
 
 ## ブランチ戦略
@@ -230,14 +228,16 @@ git push origin feature/xxx
 
 ## 📊 完了済み機能
 
-- ✅ JWT認証システム（バックエンド・フロントエンド完全移行、Firebase廃止済み）
-- ✅ メッセージ作成・AIトーン変換  
-- ✅ スケジュール・時間提案機能
-- ✅ 友達申請システム
-- ✅ メッセージ評価システム
-- ✅ Flutter iOSアプリ
-- ✅ 完全コンテナ化（Docker Compose）
-- ✅ サンプルデータ管理システム
+- ✅ **JWT認証システム** - 完全実装（Firebase廃止済み）
+- ✅ **ユーザー管理** - 登録・ログイン・トークン更新
+- ✅ **AIトーン変換** - 3つのトーン並行処理（gentle, constructive, casual）
+- ✅ **スケジュール配信** - AI時間提案・自動配信エンジン
+- ✅ **友達システム** - 友達申請・承認・管理
+- ✅ **メッセージ評価** - 送受信メッセージの評価機能
+- ✅ **受信インボックス** - 受信メッセージ一覧・管理
+- ✅ **Flutter iOSアプリ** - モバイルアプリ完成
+- ✅ **完全コンテナ化** - Docker Compose環境
+- ✅ **開発支援ツール** - サンプルデータ・テスト環境
 
 ## 重要なファイル構成
 
