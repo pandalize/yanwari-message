@@ -113,14 +113,6 @@ function seedDevelopmentData() {
                 status: "accepted",
                 created_at: new Date("2025-01-17T15:30:00.000Z"),
                 updated_at: new Date("2025-01-17T15:30:00.000Z")
-            },
-            {
-                _id: ObjectId(),
-                user1_id: bobId,
-                user2_id: charlieId,
-                status: "accepted",
-                created_at: new Date("2025-01-17T16:45:00.000Z"),
-                updated_at: new Date("2025-01-17T16:45:00.000Z")
             }
         ];
         
@@ -130,6 +122,7 @@ function seedDevelopmentData() {
         // 4. メッセージデータの投入
         logInfo('メッセージデータを投入中...');
         const messages = [
+            // Aliceが送信したメッセージ
             {
                 _id: ObjectId(),
                 sender_id: aliceId,
@@ -158,24 +151,128 @@ function seedDevelopmentData() {
                 created_at: new Date("2025-01-17T18:30:00.000Z"),
                 updated_at: new Date("2025-01-18T08:00:00.000Z"),
                 read_at: new Date("2025-01-18T08:15:00.000Z")
+            },
+            // Bobが送信してAliceが受信したメッセージ
+            {
+                _id: ObjectId(),
+                sender_id: bobId,
+                recipient_email: "alice@yanwari-message.com",
+                recipient_id: aliceId,
+                original_text: "プロジェクトの締切について話し合う必要があります。",
+                transformed_versions: {
+                    gentle: {
+                        text: "お疲れ様です。プロジェクトの進捗についてご相談があります。お時間のある時に、締切について少しお話しできればと思います。",
+                        reasoning: "緊急感を和らげ、相手の都合を配慮した丁寧な表現にしました。"
+                    },
+                    constructive: {
+                        text: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
+                        reasoning: "協力的で前向きなアプローチを強調した表現にしました。"
+                    },
+                    casual: {
+                        text: "プロジェクトの締切の件、ちょっと相談したいことがあるんだ。時間ある時に話せる？",
+                        reasoning: "親しみやすく気軽に相談できる雰囲気の表現にしました。"
+                    }
+                },
+                selected_tone: "constructive",
+                final_message: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
+                status: "delivered",
+                scheduled_at: new Date("2025-01-18T10:00:00.000Z"),
+                delivered_at: new Date("2025-01-18T10:00:00.000Z"),
+                created_at: new Date("2025-01-18T09:15:00.000Z"),
+                updated_at: new Date("2025-01-18T10:00:00.000Z"),
+                read_at: new Date("2025-01-18T10:05:00.000Z")
+            },
+            // Charlieが送信してAliceが受信したメッセージ
+            {
+                _id: ObjectId(),
+                sender_id: charlieId,
+                recipient_email: "alice@yanwari-message.com",
+                recipient_id: aliceId,
+                original_text: "デザインのレビューお疲れ様でした。修正お願いします。",
+                transformed_versions: {
+                    gentle: {
+                        text: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
+                        reasoning: "感謝の気持ちを伝え、相手への配慮を示した丁寧な表現にしました。"
+                    },
+                    constructive: {
+                        text: "デザインレビューありがとうございました。フィードバックを反映させて、より良いものにしていきましょう。修正点をまとめてお送りします。",
+                        reasoning: "建設的で協力的なトーンで、改善への意欲を示した表現にしました。"
+                    },
+                    casual: {
+                        text: "デザインレビューお疲れ様！いくつか調整したい部分があるので、修正よろしくお願いします。",
+                        reasoning: "親しみやすく簡潔で、負担を感じさせない表現にしました。"
+                    }
+                },
+                selected_tone: "gentle",
+                final_message: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
+                status: "delivered",
+                scheduled_at: new Date("2025-01-18T14:00:00.000Z"),
+                delivered_at: new Date("2025-01-18T14:00:00.000Z"),
+                created_at: new Date("2025-01-18T13:30:00.000Z"),
+                updated_at: new Date("2025-01-18T14:00:00.000Z"),
+                read_at: new Date("2025-01-18T14:10:00.000Z")
             }
         ];
         
         const messageResult = db.messages.insertMany(messages);
         logSuccess(`${messageResult.insertedIds.length}件のメッセージを投入しました`);
         
-        // 5. データ検証
+        // 5. メッセージ評価データの投入
+        logInfo('メッセージ評価データを投入中...');
+        const messageIds = messageResult.insertedIds;
+        const messageRatings = [
+            // BobからのメッセージをAliceが評価
+            {
+                _id: ObjectId(),
+                message_id: messageIds[1], // Bobからのメッセージ
+                user_id: aliceId, // Aliceが評価
+                rating: 5,
+                comment: "とても建設的で協力的なアプローチでした。プレッシャーを感じることなく、一緒に解決策を考えられそうです。",
+                helpful_aspects: ["tone", "collaborative_approach", "clarity"],
+                created_at: new Date("2025-01-18T10:30:00.000Z"),
+                updated_at: new Date("2025-01-18T10:30:00.000Z")
+            },
+            // CharlieからのメッセージをAliceが評価
+            {
+                _id: ObjectId(),
+                message_id: messageIds[2], // Charlieからのメッセージ
+                user_id: aliceId, // Aliceが評価
+                rating: 4,
+                comment: "丁寧で配慮のある言い回しでした。感謝の気持ちが伝わり、気持ちよく対応できます。",
+                helpful_aspects: ["tone", "emotional_impact", "clarity"],
+                created_at: new Date("2025-01-18T14:30:00.000Z"),
+                updated_at: new Date("2025-01-18T14:30:00.000Z")
+            },
+            // Alice自身のメッセージをBobが評価（フィードバック用）
+            {
+                _id: ObjectId(),
+                message_id: messageIds[0], // Aliceからのメッセージ
+                user_id: bobId, // Bobが評価
+                rating: 5,
+                comment: "とても配慮のある優しい表現でした。プレッシャーを感じることなく、建設的に対応できました。",
+                helpful_aspects: ["tone", "timing", "emotional_impact"],
+                created_at: new Date("2025-01-18T08:30:00.000Z"),
+                updated_at: new Date("2025-01-18T08:30:00.000Z")
+            }
+        ];
+        
+        const ratingResult = db.message_ratings.insertMany(messageRatings);
+        logSuccess(`${ratingResult.insertedIds.length}件のメッセージ評価を投入しました`);
+        
+        // 7. データ検証
         logInfo('データ投入の検証中...');
         const userCount = db.users.countDocuments();
         const messageCount = db.messages.countDocuments();
         const friendshipCount = db.friendships.countDocuments();
+        const ratingCount = db.message_ratings.countDocuments();
         
         logSuccess('=== データ投入完了 ===');
         logSuccess(`ユーザー: ${userCount}件`);
         logSuccess(`メッセージ: ${messageCount}件`);
         logSuccess(`友達関係: ${friendshipCount}件`);
+        logSuccess(`メッセージ評価: ${ratingCount}件`);
         
-        // 6. テスト用ログイン情報の表示
+        // 8. テスト用ログイン情報の表示
         logInfo('=== テスト用ログイン情報 ===');
         logInfo('以下のアカウントでログインできます（パスワード: password123）:');
         logInfo('👩 田中 あかり - alice@yanwari-message.com');
