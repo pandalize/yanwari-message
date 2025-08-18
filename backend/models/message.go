@@ -713,6 +713,7 @@ func (s *MessageService) DeliverMessage(ctx context.Context, messageID primitive
 	update := bson.M{
 		"$set": bson.M{
 			"status":      MessageStatusDelivered,
+			"sentAt":      now,
 			"deliveredAt": now,
 			"updatedAt":   now,
 		},
