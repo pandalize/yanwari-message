@@ -1,0 +1,47 @@
+# Go関連の除外
+*.log
+*.out
+*.prof
+*.test
+
+# 開発環境ファイル
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE関連
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# Git関連
+.git/
+.gitignore
+
+# テスト関連
+coverage.txt
+coverage.out
+
+# 一時ファイル
+tmp/
+temp/
+
+# Dockerファイル
+Dockerfile*
+docker-compose*
+
+# ドキュメント
+README.md
+docs/
+
+# その他
+bin/
+vendor/

@@ -16,51 +16,101 @@
 
 ## 技術スタック
 
-- **バックエンド**: Go 1.23+ + Gin + JWT認証 + MongoDB Local/Atlas
-- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia
+- **バックエンド**: Go 1.23+ + Gin + JWT認証 + MongoDB
+- **フロントエンド**: Vue 3 + TypeScript + Vite + Pinia + Nginx
 - **モバイル**: Flutter (iOS/Android)
 - **AI**: Anthropic Claude API
-- **認証**: JWT (Firebase認証から移行完了 - 2025年8月18日)
-- **データベース**: MongoDB (ローカル開発はDocker、本番はAtlas)
+- **インフラ**: Docker + Docker Compose（完全コンテナ化）
 
-## 開発コマンド
+## 🚀 開発環境セットアップ
 
-### 🚀 基本コマンド
+### 必要な環境
+- Docker & Docker Compose
+- Git
+- エディタ（VS Code推奨）
+
+### 初回セットアップ
 ```bash
-# 初回セットアップ
-npm run install:all      # 依存関係インストール
-npm run setup:env        # 環境変数テンプレート作成
+# 1. リポジトリをクローン
+git clone <repository-url>
+cd yanwari-message
 
-# 開発サーバー起動
-npm run dev:local        # MongoDB + Backend同時起動（推奨）
-npm run dev              # Frontend + Backend同時起動
+# 2. 環境変数を設定
+cp .env.example .env
+# .env ファイルを編集してANTHROPIC_API_KEYを設定
 
-# 個別起動
-npm run dev:backend      # Go サーバー :8080
-npm run dev:frontend     # Vue 開発サーバー :5173
-npm run mongodb:start    # MongoDB Docker起動
-npm run mongodb:admin    # MongoDB + Mongo Express起動
+# 3. 全サービスを起動（初回は自動ビルド）
+npm run dev
+
+# または
+docker-compose up --build
 ```
 
-### 🔧 開発ツール
-```bash
-# API・テスト
-npm run test            # テスト実行
-npm run lint            # コード品質チェック
-npm run build           # プロダクションビルド
+### 🎯 基本コマンド
 
-# MongoDB管理
-npm run mongodb:start   # MongoDB起動
-npm run mongodb:stop    # MongoDB停止
-npm run mongodb:admin   # Mongo Express管理画面付きで起動
+#### 🔥 開発コマンド（推奨）
+```bash
+# 全サービス起動（フォアグラウンド）
+npm run dev
+
+# 全サービス起動（バックグラウンド）
+npm run dev:detached
+
+# サービス停止
+npm run stop
+
+# ログ確認
+npm run logs                # 全サービス
+npm run logs:backend        # バックエンドのみ
+npm run logs:frontend       # フロントエンドのみ
+npm run logs:db            # データベースのみ
+
+# サービス再起動
+npm run restart
+```
+
+#### 🔧 ビルド・テスト
+```bash
+# イメージビルド
+npm run build
+
+# キャッシュなしビルド
+npm run build:no-cache
+
+# テスト実行
+npm run test                # 全テスト
+npm run test:backend        # バックエンドテスト
+npm run test:frontend       # フロントエンドテスト
+
+# コード品質チェック
+npm run lint                # 全体
+npm run lint:backend        # バックエンド
+npm run lint:frontend       # フロントエンド
+```
+
+#### 🗄️ データベース管理
+```bash
+# MongoDB管理UI起動
+npm run db:admin
+# → http://localhost:8081 でアクセス（admin/admin123）
+
+# MongoDBのみ起動
+npm run db:start
+
+# データベースバックアップ
+npm run db:backup
+
+# データベースリストア
+npm run db:restore
 ```
 
 ### 📍 開発環境アクセスURL
 
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:8080  
-- **Health Check**: http://localhost:8080/health
-- **MongoDB管理**: http://localhost:8081 (Mongo Express)
+| サービス | URL | 説明 |
+|---------|-----|------|
+| **フロントエンド** | http://localhost | メインアプリケーション |
+| **バックエンドAPI** | http://localhost:8080 | REST API |
+| **MongoDB管理** | http://localhost:8081 | mongo-express (admin/admin123) |
 
 ## JWT認証システム
 
@@ -124,26 +174,25 @@ git push origin feature/xxx
 # develop → main（リリース時）
 ```
 
-## 運用ルール
+## 🛠️ 開発ガイドライン
 
-1. **日本語コメント必須**
-2. **JWT認証**: 全APIで認証必須
+1. **日本語コメント必須** - コードとコミットメッセージ
+2. **JWT認証**: 全APIで認証必須（/auth エンドポイント除く）
 3. **品質チェック**: 実装後は `npm run lint` と `npm run test` を実行
-4. **⚠️ 開発サーバー起動の重要ルール**:
-   - **Claude Code は自動で開発サーバーを起動してはいけません**
-   - 開発サーバー起動(`npm run dev`、`npm run dev:local`等)は必ずユーザーが手動で実行する
-   - Claude と ユーザーが同時に起動するとポート競合やプロセス重複が発生する
-   - Claude Code は起動方法の説明やデバッグのみ行い、実際の起動コマンド実行は避ける
+4. **Dockerファースト**: 開発は必ずコンテナ環境を使用
+5. **⚠️ Claude Codeの制限**:
+   - **開発サーバー起動は禁止**: ユーザーが手動で `npm run dev` を実行
+   - 起動方法の説明とデバッグのみ対応
 
-## 完了済み機能
+## 📊 完了済み機能
 
-- ✅ JWT認証システム（Firebase認証から移行完了）
+- ✅ JWT認証システム（Firebase廃止済み）
 - ✅ メッセージ作成・AIトーン変換  
 - ✅ スケジュール・時間提案機能
 - ✅ 友達申請システム
 - ✅ メッセージ評価システム
 - ✅ Flutter iOSアプリ
-- ✅ ローカル開発環境（Docker MongoDB）
+- ✅ 完全コンテナ化（Docker Compose）
 
 ## 重要なファイル構成
 

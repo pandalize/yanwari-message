@@ -1,30 +1,145 @@
-version: '3.8'
+# やんわり伝言サービス - フルスタック開発環境
+# 使用方法: docker-compose up --build
 
 services:
+  # バックエンド API サーバー (Go + Gin)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: yanwari-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # データベース設定
+      - MONGODB_URI=mongodb://mongodb:27017/
+      - MONGODB_DATABASE=yanwari-message
+      
+      # JWT認証設定
+      - JWT_SECRET_KEY=dev-jwt-secret-key-change-in-production-minimum-32-chars
+      - JWT_REFRESH_SECRET_KEY=dev-refresh-secret-key-change-in-production-minimum-32-chars
+      
+      # AI設定
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      
+      # サーバー設定
+      - PORT=8080
+      - GIN_MODE=debug
+      - LOG_LEVEL=debug
+      
+      # CORS設定（開発用）
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:80
+    volumes:
+      # ホットリロード用（開発時のみ）
+      - ./backend:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - yanwari-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # フロントエンド (Vue.js + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: yanwari-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"  # 開発用代替ポート
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - yanwari-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # データベース (MongoDB)
   mongodb:
-    image: mongo:latest
+    image: mongo:7-jammy
     container_name: yanwari-mongodb
-    restart: always
+    restart: unless-stopped
     ports:
       - "27017:27017"
-    volumes:
-      - yanwari-data:/data/db
     environment:
-      MONGO_INITDB_DATABASE: yanwari-message
+      - MONGO_INITDB_DATABASE=yanwari-message
+      # 本番環境では認証を有効にする
+      # - MONGO_INITDB_ROOT_USERNAME=admin
+      # - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+    volumes:
+      - yanwari-mongodb-data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - yanwari-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
+  # MongoDB管理UI (開発用)
   mongo-express:
-    image: mongo-express:latest
+    image: mongo-express:1-20-alpine3.19
     container_name: yanwari-mongo-express
-    restart: always
+    restart: unless-stopped
     ports:
       - "8081:8081"
     environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+      - ME_CONFIG_SITE_BASEURL=/mongo-admin/
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    networks:
+      - yanwari-network
+    profiles:
+      - dev  # 開発環境でのみ起動
 
+  # Redis (将来のセッション管理・キャッシュ用)
+  redis:
+    image: redis:7-alpine
+    container_name: yanwari-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - yanwari-redis-data:/data
+    networks:
+      - yanwari-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    profiles:
+      - dev
+
+# 永続化ボリューム
 volumes:
-  yanwari-data:
+  yanwari-mongodb-data:
+    name: yanwari-mongodb-data
+  yanwari-redis-data:
+    name: yanwari-redis-data
+
+# ネットワーク設定
+networks:
+  yanwari-network:
+    driver: bridge
+    name: yanwari-network
