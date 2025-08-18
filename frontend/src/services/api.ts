@@ -10,8 +10,19 @@ class ApiService {
   private api: AxiosInstance
 
   constructor() {
+    // Capacitorモバイル環境用のAPI URL設定
+    const getApiBaseUrl = () => {
+      // Capacitorネイティブアプリの場合
+      if (window.location.protocol === 'capacitor:') {
+        // 実機テスト用：MacのローカルIPアドレスを使用
+        return 'http://192.168.0.7:8080/api/v1'
+      }
+      // Web版の場合
+      return 'http://localhost:8080/api/v1'
+    }
+
     this.api = axios.create({
-      baseURL: 'http://localhost:8080/api/v1',
+      baseURL: getApiBaseUrl(),
       timeout: 15000, // AI処理のため15秒に延長
       headers: {
         'Content-Type': 'application/json'
@@ -25,7 +36,10 @@ class ApiService {
 
 
   async healthCheck(): Promise<any> {
-    const response = await axios.get('http://localhost:8080/health')
+    const url = window.location.protocol === 'capacitor:' 
+      ? 'http://192.168.0.7:8080/health' 
+      : 'http://localhost:8080/health'
+    const response = await axios.get(url)
     return response.data
   }
 

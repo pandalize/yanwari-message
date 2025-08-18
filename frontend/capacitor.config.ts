@@ -5,12 +5,15 @@ const config: CapacitorConfig = {
   appName: 'やんわり伝言',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    // 開発環境: 実機からMacのローカルサーバーへアクセス許可
+    allowNavigation: ['http://192.168.0.7:8080', 'http://localhost:8080'],
+    iosScheme: 'http'
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
-      backgroundColor: "#4f46e5",
+      backgroundColor: "#4f46e5", 
       showSpinner: true,
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "small"

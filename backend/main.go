@@ -80,7 +80,11 @@ func main() {
 	// CORS設定（環境変数から読み込み）
 	config := cors.DefaultConfig()
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	if allowedOrigins != "" {
+	if allowedOrigins != "" && allowedOrigins == "*" {
+		// 開発環境：全originを許可（Capacitor対応）
+		config.AllowAllOrigins = true
+		log.Printf("CORS set to allow all origins for development (includes Capacitor)")
+	} else if allowedOrigins != "" {
 		// カンマ区切りの文字列を配列に変換
 		origins := strings.Split(allowedOrigins, ",")
 		// 空白を除去
