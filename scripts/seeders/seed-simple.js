@@ -119,140 +119,224 @@ function seedDevelopmentData() {
         const friendshipResult = db.friendships.insertMany(friendships);
         logSuccess(`${friendshipResult.insertedIds.length}件の友達関係を投入しました`);
         
-        // 4. メッセージデータの投入
+        // 4. メッセージデータの投入（多様なステータスと時間設定）
         logInfo('メッセージデータを投入中...');
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        
         const messages = [
-            // Aliceが送信したメッセージ
+            // === 配信済みメッセージ（評価可能） ===
+            // Alice → Bob: 配信済み（既読）
             {
                 _id: ObjectId(),
-                sender_id: aliceId,
-                recipient_email: "bob@yanwari-message.com",
-                recipient_id: bobId,
-                original_text: "明日の会議なんですが、資料の準備が遅れていませんか？",
-                transformed_versions: {
-                    gentle: {
-                        text: "お疲れ様です。明日の会議の件でご連絡いたします。資料のご準備はいかがでしょうか？もしお時間が必要でしたら、お気軽にお声がけください。",
-                        reasoning: "直接的な指摘を避け、相手への配慮を示しながら確認する表現に変更しました。"
-                    },
-                    constructive: {
-                        text: "明日の会議について確認です。資料の準備状況を教えていただけますか？必要でしたら、一緒に準備を進めることも可能です。",
-                        reasoning: "問題解決志向で、協力的な姿勢を示す表現にしました。"
-                    },
-                    casual: {
-                        text: "明日の会議の資料、準備の進み具合はどんな感じ？何かサポートが必要だったら言ってね！",
-                        reasoning: "親しみやすく、プレッシャーを与えない軽やかな表現にしました。"
-                    }
+                senderId: aliceId,
+                recipientId: bobId,
+                originalText: "明日の会議なんですが、資料の準備が遅れていませんか？",
+                variations: {
+                    gentle: "お疲れ様です。明日の会議の件でご連絡いたします。資料のご準備はいかがでしょうか？もしお時間が必要でしたら、お気軽にお声がけください。",
+                    constructive: "明日の会議について確認です。資料の準備状況を教えていただけますか？必要でしたら、一緒に準備を進めることも可能です。",
+                    casual: "明日の会議の資料、準備の進み具合はどんな感じ？何かサポートが必要だったら言ってね！"
                 },
-                selected_tone: "gentle",
-                final_message: "お疲れ様です。明日の会議の件でご連絡いたします。資料のご準備はいかがでしょうか？もしお時間が必要でしたら、お気軽にお声がけください。",
-                status: "delivered",
-                scheduled_at: new Date("2025-01-18T08:00:00.000Z"),
-                delivered_at: new Date("2025-01-18T08:00:00.000Z"),
-                created_at: new Date("2025-01-17T18:30:00.000Z"),
-                updated_at: new Date("2025-01-18T08:00:00.000Z"),
-                read_at: new Date("2025-01-18T08:15:00.000Z")
+                selectedTone: "gentle",
+                finalText: "お疲れ様です。明日の会議の件でご連絡いたします。資料のご準備はいかがでしょうか？もしお時間が必要でしたら、お気軽にお声がけください。",
+                status: "read",
+                scheduledAt: yesterday,
+                sentAt: yesterday,
+                deliveredAt: yesterday,
+                readAt: new Date(yesterday.getTime() + 15 * 60 * 1000),
+                createdAt: new Date(yesterday.getTime() - 60 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 15 * 60 * 1000)
             },
-            // Bobが送信してAliceが受信したメッセージ
+            
+            // Bob → Alice: 配信済み（既読）
             {
                 _id: ObjectId(),
-                sender_id: bobId,
-                recipient_email: "alice@yanwari-message.com",
-                recipient_id: aliceId,
-                original_text: "プロジェクトの締切について話し合う必要があります。",
-                transformed_versions: {
-                    gentle: {
-                        text: "お疲れ様です。プロジェクトの進捗についてご相談があります。お時間のある時に、締切について少しお話しできればと思います。",
-                        reasoning: "緊急感を和らげ、相手の都合を配慮した丁寧な表現にしました。"
-                    },
-                    constructive: {
-                        text: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
-                        reasoning: "協力的で前向きなアプローチを強調した表現にしました。"
-                    },
-                    casual: {
-                        text: "プロジェクトの締切の件、ちょっと相談したいことがあるんだ。時間ある時に話せる？",
-                        reasoning: "親しみやすく気軽に相談できる雰囲気の表現にしました。"
-                    }
+                senderId: bobId,
+                recipientId: aliceId,
+                originalText: "プロジェクトの締切について話し合う必要があります。",
+                variations: {
+                    gentle: "お疲れ様です。プロジェクトの進捗についてご相談があります。お時間のある時に、締切について少しお話しできればと思います。",
+                    constructive: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
+                    casual: "プロジェクトの締切の件、ちょっと相談したいことがあるんだ。時間ある時に話せる？"
                 },
-                selected_tone: "constructive",
-                final_message: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
-                status: "delivered",
-                scheduled_at: new Date("2025-01-18T10:00:00.000Z"),
-                delivered_at: new Date("2025-01-18T10:00:00.000Z"),
-                created_at: new Date("2025-01-18T09:15:00.000Z"),
-                updated_at: new Date("2025-01-18T10:00:00.000Z"),
-                read_at: new Date("2025-01-18T10:05:00.000Z")
+                selectedTone: "constructive",
+                finalText: "プロジェクトの締切について一緒に検討しませんか？現在の進捗状況を確認して、最適な計画を立てましょう。",
+                status: "read",
+                scheduledAt: new Date(yesterday.getTime() + 2 * 60 * 60 * 1000),
+                sentAt: new Date(yesterday.getTime() + 2 * 60 * 60 * 1000),
+                deliveredAt: new Date(yesterday.getTime() + 2 * 60 * 60 * 1000 + 30 * 1000),
+                readAt: new Date(yesterday.getTime() + 2 * 60 * 60 * 1000 + 5 * 60 * 1000),
+                createdAt: new Date(yesterday.getTime() + 60 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 2 * 60 * 60 * 1000 + 5 * 60 * 1000)
             },
-            // Charlieが送信してAliceが受信したメッセージ
+            
+            // Charlie → Alice: 配信済み（既読）
             {
                 _id: ObjectId(),
-                sender_id: charlieId,
-                recipient_email: "alice@yanwari-message.com",
-                recipient_id: aliceId,
-                original_text: "デザインのレビューお疲れ様でした。修正お願いします。",
-                transformed_versions: {
-                    gentle: {
-                        text: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
-                        reasoning: "感謝の気持ちを伝え、相手への配慮を示した丁寧な表現にしました。"
-                    },
-                    constructive: {
-                        text: "デザインレビューありがとうございました。フィードバックを反映させて、より良いものにしていきましょう。修正点をまとめてお送りします。",
-                        reasoning: "建設的で協力的なトーンで、改善への意欲を示した表現にしました。"
-                    },
-                    casual: {
-                        text: "デザインレビューお疲れ様！いくつか調整したい部分があるので、修正よろしくお願いします。",
-                        reasoning: "親しみやすく簡潔で、負担を感じさせない表現にしました。"
-                    }
+                senderId: charlieId,
+                recipientId: aliceId,
+                originalText: "デザインのレビューお疲れ様でした。修正お願いします。",
+                variations: {
+                    gentle: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
+                    constructive: "デザインレビューありがとうございました。フィードバックを反映させて、より良いものにしていきましょう。修正点をまとめてお送りします。",
+                    casual: "デザインレビューお疲れ様！いくつか調整したい部分があるので、修正よろしくお願いします。"
                 },
-                selected_tone: "gentle",
-                final_message: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
+                selectedTone: "gentle",
+                finalText: "デザインのレビューをしていただき、ありがとうございました。いくつか調整したい箇所がございますので、お時間のある時に修正をお願いできればと思います。",
+                status: "read",
+                scheduledAt: new Date(yesterday.getTime() + 6 * 60 * 60 * 1000),
+                sentAt: new Date(yesterday.getTime() + 6 * 60 * 60 * 1000),
+                deliveredAt: new Date(yesterday.getTime() + 6 * 60 * 60 * 1000 + 10 * 1000),
+                readAt: new Date(yesterday.getTime() + 6 * 60 * 60 * 1000 + 10 * 60 * 1000),
+                createdAt: new Date(yesterday.getTime() + 5 * 60 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 6 * 60 * 60 * 1000 + 10 * 60 * 1000)
+            },
+            
+            // Alice → Charlie: 配信済み（未読）
+            {
+                _id: ObjectId(),
+                senderId: aliceId,
+                recipientId: charlieId,
+                originalText: "企画書の内容、ちょっと厳しすぎるかもしれません。",
+                variations: {
+                    gentle: "企画書を拝見いたしました。いくつかご相談したい点がございます。お時間のある時にお話しできればと思います。",
+                    constructive: "企画書についてフィードバックがあります。より実現可能なプランを一緒に検討してみませんか？",
+                    casual: "企画書見たよ！ちょっと調整した方がよさそうな部分があるから、話し合おうか。"
+                },
+                selectedTone: "constructive",
+                finalText: "企画書についてフィードバックがあります。より実現可能なプランを一緒に検討してみませんか？",
                 status: "delivered",
-                scheduled_at: new Date("2025-01-18T14:00:00.000Z"),
-                delivered_at: new Date("2025-01-18T14:00:00.000Z"),
-                created_at: new Date("2025-01-18T13:30:00.000Z"),
-                updated_at: new Date("2025-01-18T14:00:00.000Z"),
-                read_at: new Date("2025-01-18T14:10:00.000Z")
+                scheduledAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+                sentAt: new Date(now.getTime() - 2 * 60 * 60 * 1000),
+                deliveredAt: new Date(now.getTime() - 2 * 60 * 60 * 1000 + 5 * 1000),
+                createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+                updatedAt: new Date(now.getTime() - 2 * 60 * 60 * 1000)
+            },
+            
+            // === 送信予定メッセージ ===
+            // Bob → Charlie: 明日送信予定（友達でないため送信失敗想定）
+            {
+                _id: ObjectId(),
+                senderId: bobId,
+                recipientId: charlieId,
+                originalText: "来週の研修の件で確認したいことがあります。",
+                variations: {
+                    gentle: "来週の研修についてご質問があります。お忙しい中申し訳ありませんが、確認させていただけますでしょうか。",
+                    constructive: "来週の研修について一緒に準備を進めましょう。詳細を確認したい点がいくつかあります。",
+                    casual: "来週の研修の件でちょっと聞きたいことがあるんだ。時間ある時に教えて！"
+                },
+                selectedTone: "gentle",
+                finalText: "来週の研修についてご質問があります。お忙しい中申し訳ありませんが、確認させていただけますでしょうか。",
+                status: "scheduled",
+                scheduledAt: tomorrow,
+                createdAt: now,
+                updatedAt: now
+            },
+            
+            // Alice → Bob: 来週送信予定
+            {
+                _id: ObjectId(),
+                senderId: aliceId,
+                recipientId: bobId,
+                originalText: "月末の報告書、まだ手をつけられていないかもしれません。",
+                variations: {
+                    gentle: "月末の報告書についてご相談があります。進捗状況はいかがでしょうか。何かお手伝いできることがあればお声がけください。",
+                    constructive: "月末の報告書の件で相談です。一緒に計画を立てて効率的に進めませんか？",
+                    casual: "月末の報告書どう？何か手伝えることがあったら言ってね！"
+                },
+                selectedTone: "gentle",
+                finalText: "月末の報告書についてご相談があります。進捗状況はいかがでしょうか。何かお手伝いできることがあればお声がけください。",
+                status: "scheduled",
+                scheduledAt: nextWeek,
+                createdAt: new Date(now.getTime() - 30 * 60 * 1000),
+                updatedAt: new Date(now.getTime() - 30 * 60 * 1000)
+            },
+            
+            // === 送信済みメッセージ（相手からの返信待ち） ===
+            // Charlie → Alice: 送信済み（未読）
+            {
+                _id: ObjectId(),
+                senderId: charlieId,
+                recipientId: aliceId,
+                originalText: "新しいプロジェクトのアサインについて話があります。",
+                variations: {
+                    gentle: "新しいプロジェクトについてご相談があります。お時間のある時にお話しさせていただけますでしょうか。",
+                    constructive: "新しいプロジェクトのアサインについて一緒に検討しませんか？詳細をお伝えしたいと思います。",
+                    casual: "新しいプロジェクトの件で話があるんだ。都合の良い時に相談しよう！"
+                },
+                selectedTone: "constructive",
+                finalText: "新しいプロジェクトのアサインについて一緒に検討しませんか？詳細をお伝えしたいと思います。",
+                status: "sent",
+                scheduledAt: new Date(now.getTime() - 30 * 60 * 1000),
+                sentAt: new Date(now.getTime() - 30 * 60 * 1000),
+                createdAt: new Date(now.getTime() - 60 * 60 * 1000),
+                updatedAt: new Date(now.getTime() - 30 * 60 * 1000)
+            },
+            
+            // Bob → Alice: 送信済み（配信待ち）
+            {
+                _id: ObjectId(),
+                senderId: bobId,
+                recipientId: aliceId,
+                originalText: "昨日のミーティングのフォローアップをお願いします。",
+                variations: {
+                    gentle: "昨日のミーティングについて、いくつか確認事項がございます。お時間のある時にフォローアップをお願いできますでしょうか。",
+                    constructive: "昨日のミーティングのフォローアップを一緒に進めませんか？アクションアイテムを整理しましょう。",
+                    casual: "昨日のミーティングの件、フォローアップよろしく！何か質問があったら聞いて。"
+                },
+                selectedTone: "constructive",
+                finalText: "昨日のミーティングのフォローアップを一緒に進めませんか？アクションアイテムを整理しましょう。",
+                status: "sent",
+                scheduledAt: new Date(now.getTime() - 15 * 60 * 1000),
+                sentAt: new Date(now.getTime() - 15 * 60 * 1000),
+                createdAt: new Date(now.getTime() - 45 * 60 * 1000),
+                updatedAt: new Date(now.getTime() - 15 * 60 * 1000)
             }
         ];
         
         const messageResult = db.messages.insertMany(messages);
         logSuccess(`${messageResult.insertedIds.length}件のメッセージを投入しました`);
         
-        // 5. メッセージ評価データの投入
+        // 5. メッセージ評価データの投入（配信済み・既読メッセージのみ評価可能）
         logInfo('メッセージ評価データを投入中...');
         const messageIds = messageResult.insertedIds;
         const messageRatings = [
-            // BobからのメッセージをAliceが評価
+            // Alice → Bobのメッセージ (messageIds[0]) をBobが評価
             {
                 _id: ObjectId(),
-                message_id: messageIds[1], // Bobからのメッセージ
-                user_id: aliceId, // Aliceが評価
-                rating: 5,
-                comment: "とても建設的で協力的なアプローチでした。プレッシャーを感じることなく、一緒に解決策を考えられそうです。",
-                helpful_aspects: ["tone", "collaborative_approach", "clarity"],
-                created_at: new Date("2025-01-18T10:30:00.000Z"),
-                updated_at: new Date("2025-01-18T10:30:00.000Z")
-            },
-            // CharlieからのメッセージをAliceが評価
-            {
-                _id: ObjectId(),
-                message_id: messageIds[2], // Charlieからのメッセージ
-                user_id: aliceId, // Aliceが評価
-                rating: 4,
-                comment: "丁寧で配慮のある言い回しでした。感謝の気持ちが伝わり、気持ちよく対応できます。",
-                helpful_aspects: ["tone", "emotional_impact", "clarity"],
-                created_at: new Date("2025-01-18T14:30:00.000Z"),
-                updated_at: new Date("2025-01-18T14:30:00.000Z")
-            },
-            // Alice自身のメッセージをBobが評価（フィードバック用）
-            {
-                _id: ObjectId(),
-                message_id: messageIds[0], // Aliceからのメッセージ
-                user_id: bobId, // Bobが評価
+                messageId: messageIds[0],
+                userId: bobId,
                 rating: 5,
                 comment: "とても配慮のある優しい表現でした。プレッシャーを感じることなく、建設的に対応できました。",
-                helpful_aspects: ["tone", "timing", "emotional_impact"],
-                created_at: new Date("2025-01-18T08:30:00.000Z"),
-                updated_at: new Date("2025-01-18T08:30:00.000Z")
+                helpfulAspects: ["tone", "timing", "emotional_impact"],
+                createdAt: new Date(yesterday.getTime() + 30 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 30 * 60 * 1000)
+            },
+            
+            // Bob → Aliceのメッセージ (messageIds[1]) をAliceが評価
+            {
+                _id: ObjectId(),
+                messageId: messageIds[1],
+                userId: aliceId,
+                rating: 4,
+                comment: "建設的で協力的なアプローチが良かったです。一緒に解決策を考える姿勢が伝わってきました。",
+                helpfulAspects: ["tone", "collaborative_approach", "clarity"],
+                createdAt: new Date(yesterday.getTime() + 3 * 60 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 3 * 60 * 60 * 1000)
+            },
+            
+            // Charlie → Aliceのメッセージ (messageIds[2]) をAliceが評価
+            {
+                _id: ObjectId(),
+                messageId: messageIds[2],
+                userId: aliceId,
+                rating: 5,
+                comment: "丁寧で配慮のある言い回しでした。感謝の気持ちが伝わり、気持ちよく対応できます。",
+                helpfulAspects: ["tone", "emotional_impact", "clarity"],
+                createdAt: new Date(yesterday.getTime() + 7 * 60 * 60 * 1000),
+                updatedAt: new Date(yesterday.getTime() + 7 * 60 * 60 * 1000)
             }
         ];
         
