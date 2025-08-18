@@ -130,6 +130,31 @@ npm run db:seed:users   # ユーザーデータのみ投入
 | **フロントエンド** | http://localhost | メインアプリケーション |
 | **バックエンドAPI** | http://localhost:8080 | REST API |
 | **MongoDB管理** | http://localhost:8081 | mongo-express (admin/admin123) |
+| **🧪 JWT認証テスト** | http://localhost/test/jwt-auth-test.html | **API動作確認・デバッグ** |
+
+### 🧪 API動作確認・テスト
+
+#### JWT認証テストページ
+```bash
+# システム起動後にすぐテスト可能
+docker-compose up -d
+
+# ブラウザで以下にアクセス
+http://localhost/test/jwt-auth-test.html
+```
+
+**✅ 主要テスト機能:**
+- **ユーザー登録・ログイン**: 新規アカウント作成とログイン
+- **シーダーアカウント**: Alice/Bob ワンクリックログイン
+- **JWT トークン管理**: アクセストークン更新・ログアウト
+- **保護されたAPI**: 認証が必要なエンドポイントのテスト
+- **レスポンス確認**: JSON形式でのAPI応答確認・デバッグ
+
+**🎯 開発時の使用例:**
+- バックエンド修正後の動作確認
+- CORS設定の確認
+- 新しいAPIエンドポイントのテスト
+- 認証フローのデバッグ
 
 ## JWT認証システム
 
