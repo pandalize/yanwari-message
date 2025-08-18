@@ -144,14 +144,14 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { ratingService, type InboxMessageWithRating } from '../../services/ratingService'
 import TreemapView from '../visualization/TreemapView.vue'
-import { useJwtAuthStore } from '@/stores/jwtAuth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 
 // ================================================
 // 1. データ層（Data Layer）
 // ================================================
 
 // 認証ストア
-const authStore = useJwtAuthStore()
+const authStore = useJWTAuthStore()
 
 // データ状態
 const inboxMessages = ref<InboxMessageWithRating[]>([])
