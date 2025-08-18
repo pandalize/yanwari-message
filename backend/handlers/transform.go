@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -122,6 +123,7 @@ func (h *TransformHandler) TransformToTones(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Anthropic APIキーが設定されていません"})
 		return
 	}
+
 
 	// メッセージIDの検証とアクセス権確認
 	messageID, err := primitive.ObjectIDFromHex(req.MessageID)

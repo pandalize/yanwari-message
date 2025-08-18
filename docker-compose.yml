@@ -21,7 +21,7 @@ services:
       - JWT_REFRESH_SECRET_KEY=dev-refresh-secret-key-change-in-production-minimum-32-chars
       
       # AI設定
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-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}
       
       # サーバー設定
       - PORT=8080
