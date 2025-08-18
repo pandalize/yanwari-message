@@ -345,11 +345,103 @@ func (h *MessageHandler) GetSentMessages(c *gin.Context) {
 	})
 }
 
+// GetAllMessages 全メッセージ一覧を取得（送信済み・受信済み・下書きの統合）
+// GET /api/v1/messages
+func (h *MessageHandler) GetAllMessages(c *gin.Context) {
+	user, err := getUserByJWT(c, h.messageService.GetUserService())
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+	userID := user.ID
+
+	// ページネーション
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	limit := 20
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
+			limit = l
+		}
+	}
+
+	// タイプフィルター（オプション）
+	messageType := c.Query("type") // "sent", "received", "draft" or empty for all
+
+	var messages []interface{}
+	var total int64
+
+	switch messageType {
+	case "sent":
+		msgs, t, err := h.messageService.GetSentMessages(c.Request.Context(), userID, page, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "送信メッセージの取得に失敗しました"})
+			return
+		}
+		for _, msg := range msgs {
+			messages = append(messages, msg)
+		}
+		total = t
+	case "received":
+		msgs, t, err := h.messageService.GetReceivedMessagesWithSender(c.Request.Context(), userID, page, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "受信メッセージの取得に失敗しました"})
+			return
+		}
+		for _, msg := range msgs {
+			messages = append(messages, msg)
+		}
+		total = t
+	case "draft":
+		msgs, t, err := h.messageService.GetUserDrafts(c.Request.Context(), userID, page, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "下書きメッセージの取得に失敗しました"})
+			return
+		}
+		for _, msg := range msgs {
+			messages = append(messages, msg)
+		}
+		total = t
+	default:
+		// 全メッセージを取得（簡易版 - 受信メッセージのみ返す）
+		msgs, t, err := h.messageService.GetReceivedMessagesWithSender(c.Request.Context(), userID, page, limit)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージの取得に失敗しました"})
+			return
+		}
+		for _, msg := range msgs {
+			messages = append(messages, msg)
+		}
+		total = t
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"messages": messages,
+			"pagination": gin.H{
+				"page":  page,
+				"limit": limit,
+				"total": total,
+			},
+			"type": messageType,
+		},
+		"message": "メッセージを取得しました",
+	})
+}
+
 // RegisterRoutes メッセージ関連のルートを登録
 func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	messages := router.Group("/messages")
 	messages.Use(jwtMiddleware)
 	{
+		// 全メッセージ一覧（新規追加）
+		messages.GET("", h.GetAllMessages)
+		
 		// 送信者向け
 		messages.POST("/draft", h.CreateDraft)
 		messages.GET("/drafts", h.GetDrafts)
