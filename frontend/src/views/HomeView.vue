@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 import { useRouter } from 'vue-router'
 import PageContainer from '@/components/layout/PageContainer.vue'
 
-const authStore = useAuthStore()
+const authStore = useJWTAuthStore()
 const router = useRouter()
 
 const goToCompose = () => {
