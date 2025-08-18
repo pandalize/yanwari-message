@@ -16,8 +16,6 @@ type UserSettings struct {
 	EmailNotifications    bool               `bson:"emailNotifications" json:"emailNotifications"`
 	SendNotifications     bool               `bson:"sendNotifications" json:"sendNotifications"`
 	BrowserNotifications  bool               `bson:"browserNotifications" json:"browserNotifications"`
-	DefaultTone           string             `bson:"defaultTone" json:"defaultTone"`
-	TimeRestriction       string             `bson:"timeRestriction" json:"timeRestriction"`
 	CreatedAt             time.Time          `bson:"createdAt" json:"createdAt"`
 	UpdatedAt             time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
@@ -29,11 +27,6 @@ type NotificationSettings struct {
 	BrowserNotifications bool `json:"browserNotifications"`
 }
 
-// MessageSettings メッセージ設定
-type MessageSettings struct {
-	DefaultTone     string `json:"defaultTone"`
-	TimeRestriction string `json:"timeRestriction"`
-}
 
 // UpdateProfileRequest プロフィール更新リクエスト
 type UpdateProfileRequest struct {
@@ -79,8 +72,6 @@ func (s *UserSettingsService) GetOrCreateSettings(ctx context.Context, userID pr
 			EmailNotifications:   true,
 			SendNotifications:    true,
 			BrowserNotifications: false,
-			DefaultTone:          "gentle",
-			TimeRestriction:      "none",
 			CreatedAt:            now,
 			UpdatedAt:            now,
 		}
@@ -119,26 +110,6 @@ func (s *UserSettingsService) UpdateNotificationSettings(ctx context.Context, us
 	return err
 }
 
-// UpdateMessageSettings メッセージ設定を更新
-func (s *UserSettingsService) UpdateMessageSettings(ctx context.Context, userID primitive.ObjectID, settings *MessageSettings) error {
-	now := time.Now()
-
-	update := bson.M{
-		"$set": bson.M{
-			"defaultTone":     settings.DefaultTone,
-			"timeRestriction": settings.TimeRestriction,
-			"updatedAt":       now,
-		},
-	}
-
-	_, err := s.collection.UpdateOne(
-		ctx,
-		bson.M{"userId": userID},
-		update,
-	)
-
-	return err
-}
 
 // CreateIndexes ユーザー設定コレクションのインデックスを作成
 func (s *UserSettingsService) CreateIndexes(ctx context.Context) error {

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,26 +27,42 @@ func NewSettingsHandler(userService *models.UserService, userSettingsService *mo
 
 // GetSettings ユーザー設定を取得
 func (h *SettingsHandler) GetSettings(c *gin.Context) {
+	fmt.Printf("🔧 [GetSettings] 開始\n")
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("🚨 [GetSettings] パニック発生: %v\n", r)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "設定の取得に失敗しました（内部エラー）"})
+		}
+	}()
+	
 	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
+		fmt.Printf("❌ [GetSettings] 認証エラー: %v\n", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 	userID := user.ID
+	fmt.Printf("✅ [GetSettings] 認証成功: UserID=%s\n", userID.Hex())
 
 	// ユーザー設定を取得
+	fmt.Printf("🔄 [GetSettings] ユーザー設定取得中...\n")
 	settings, err := h.userSettingsService.GetOrCreateSettings(c.Request.Context(), userID)
 	if err != nil {
+		fmt.Printf("❌ [GetSettings] 設定取得エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "設定の取得に失敗しました"})
 		return
 	}
+	fmt.Printf("✅ [GetSettings] 設定取得成功: ID=%s\n", settings.ID.Hex())
 
 	// ユーザー情報も取得
+	fmt.Printf("🔄 [GetSettings] ユーザー情報取得中...\n")
 	userInfo, err := h.userService.GetUserByID(c.Request.Context(), userID.Hex())
 	if err != nil {
+		fmt.Printf("❌ [GetSettings] ユーザー情報取得エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "ユーザー情報の取得に失敗しました"})
 		return
 	}
+	fmt.Printf("✅ [GetSettings] ユーザー情報取得成功: Name=%s\n", userInfo.Name)
 
 	response := gin.H{
 		"user": gin.H{
@@ -57,10 +74,6 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 			"emailNotifications":   settings.EmailNotifications,
 			"sendNotifications":    settings.SendNotifications,
 			"browserNotifications": settings.BrowserNotifications,
-		},
-		"messages": gin.H{
-			"defaultTone":     settings.DefaultTone,
-			"timeRestriction": settings.TimeRestriction,
 		},
 	}
 
@@ -186,55 +199,6 @@ func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
 	})
 }
 
-// UpdateMessageSettings メッセージ設定を更新
-func (h *SettingsHandler) UpdateMessageSettings(c *gin.Context) {
-	user, err := getUserByJWT(c, h.userService)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-	userID := user.ID
-
-	var req models.MessageSettings
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "リクエストが無効です"})
-		return
-	}
-
-	// トーンの妥当性チェック
-	validTones := map[string]bool{
-		"gentle":       true,
-		"constructive": true,
-		"casual":       true,
-	}
-	if !validTones[req.DefaultTone] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "無効なトーンです"})
-		return
-	}
-
-	// 時間制限の妥当性チェック
-	validTimeRestrictions := map[string]bool{
-		"none":           true,
-		"business_hours": true,
-		"extended_hours": true,
-	}
-	if !validTimeRestrictions[req.TimeRestriction] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "無効な時間制限です"})
-		return
-	}
-
-	// メッセージ設定を更新
-	err = h.userSettingsService.UpdateMessageSettings(c.Request.Context(), userID, &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージ設定の更新に失敗しました"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "メッセージ設定を更新しました",
-	})
-}
 
 // DeleteAccount アカウントを削除
 func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
@@ -267,7 +231,6 @@ func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.
 		settings.PUT("/profile", h.UpdateProfile)                 // プロフィール更新
 		settings.PUT("/password", h.ChangePassword)               // パスワード変更
 		settings.PUT("/notifications", h.UpdateNotificationSettings) // 通知設定更新
-		settings.PUT("/messages", h.UpdateMessageSettings)       // メッセージ設定更新
 		settings.DELETE("/account", h.DeleteAccount)             // アカウント削除
 	}
 }

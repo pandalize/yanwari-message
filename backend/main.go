@@ -112,7 +112,8 @@ func main() {
 	}
 
 	// ヘルスチェックエンドポイント（データベース接続含む）
-	r.GET("/health", func(c *gin.Context) {
+	// GET と HEAD の両方をサポート（Docker ヘルスチェック対応）
+	healthHandler := func(c *gin.Context) {
 		// データベース接続チェック
 		dbStatus := "ok"
 		var dbError string
@@ -152,7 +153,10 @@ func main() {
 		}
 
 		c.JSON(statusCode, response)
-	})
+	}
+	
+	r.GET("/health", healthHandler)
+	r.HEAD("/health", healthHandler)
 
 	// 基本的なAPIエンドポイント
 	r.GET("/api/status", func(c *gin.Context) {
