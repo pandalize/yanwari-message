@@ -396,11 +396,10 @@ func (s *MessageService) DeliverScheduledMessages(ctx context.Context) ([]Messag
 func (s *MessageService) GetReceivedMessages(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
 	var messages []Message
 	
-	// 受信者宛てで、送信済み以上の状態のメッセージを取得
+	// 受信者宛てで、配信済み以上の状態のメッセージを取得（送信済みは除外）
 	filter := bson.M{
 		"recipientId": recipientID,
 		"status": bson.M{"$in": []MessageStatus{
-			MessageStatusSent,
 			MessageStatusDelivered,
 			MessageStatusRead,
 		}},

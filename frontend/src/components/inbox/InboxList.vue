@@ -109,7 +109,9 @@
                 (未評価)
               </span>
             </label>
-            <div class="rating-stars" :class="{ disabled: isRatingMessage }">
+            
+            <!-- 評価可能なメッセージ -->
+            <div v-if="canRateMessage(selectedMessage)" class="rating-stars" :class="{ disabled: isRatingMessage }">
               <span 
                 v-for="star in 5" 
                 :key="star"
@@ -126,10 +128,21 @@
                 ★
               </span>
             </div>
+            
+            <!-- 評価不可能なメッセージ -->
+            <div v-else class="rating-unavailable">
+              <p class="rating-unavailable-text">
+                このメッセージはまだ評価できません。配信済みまたは既読になってから評価可能です。
+              </p>
+              <div class="message-status-info">
+                現在のステータス: <span class="status-badge" :class="`status-${selectedMessage.status}`">{{ getStatusText(selectedMessage.status) }}</span>
+              </div>
+            </div>
+            
             <div v-if="isRatingMessage" class="rating-loading">
               評価を更新中...
             </div>
-            <div class="rating-help">
+            <div v-if="canRateMessage(selectedMessage)" class="rating-help">
               ★をクリックして評価を変更できます
             </div>
           </div>
@@ -586,6 +599,37 @@ onUnmounted(() => {
 watch(inboxMessages, (newMessages) => {
   console.log(`📊 メッセージ数: ${newMessages.length}`)
 }, { deep: true })
+
+// ================================================
+// 6. ヘルパー関数
+// ================================================
+
+// メッセージが評価可能かどうかを判定
+const canRateMessage = (message: InboxMessageWithRating | null): boolean => {
+  if (!message) return false
+  // 配信済み（delivered）または既読（read）のメッセージのみ評価可能
+  return message.status === 'delivered' || message.status === 'read'
+}
+
+// ステータステキストを取得
+const getStatusText = (status: string): string => {
+  switch (status) {
+    case 'draft':
+      return '下書き'
+    case 'processing':
+      return 'AI変換中'
+    case 'scheduled':
+      return '送信予定'
+    case 'sent':
+      return '送信済み'
+    case 'delivered':
+      return '配信済み'
+    case 'read':
+      return '既読'
+    default:
+      return status
+  }
+}
 </script>
 
 <style scoped>
