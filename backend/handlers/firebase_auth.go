@@ -267,10 +267,10 @@ func (h *FirebaseAuthHandler) GenerateEmailVerificationLink(c *gin.Context) {
 }
 
 // RegisterRoutes Firebase認証関連のルートを登録
-func (h *FirebaseAuthHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *FirebaseAuthHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	// Firebase認証が必要なルート
 	protected := router.Group("/firebase-auth")
-	protected.Use(firebaseMiddleware)
+	protected.Use(jwtMiddleware)
 	{
 		protected.GET("/profile", h.GetUserProfile)           // プロフィール取得
 		protected.POST("/sync", h.SyncUserFromFirebase)       // Firebase→MongoDB同期

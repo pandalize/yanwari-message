@@ -466,10 +466,10 @@ func (h *FriendRequestHandler) RemoveFriend(c *gin.Context) {
 }
 
 // RegisterRoutes は友達申請関連のルートを登録
-func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	// 友達申請関連エンドポイント
 	friendRequests := v1.Group("/friend-requests")
-	friendRequests.Use(firebaseMiddleware)
+	friendRequests.Use(jwtMiddleware)
 	{
 		friendRequests.POST("/send", h.SendFriendRequest)          // 友達申請送信
 		friendRequests.GET("/received", h.GetReceivedFriendRequests) // 受信した申請一覧
@@ -481,7 +481,7 @@ func (h *FriendRequestHandler) RegisterRoutes(v1 *gin.RouterGroup, firebaseMiddl
 
 	// 友達関連エンドポイント
 	friends := v1.Group("/friends")
-	friends.Use(firebaseMiddleware)
+	friends.Use(jwtMiddleware)
 	{
 		friends.GET("/", h.GetFriends)       // 友達一覧取得
 		friends.DELETE("/remove", h.RemoveFriend) // 友達削除

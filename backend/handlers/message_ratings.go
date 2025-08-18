@@ -35,7 +35,7 @@ type RateMessageRequest struct {
 // POST /api/v1/messages/:id/rate
 func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 	// 認証チェック
-	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, mrh.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -103,7 +103,7 @@ func (mrh *MessageRatingHandler) RateMessage(c *gin.Context) {
 // GET /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) GetMessageRating(c *gin.Context) {
 	// 認証チェック
-	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, mrh.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -182,7 +182,7 @@ type InboxMessageWithRating struct {
 // GET /api/v1/messages/inbox-with-ratings
 func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 	// 認証チェック
-	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, mrh.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -280,7 +280,7 @@ func (mrh *MessageRatingHandler) GetInboxWithRatings(c *gin.Context) {
 // DELETE /api/v1/messages/:id/rating
 func (mrh *MessageRatingHandler) DeleteMessageRating(c *gin.Context) {
 	// 認証チェック
-	recipient, err := getUserByFirebaseUID(c, mrh.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, mrh.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -319,8 +319,8 @@ func convertTimeToDateTime(t *time.Time) *primitive.DateTime {
 }
 
 // RegisterMessageRatingRoutes メッセージ評価関連のルートを登録
-func (mrh *MessageRatingHandler) RegisterRoutes(rg *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
-	messages := rg.Group("/messages").Use(firebaseMiddleware)
+func (mrh *MessageRatingHandler) RegisterRoutes(rg *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
+	messages := rg.Group("/messages").Use(jwtMiddleware)
 	{
 		// 個別メッセージの評価
 		messages.POST("/:id/rate", mrh.RateMessage)

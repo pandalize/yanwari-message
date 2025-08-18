@@ -5,36 +5,45 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"yanwari-message-backend/middleware"
 	"yanwari-message-backend/models"
 )
 
-// getUserByFirebaseUID Firebase UIDからMongoDBユーザーを取得するヘルパー関数
+// getUserByJWT JWTトークンからMongoDBユーザーを取得するヘルパー関数
 // UserServiceが必要なため、各ハンドラーで使用
-func getUserByFirebaseUID(c *gin.Context, userService *models.UserService) (*models.User, error) {
-	firebaseUID, exists := middleware.GetFirebaseUID(c)
+func getUserByJWT(c *gin.Context, userService *models.UserService) (*models.User, error) {
+	userID, exists := c.Get("userID")
 	if !exists {
-		return nil, fmt.Errorf("Firebase認証が必要です")
+		return nil, fmt.Errorf("JWT認証が必要です")
 	}
 
-	user, err := userService.GetUserByFirebaseUID(c.Request.Context(), firebaseUID)
+	user, err := userService.GetUserByID(c.Request.Context(), userID.(string))
 	if err != nil {
-		return nil, fmt.Errorf("Firebase UID %s に対応するユーザーが見つかりません: %v", firebaseUID, err)
+		return nil, fmt.Errorf("ユーザーID %s に対応するユーザーが見つかりません: %v", userID, err)
 	}
 
 	return user, nil
 }
 
-// DEPRECATED: この関数は使用しないでください
+// getUserID JWTトークンからユーザーIDを取得する関数
 func getUserID(c *gin.Context) (primitive.ObjectID, error) {
-	return primitive.NilObjectID, fmt.Errorf("この関数は廃止されました。getUserByFirebaseUID() を使用してください")
+	userID, exists := c.Get("userID")
+	if !exists {
+		return primitive.NilObjectID, fmt.Errorf("JWT認証が必要です")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(userID.(string))
+	if err != nil {
+		return primitive.NilObjectID, fmt.Errorf("無効なユーザーID: %v", err)
+	}
+
+	return objectID, nil
 }
 
-// getFirebaseUID Firebase UIDを取得する共通ヘルパー関数
-func getFirebaseUID(c *gin.Context) (string, error) {
-	firebaseUID, exists := middleware.GetFirebaseUID(c)
+// getJWTUserID JWTトークンからユーザーID文字列を取得する共通ヘルパー関数
+func getJWTUserID(c *gin.Context) (string, error) {
+	userID, exists := c.Get("userID")
 	if !exists {
-		return "", fmt.Errorf("Firebase認証が必要です")
+		return "", fmt.Errorf("JWT認証が必要です")
 	}
-	return firebaseUID, nil
+	return userID.(string), nil
 }

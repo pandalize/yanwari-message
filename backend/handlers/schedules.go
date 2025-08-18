@@ -69,7 +69,7 @@ func NewScheduleHandler(scheduleService *models.ScheduleService, messageService 
 // CreateSchedule スケジュール作成
 // POST /api/v1/schedules
 func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -163,7 +163,7 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 // GetSchedules スケジュール一覧取得
 // GET /api/v1/schedules
 func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -208,7 +208,7 @@ func (h *ScheduleHandler) GetSchedules(c *gin.Context) {
 // UpdateSchedule スケジュール更新
 // PUT /api/v1/schedules/:id
 func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -279,7 +279,7 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 // SyncScheduleStatus スケジュールとメッセージのステータス同期
 // POST /api/v1/schedules/sync-status
 func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -313,7 +313,7 @@ func (h *ScheduleHandler) SyncScheduleStatus(c *gin.Context) {
 // DeleteSchedule スケジュール削除
 // DELETE /api/v1/schedules/:id
 func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -342,7 +342,7 @@ func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
 // SuggestSchedule AI時間提案
 // POST /api/v1/schedule/suggest
 func (h *ScheduleHandler) SuggestSchedule(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -530,15 +530,15 @@ func (h *ScheduleHandler) ExecuteSchedule(scheduleID string) error {
 }
 
 // RegisterRoutes スケジュール関連のルートを登録
-func (h *ScheduleHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *ScheduleHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	schedule := router.Group("/schedule")
-	schedule.Use(firebaseMiddleware)
+	schedule.Use(jwtMiddleware)
 	{
 		schedule.POST("/suggest", h.SuggestSchedule) // AI時間提案
 	}
 
 	schedules := router.Group("/schedules")
-	schedules.Use(firebaseMiddleware)
+	schedules.Use(jwtMiddleware)
 	{
 		schedules.POST("/", h.CreateSchedule)
 		schedules.GET("/", h.GetSchedules)

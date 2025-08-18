@@ -24,10 +24,10 @@ func NewUserHandler(userService *models.UserService) *UserHandler {
 // SearchUsers ユーザーを検索
 // GET /api/v1/users/search?q=query&limit=10
 func (h *UserHandler) SearchUsers(c *gin.Context) {
-	// Firebase認証チェック
-	_, err := getUserByFirebaseUID(c, h.userService)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	// JWT認証チェック
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
 		return
 	}
 
@@ -68,10 +68,10 @@ func (h *UserHandler) SearchUsers(c *gin.Context) {
 // GetUserByEmail メールアドレスでユーザーを取得
 // GET /api/v1/users/by-email?email=example@example.com
 func (h *UserHandler) GetUserByEmail(c *gin.Context) {
-	// Firebase認証チェック
-	_, err := getUserByFirebaseUID(c, h.userService)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	// JWT認証チェック
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
 		return
 	}
 
@@ -95,10 +95,10 @@ func (h *UserHandler) GetUserByEmail(c *gin.Context) {
 // GetUserByID ユーザーIDでユーザー情報を取得
 // GET /api/v1/users/:id
 func (h *UserHandler) GetUserByID(c *gin.Context) {
-	// Firebase認証チェック
-	_, err := getUserByFirebaseUID(c, h.userService)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+	// JWT認証チェック
+	_, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
 		return
 	}
 
@@ -122,10 +122,17 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // GetCurrentUser 現在のログインユーザー情報を取得
 // GET /api/v1/users/me
 func (h *UserHandler) GetCurrentUser(c *gin.Context) {
-	// Firebase認証からユーザー情報を取得
-	user, err := getUserByFirebaseUID(c, h.userService)
+	// JWT認証からユーザー情報を取得
+	userIDInterface, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+
+	userID := userIDInterface.(string)
+	user, err := h.userService.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "ユーザーが見つかりません"})
 		return
 	}
 
@@ -135,9 +142,9 @@ func (h *UserHandler) GetCurrentUser(c *gin.Context) {
 }
 
 // RegisterRoutes ユーザー関連のルートを登録
-func (h *UserHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *UserHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	users := router.Group("/users")
-	users.Use(firebaseMiddleware)
+	users.Use(jwtMiddleware)
 	{
 		users.GET("/search", h.SearchUsers)
 		users.GET("/by-email", h.GetUserByEmail)

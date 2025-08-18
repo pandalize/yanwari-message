@@ -163,14 +163,8 @@ func main() {
 		})
 	})
 
-	// Firebase サービスの初期化
-	firebaseService, err := services.NewFirebaseService()
-	if err != nil {
-		log.Printf("警告: Firebase初期化エラー (開発モードで継続): %v", err)
-		firebaseService = nil // Firebase無効で継続
-	} else {
-		log.Println("✅ Firebase Admin SDK初期化完了")
-	}
+	// JWT認証ハンドラーの初期化
+	authHandler := handlers.NewAuthHandler(userService)
 
 	// サービスの初期化
 	userSettingsService := models.NewUserSettingsService(db.Database, userService)
@@ -183,10 +177,6 @@ func main() {
 		log.Printf("警告: ユーザー設定インデックス作成エラー: %v", err)
 	}
 	
-	// Firebase UIDインデックス作成
-	if err := userService.CreateFirebaseUIDIndex(ctx); err != nil {
-		log.Printf("警告: Firebase UIDインデックス作成エラー: %v", err)
-	}
 
 	// ハンドラーの初期化（JWT認証ハンドラーは廃止）
 	userHandler := handlers.NewUserHandler(userService)
@@ -197,39 +187,32 @@ func main() {
 	friendRequestHandler := handlers.NewFriendRequestHandler(userService, friendRequestService, friendshipService)
 	messageRatingHandler := handlers.NewMessageRatingHandler(messageRatingService, messageService)
 	
-	// Firebase認証ハンドラーの初期化
-	var firebaseAuthHandler *handlers.FirebaseAuthHandler
-	var firebaseMiddleware gin.HandlerFunc
-	
-	if firebaseService != nil {
-		firebaseAuthHandler = handlers.NewFirebaseAuthHandler(userService, firebaseService)
-		firebaseMiddleware = middleware.FirebaseAuthMiddleware(firebaseService)
-		log.Println("✅ Firebase認証ハンドラー初期化完了")
-	} else {
-		log.Println("⚠️ Firebase認証ハンドラーをスキップ（Firebase未初期化）")
-	}
-
-	// Firebase認証が必須（JWT認証は廃止）
-	if firebaseService == nil || firebaseMiddleware == nil {
-		log.Fatal("❌ Firebase認証が必須です。Firebase設定を確認してください。")
-	}
+	// JWT認証ミドルウェアの初期化
+	jwtMiddleware := middleware.JWTAuthMiddleware()
+	log.Println("✅ JWT認証ミドルウェア初期化完了")
 
 	// API v1 ルートグループ
 	v1 := r.Group("/api/v1")
 	{
-		// Firebase認証関連エンドポイント（認証不要・ユーティリティ）
-		firebaseAuthHandler.RegisterRoutes(v1, firebaseMiddleware)
+		// 認証エンドポイント（認証不要）
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.RefreshToken)
+			auth.POST("/logout", authHandler.Logout)
+		}
 
-		// すべてのAPIエンドポイントでFirebase認証を使用
-		userHandler.RegisterRoutes(v1, firebaseMiddleware)
-		messageHandler.RegisterRoutes(v1, firebaseMiddleware)
-		messageRatingHandler.RegisterRoutes(v1, firebaseMiddleware)
-		friendRequestHandler.RegisterRoutes(v1, firebaseMiddleware)
-		transformHandler.RegisterRoutes(v1, firebaseMiddleware)
-		scheduleHandler.RegisterRoutes(v1, firebaseMiddleware)
-		settingsHandler.RegisterRoutes(v1, firebaseMiddleware)
+		// すべてのAPIエンドポイントでJWT認証を使用
+		userHandler.RegisterRoutes(v1, jwtMiddleware)
+		messageHandler.RegisterRoutes(v1, jwtMiddleware)
+		messageRatingHandler.RegisterRoutes(v1, jwtMiddleware)
+		friendRequestHandler.RegisterRoutes(v1, jwtMiddleware)
+		transformHandler.RegisterRoutes(v1, jwtMiddleware)
+		scheduleHandler.RegisterRoutes(v1, jwtMiddleware)
+		settingsHandler.RegisterRoutes(v1, jwtMiddleware)
 		
-		log.Println("✅ 全APIエンドポイントでFirebase認証を使用")
+		log.Println("✅ 全APIエンドポイントでJWT認証を使用")
 	}
 
 	// HTTPサーバーの設定

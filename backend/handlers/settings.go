@@ -26,7 +26,7 @@ func NewSettingsHandler(userService *models.UserService, userSettingsService *mo
 
 // GetSettings ユーザー設定を取得
 func (h *SettingsHandler) GetSettings(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -72,7 +72,7 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 
 // UpdateProfile プロフィールを更新
 func (h *SettingsHandler) UpdateProfile(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -111,7 +111,7 @@ func (h *SettingsHandler) UpdateProfile(c *gin.Context) {
 
 // ChangePassword パスワードを変更
 func (h *SettingsHandler) ChangePassword(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -160,7 +160,7 @@ func (h *SettingsHandler) ChangePassword(c *gin.Context) {
 
 // UpdateNotificationSettings 通知設定を更新
 func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -188,7 +188,7 @@ func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
 
 // UpdateMessageSettings メッセージ設定を更新
 func (h *SettingsHandler) UpdateMessageSettings(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -238,7 +238,7 @@ func (h *SettingsHandler) UpdateMessageSettings(c *gin.Context) {
 
 // DeleteAccount アカウントを削除
 func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
-	user, err := getUserByFirebaseUID(c, h.userService)
+	user, err := getUserByJWT(c, h.userService)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -259,9 +259,9 @@ func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
 }
 
 // RegisterRoutes 設定関連のルートを登録
-func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	settings := v1.Group("/settings")
-	settings.Use(firebaseMiddleware)
+	settings.Use(jwtMiddleware)
 	{
 		settings.GET("", h.GetSettings)                           // 設定取得
 		settings.PUT("/profile", h.UpdateProfile)                 // プロフィール更新

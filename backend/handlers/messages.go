@@ -27,7 +27,7 @@ func NewMessageHandler(messageService *models.MessageService) *MessageHandler {
 // CreateDraft 下書きメッセージを作成
 // POST /api/v1/messages/draft
 func (h *MessageHandler) CreateDraft(c *gin.Context) {
-	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	sender, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -60,7 +60,7 @@ func (h *MessageHandler) CreateDraft(c *gin.Context) {
 // UpdateMessage メッセージを更新
 // PUT /api/v1/messages/:id
 func (h *MessageHandler) UpdateMessage(c *gin.Context) {
-	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	sender, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -99,7 +99,7 @@ func (h *MessageHandler) UpdateMessage(c *gin.Context) {
 // GetMessage メッセージを取得
 // GET /api/v1/messages/:id
 func (h *MessageHandler) GetMessage(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -131,7 +131,7 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 // GetDrafts 下書き一覧を取得
 // GET /api/v1/messages/drafts
 func (h *MessageHandler) GetDrafts(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -175,7 +175,7 @@ func (h *MessageHandler) GetDrafts(c *gin.Context) {
 // DeleteMessage メッセージを削除
 // DELETE /api/v1/messages/:id
 func (h *MessageHandler) DeleteMessage(c *gin.Context) {
-	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	sender, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -207,7 +207,7 @@ func (h *MessageHandler) DeleteMessage(c *gin.Context) {
 // GetReceivedMessages 受信メッセージ一覧を取得
 // GET /api/v1/messages/received
 func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
-	recipient, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -251,7 +251,7 @@ func (h *MessageHandler) GetReceivedMessages(c *gin.Context) {
 // MarkMessageAsRead メッセージを既読にする
 // POST /api/v1/messages/:id/read
 func (h *MessageHandler) MarkMessageAsRead(c *gin.Context) {
-	recipient, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	recipient, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -308,7 +308,7 @@ func (h *MessageHandler) DeliverScheduledMessages(c *gin.Context) {
 // GetSentMessages 送信済みメッセージ一覧を取得（送信者向け）
 // GET /api/v1/messages/sent
 func (h *MessageHandler) GetSentMessages(c *gin.Context) {
-	sender, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	sender, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -346,9 +346,9 @@ func (h *MessageHandler) GetSentMessages(c *gin.Context) {
 }
 
 // RegisterRoutes メッセージ関連のルートを登録
-func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *MessageHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	messages := router.Group("/messages")
-	messages.Use(firebaseMiddleware)
+	messages.Use(jwtMiddleware)
 	{
 		// 送信者向け
 		messages.POST("/draft", h.CreateDraft)

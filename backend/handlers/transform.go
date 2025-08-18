@@ -104,7 +104,7 @@ type Content struct {
 // TransformToTones メッセージを3つのトーンに変換
 // POST /api/v1/transform/tones
 func (h *TransformHandler) TransformToTones(c *gin.Context) {
-	currentUser, err := getUserByFirebaseUID(c, h.messageService.GetUserService())
+	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -393,9 +393,9 @@ func (h *TransformHandler) ReloadConfig(c *gin.Context) {
 }
 
 // RegisterRoutes トーン変換関連のルートを登録
-func (h *TransformHandler) RegisterRoutes(router *gin.RouterGroup, firebaseMiddleware gin.HandlerFunc) {
+func (h *TransformHandler) RegisterRoutes(router *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
 	transform := router.Group("/transform")
-	transform.Use(firebaseMiddleware)
+	transform.Use(jwtMiddleware)
 	{
 		transform.POST("/tones", h.TransformToTones)
 		transform.POST("/reload-config", h.ReloadConfig) // チューニング用
