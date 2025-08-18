@@ -473,37 +473,28 @@ const loadScheduledMessages = async () => {
   try {
     // Clear any cached user info to get fresh data
     clearUserCache()
-    // scheduleServiceを使わずに直接APIを呼び出し
-    const response = await apiService.get('/schedules/?page=1&limit=100&status=pending')
+    // 送信メッセージAPIからscheduledステータスのメッセージを取得
+    const response = await apiService.get('/messages?type=sent&page=1&limit=100')
     
-    console.log('送信予定スケジュールAPI レスポンス:', response.data)
-    const schedulesData = response.data.data
-    if (schedulesData && schedulesData.schedules) {
-      console.log('取得したpendingスケジュール数:', schedulesData.schedules.length)
-      // 各スケジュールの受信者情報を取得
+    console.log('送信予定メッセージAPI レスポンス:', response.data)
+    const messagesData = response.data.data
+    if (messagesData && messagesData.messages) {
+      // scheduledステータスのメッセージのみをフィルタ
+      const scheduledMessagesList = messagesData.messages.filter((msg: any) => msg.status === 'scheduled')
+      console.log('取得したscheduledメッセージ数:', scheduledMessagesList.length)
+      // 各メッセージの受信者情報を取得
       const schedulesWithRecipientInfo = await Promise.all(
-        schedulesData.schedules.map(async (schedule: any) => {
+        scheduledMessagesList.map(async (message: any) => {
           let recipientName = 'Unknown User'
           let recipientEmail = 'unknown@example.com'
           
-          // メッセージIDから受信者情報を取得（簡略化）
-          if (schedule.messageId) {
+          // メッセージから直接受信者情報を取得
+          if (message?.recipientId && message.recipientId !== '000000000000000000000000') {
             try {
-              const messageResponse = await apiService.get(`/messages/${schedule.messageId}`)
-              const message = messageResponse.data.data
-
-              // メッセージが実際に送信済み/配信済みの場合はnullを返す（除外する）
-              if (message && ['sent', 'delivered', 'read'].includes(message.status)) {
-                console.log(`スケジュール ${schedule.id} は既に配信済み (${message.status}) のためスキップ`)
-                return null
-              }
-
-              if (message?.recipientId && message.recipientId !== '000000000000000000000000') {
-                const userInfo = await getUserInfo(message.recipientId)
-                console.log('スケジュール受信者情報:', userInfo)
-                recipientName = userInfo.name || userInfo.email || '未登録の受信者'
-                recipientEmail = userInfo.email || 'unknown@example.com'
-              }
+              const userInfo = await getUserInfo(message.recipientId)
+              console.log('送信予定メッセージ受信者情報:', userInfo)
+              recipientName = userInfo.name || userInfo.email || '未登録の受信者'
+              recipientEmail = userInfo.email || 'unknown@example.com'
             } catch (error) {
               // エラー時はデフォルト値を使用
               console.warn('受信者情報の取得に失敗:', error)
@@ -511,24 +502,22 @@ const loadScheduledMessages = async () => {
           }
 
           return {
-            id: schedule.id,
-            messageId: schedule.messageId, // メッセージIDを追加
+            id: message.id,
+            messageId: message.id, // メッセージIDを追加
             recipientName,
             recipientEmail,
-            scheduledAt: schedule.scheduledAt,
+            scheduledAt: message.scheduledAt,
             status: 'scheduled' as const,
-            originalText: 'スケジュールされたメッセージ',
-            finalText: 'スケジュールされたメッセージ',
-            selectedTone: 'gentle'
+            originalText: message.originalText || 'スケジュールされたメッセージ',
+            finalText: message.finalText || message.originalText || 'スケジュールされたメッセージ',
+            selectedTone: message.selectedTone || 'gentle'
           }
         })
       )
       
-      // nullを除外（実際に配信済みのスケジュールを除く）
-      const validSchedules = schedulesWithRecipientInfo.filter(schedule => schedule !== null)
-      console.log('フィルタリング後の有効なスケジュール数:', validSchedules.length)
-      console.log('有効なスケジュール:', validSchedules)
-      scheduledMessages.value = validSchedules
+      console.log('処理済みスケジュールメッセージ数:', schedulesWithRecipientInfo.length)
+      console.log('送信予定メッセージ詳細:', schedulesWithRecipientInfo)
+      scheduledMessages.value = schedulesWithRecipientInfo
     } else {
       scheduledMessages.value = []
     }
