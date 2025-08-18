@@ -28,6 +28,10 @@
     "setup": "npm run install:all && npm run setup:env",
     "setup:env": "cp backend/.env.example backend/.env || echo 'backend/.env already exists'",
     "start": "npm run dev",
+    "mongodb:start": "docker-compose up -d mongodb",
+    "mongodb:stop": "docker-compose down",
+    "mongodb:admin": "docker-compose up -d",
+    "dev:local": "npm run mongodb:start && npm run dev:backend",
     "docker:build": "docker build -t yanwari-message .",
     "docker:run": "docker run -p 8080:8080 -p 5173:5173 yanwari-message"
   },

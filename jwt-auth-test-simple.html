@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT認証テスト（シンプル版）</title>
+    <style>
+        body { font-family: system-ui; margin: 40px; }
+        button { margin: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin: 10px 0; padding: 15px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .error { background: #ffe6e6; }
+        .success { background: #e6ffe6; }
+    </style>
+</head>
+<body>
+    <h1>🔐 JWT認証テスト（デバッグ版）</h1>
+    
+    <h2>1. 接続テスト</h2>
+    <button onclick="testConnection()">サーバー接続テスト</button>
+    <div id="connection-result" class="result"></div>
+    
+    <h2>2. ユーザー登録</h2>
+    <button onclick="testRegister()">テストユーザー登録</button>
+    <div id="register-result" class="result"></div>
+    
+    <h2>3. ログイン</h2>
+    <button onclick="testLogin()">ログインテスト</button>
+    <div id="login-result" class="result"></div>
+    
+    <h2>4. 認証テスト</h2>
+    <button onclick="testAuth()">認証APIテスト</button>
+    <div id="auth-result" class="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let accessToken = '';
+        
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = isError ? 'result error' : 'result success';
+            console.log(message);
+        }
+        
+        function logError(elementId, error) {
+            const message = `❌ エラー: ${error.message || error}`;
+            log(elementId, message, true);
+        }
+        
+        async function testConnection() {
+            try {
+                log('connection-result', '接続テスト中...');
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('connection-result', `✅ 接続成功\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log('connection-result', `❌ 接続失敗\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                logError('connection-result', error);
+            }
+        }
+        
+        async function testRegister() {
+            try {
+                log('register-result', '登録テスト中...');
+                const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'HTMLテストユーザー',
+                        email: 'html-debug@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    accessToken = data.data.access_token;
+                    log('register-result', `✅ 登録成功\nStatus: ${response.status}\nToken取得: ${accessToken ? '成功' : '失敗'}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log('register-result', `❌ 登録失敗\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                logError('register-result', error);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                log('login-result', 'ログインテスト中...');
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'html-debug@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    accessToken = data.data.access_token;
+                    log('login-result', `✅ ログイン成功\nStatus: ${response.status}\nToken取得: ${accessToken ? '成功' : '失敗'}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log('login-result', `❌ ログイン失敗\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                logError('login-result', error);
+            }
+        }
+        
+        async function testAuth() {
+            if (!accessToken) {
+                log('auth-result', '❌ アクセストークンがありません。先に登録またはログインしてください。', true);
+                return;
+            }
+            
+            try {
+                log('auth-result', '認証APIテスト中...');
+                const response = await fetch(`${API_BASE}/api/v1/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('auth-result', `✅ 認証API成功\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log('auth-result', `❌ 認証API失敗\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                logError('auth-result', error);
+            }
+        }
+        
+        // ページ読み込み完了時に接続テストを自動実行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('ページ読み込み完了 - 自動接続テスト開始');
+            testConnection();
+        });
+    </script>
+</body>
+</html>

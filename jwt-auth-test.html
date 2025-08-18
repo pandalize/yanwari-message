@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT認証テスト - やんわり伝言</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        h2 {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #2196F3;
+        }
+        button.secondary:hover {
+            background-color: #0b7dda;
+        }
+        button.danger {
+            background-color: #f44336;
+        }
+        button.danger:hover {
+            background-color: #da190b;
+        }
+        .response {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .token-display {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 JWT認証テスト</h1>
+        
+        <!-- ユーザー登録 -->
+        <div class="section">
+            <h2>1. ユーザー登録</h2>
+            <input type="text" id="registerName" placeholder="名前" value="テストユーザー">
+            <input type="email" id="registerEmail" placeholder="メールアドレス" value="test@example.com">
+            <input type="password" id="registerPassword" placeholder="パスワード（8文字以上）" value="password123">
+            <button onclick="register()">登録</button>
+            <div id="registerResponse" class="response"></div>
+        </div>
+
+        <!-- ログイン -->
+        <div class="section">
+            <h2>2. ログイン</h2>
+            <input type="email" id="loginEmail" placeholder="メールアドレス" value="test@example.com">
+            <input type="password" id="loginPassword" placeholder="パスワード" value="password123">
+            <button onclick="login()">ログイン</button>
+            <div id="loginResponse" class="response"></div>
+        </div>
+
+        <!-- トークン表示 -->
+        <div class="section">
+            <h2>3. 現在のトークン</h2>
+            <div>
+                <strong>アクセストークン:</strong>
+                <div id="accessToken" class="token-display">未取得</div>
+            </div>
+            <div style="margin-top: 10px;">
+                <strong>リフレッシュトークン:</strong>
+                <div id="refreshToken" class="token-display">未取得</div>
+            </div>
+            <button class="secondary" onclick="refreshTokens()">トークン更新</button>
+            <button class="danger" onclick="logout()">ログアウト</button>
+            <div id="tokenResponse" class="response"></div>
+        </div>
+
+        <!-- API テスト -->
+        <div class="section">
+            <h2>4. 認証が必要なAPIテスト</h2>
+            <button onclick="testProtectedAPI('/api/v1/users/me')">ユーザー情報取得</button>
+            <button onclick="testProtectedAPI('/api/v1/messages')">メッセージ一覧取得</button>
+            <button onclick="testProtectedAPI('/api/v1/settings')">設定取得</button>
+            <div id="apiResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        let currentAccessToken = '';
+        let currentRefreshToken = '';
+
+        // ユーザー登録
+        async function register() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('registerResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = '✅ 登録成功\n' + JSON.stringify(data, null, 2);
+                    
+                    // トークンを保存
+                    if (data.data) {
+                        currentAccessToken = data.data.access_token;
+                        currentRefreshToken = data.data.refresh_token;
+                        updateTokenDisplay();
+                    }
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = '❌ 登録失敗\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('registerResponse').className = 'response error';
+                document.getElementById('registerResponse').textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // ログイン
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('loginResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = '✅ ログイン成功\n' + JSON.stringify(data, null, 2);
+                    
+                    // トークンを保存
+                    if (data.data) {
+                        currentAccessToken = data.data.access_token;
+                        currentRefreshToken = data.data.refresh_token;
+                        updateTokenDisplay();
+                    }
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = '❌ ログイン失敗\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('loginResponse').className = 'response error';
+                document.getElementById('loginResponse').textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // トークン更新
+        async function refreshTokens() {
+            if (!currentRefreshToken) {
+                alert('リフレッシュトークンがありません。先にログインしてください。');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ refresh_token: currentRefreshToken })
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('tokenResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = '✅ トークン更新成功\n' + JSON.stringify(data, null, 2);
+                    
+                    // 新しいトークンを保存
+                    if (data.data) {
+                        currentAccessToken = data.data.access_token;
+                        currentRefreshToken = data.data.refresh_token;
+                        updateTokenDisplay();
+                    }
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = '❌ トークン更新失敗\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('tokenResponse').className = 'response error';
+                document.getElementById('tokenResponse').textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // ログアウト
+        async function logout() {
+            if (!currentAccessToken) {
+                alert('ログインしていません。');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentAccessToken}`,
+                    }
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('tokenResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = '✅ ログアウト成功\n' + JSON.stringify(data, null, 2);
+                    
+                    // トークンをクリア
+                    currentAccessToken = '';
+                    currentRefreshToken = '';
+                    updateTokenDisplay();
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = '❌ ログアウト失敗\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('tokenResponse').className = 'response error';
+                document.getElementById('tokenResponse').textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // 保護されたAPIのテスト
+        async function testProtectedAPI(endpoint) {
+            if (!currentAccessToken) {
+                alert('アクセストークンがありません。先にログインしてください。');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentAccessToken}`,
+                    }
+                });
+
+                const data = await response.json();
+                const responseDiv = document.getElementById('apiResponse');
+                
+                if (response.ok) {
+                    responseDiv.className = 'response success';
+                    responseDiv.textContent = `✅ ${endpoint} 成功\n` + JSON.stringify(data, null, 2);
+                } else {
+                    responseDiv.className = 'response error';
+                    responseDiv.textContent = `❌ ${endpoint} 失敗\n` + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('apiResponse').className = 'response error';
+                document.getElementById('apiResponse').textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // トークン表示更新
+        function updateTokenDisplay() {
+            document.getElementById('accessToken').textContent = currentAccessToken || '未取得';
+            document.getElementById('refreshToken').textContent = currentRefreshToken || '未取得';
+        }
+    </script>
+</body>
+</html>
