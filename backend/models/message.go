@@ -396,7 +396,7 @@ func (s *MessageService) DeliverScheduledMessages(ctx context.Context) ([]Messag
 func (s *MessageService) GetReceivedMessages(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
 	var messages []Message
 	
-	// 受信者宛てで、配信済み以上の状態のメッセージを取得（送信済みは除外）
+	// 受信者宛てで、配信済み以上の状態のメッセージを取得
 	filter := bson.M{
 		"recipientId": recipientID,
 		"status": bson.M{"$in": []MessageStatus{
@@ -444,7 +444,6 @@ func (s *MessageService) MarkMessageAsRead(ctx context.Context, messageID, recip
 		"_id":         messageID,
 		"recipientId": recipientID,
 		"status": bson.M{"$in": []MessageStatus{
-			MessageStatusSent,
 			MessageStatusDelivered,
 		}},
 	}
@@ -683,4 +682,57 @@ func (s *MessageService) GetMessageByID(ctx context.Context, messageID primitive
 // GetReceivedMessagesWithPagination 受信メッセージ一覧をページネーション付きで取得（評価システム用）
 func (s *MessageService) GetReceivedMessagesWithPagination(ctx context.Context, recipientID primitive.ObjectID, page, limit int) ([]Message, int64, error) {
 	return s.GetReceivedMessages(ctx, recipientID, page, limit)
+}
+
+// DeliverMessage メッセージを即座に配信済みステータスに変更
+func (s *MessageService) DeliverMessage(ctx context.Context, messageID primitive.ObjectID) error {
+	now := time.Now()
+	
+	fmt.Printf("🚀 [DeliverMessage] 開始: MessageID=%s\n", messageID.Hex())
+	
+	// まず現在のメッセージ状態を確認
+	var currentMessage Message
+	err := s.collection.FindOne(ctx, bson.M{"_id": messageID}).Decode(&currentMessage)
+	if err != nil {
+		fmt.Printf("❌ [DeliverMessage] メッセージが見つかりません: %v\n", err)
+		return fmt.Errorf("メッセージが見つかりません: %w", err)
+	}
+	
+	fmt.Printf("📋 [DeliverMessage] 現在の状態: ID=%s, Status=%s, SenderID=%s, RecipientID=%s\n", 
+		currentMessage.ID.Hex(), currentMessage.Status, currentMessage.SenderID.Hex(), currentMessage.RecipientID.Hex())
+	
+	// メッセージのステータスをdeliveredに変更し、deliveredAtを設定
+	filter := bson.M{
+		"_id": messageID,
+		"status": bson.M{"$in": []MessageStatus{
+			MessageStatusScheduled,
+			MessageStatusSent,
+		}},
+	}
+	
+	update := bson.M{
+		"$set": bson.M{
+			"status":      MessageStatusDelivered,
+			"deliveredAt": now,
+			"updatedAt":   now,
+		},
+	}
+	
+	fmt.Printf("🔄 [DeliverMessage] 更新実行中: フィルター=%v, 更新=%v\n", filter, update)
+	
+	result, err := s.collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		fmt.Printf("❌ [DeliverMessage] 更新エラー: %v\n", err)
+		return fmt.Errorf("メッセージの配信処理に失敗: %w", err)
+	}
+	
+	fmt.Printf("📊 [DeliverMessage] 更新結果: MatchedCount=%d, ModifiedCount=%d\n", result.MatchedCount, result.ModifiedCount)
+	
+	if result.ModifiedCount == 0 {
+		fmt.Printf("⚠️ [DeliverMessage] 配信対象外: ID=%s, CurrentStatus=%s\n", messageID.Hex(), currentMessage.Status)
+		return fmt.Errorf("配信対象のメッセージが見つかりません (ID: %s, Status: %s)", messageID.Hex(), currentMessage.Status)
+	}
+	
+	fmt.Printf("✅ [DeliverMessage] 配信完了: MessageID=%s\n", messageID.Hex())
+	return nil
 }

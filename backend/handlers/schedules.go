@@ -137,15 +137,22 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 	if isPastSchedule {
 		fmt.Printf("即座に送信処理を実行中...\n")
 		
-		// DeliveryServiceを使って即座に配信
-		if h.deliveryService != nil {
-			deliveredCount, deliveryErr := h.deliveryService.DeliverNow()
-			if deliveryErr != nil {
-				fmt.Printf("即座送信エラー: %v\n", deliveryErr)
-			} else {
-				fmt.Printf("即座送信完了: %d件のメッセージを配信しました\n", deliveredCount)
-			}
+		// メッセージを直接deliveredステータスに変更
+		messageID, err := primitive.ObjectIDFromHex(req.MessageID)
+		if err != nil {
+			fmt.Printf("即座送信エラー: 無効なメッセージID %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("無効なメッセージIDです: %v", err)})
+			return
 		}
+		
+		deliverErr := h.messageService.DeliverMessage(c.Request.Context(), messageID)
+		if deliverErr != nil {
+			fmt.Printf("即座送信エラー: %v\n", deliverErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("メッセージの配信処理に失敗しました: %v", deliverErr)})
+			return
+		}
+		
+		fmt.Printf("即座送信完了: メッセージ %s を配信しました\n", req.MessageID)
 		
 		c.JSON(http.StatusCreated, gin.H{
 			"data":    schedule,
@@ -253,14 +260,19 @@ func (h *ScheduleHandler) UpdateSchedule(c *gin.Context) {
 	if isPastSchedule {
 		fmt.Printf("即座に送信処理を実行中...\n")
 		
-		// DeliveryServiceを使って即座に配信
-		if h.deliveryService != nil {
-			deliveredCount, deliveryErr := h.deliveryService.DeliverNow()
-			if deliveryErr != nil {
-				fmt.Printf("即座送信エラー: %v\n", deliveryErr)
-			} else {
-				fmt.Printf("即座送信完了: %d件のメッセージを配信しました\n", deliveredCount)
+		// スケジュールからメッセージIDを取得して直接配信
+		if !schedule.MessageID.IsZero() {
+			deliverErr := h.messageService.DeliverMessage(c.Request.Context(), schedule.MessageID)
+			if deliverErr != nil {
+				fmt.Printf("即座送信エラー: %v\n", deliverErr)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("メッセージの配信処理に失敗しました: %v", deliverErr)})
+				return
 			}
+			fmt.Printf("即座送信完了: メッセージ %s を配信しました\n", schedule.MessageID.Hex())
+		} else {
+			fmt.Printf("即座送信エラー: メッセージIDが設定されていません\n")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "メッセージIDが設定されていません"})
+			return
 		}
 		
 		c.JSON(http.StatusOK, gin.H{
