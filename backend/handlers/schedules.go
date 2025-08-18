@@ -69,6 +69,13 @@ func NewScheduleHandler(scheduleService *models.ScheduleService, messageService 
 // CreateSchedule スケジュール作成
 // POST /api/v1/schedules
 func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
+	fmt.Printf("🚨 [Handler] CreateSchedule開始\n")
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("🚨 [Handler] CreateScheduleでパニック発生: %v\n", r)
+		}
+	}()
+	
 	currentUser, err := getUserByJWT(c, h.messageService.GetUserService())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -127,32 +134,41 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 	}
 
 	// スケジュール作成
+	fmt.Printf("📅 スケジュール作成開始: UserID=%s, MessageID=%s\n", currentUserID.Hex(), req.MessageID)
 	schedule, err := h.scheduleService.CreateSchedule(c.Request.Context(), currentUserID, &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "スケジュールの作成に失敗しました"})
+		fmt.Printf("❌ スケジュール作成エラー: %v\n", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("スケジュールの作成に失敗しました: %v", err)})
 		return
 	}
+	fmt.Printf("✅ スケジュール作成成功: ScheduleID=%s\n", schedule.ID.Hex())
 
 	// 過去時刻の場合は即座に送信処理を実行
 	if isPastSchedule {
-		fmt.Printf("即座に送信処理を実行中...\n")
+		fmt.Printf("🚀 即座に送信処理を実行中... MessageID=%s\n", req.MessageID)
 		
 		// メッセージを直接deliveredステータスに変更
 		messageID, err := primitive.ObjectIDFromHex(req.MessageID)
 		if err != nil {
-			fmt.Printf("即座送信エラー: 無効なメッセージID %v\n", err)
+			fmt.Printf("❌ 即座送信エラー: 無効なメッセージID %v\n", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("無効なメッセージIDです: %v", err)})
 			return
 		}
 		
+		fmt.Printf("🔧 DeliverMessage呼び出し中... MessageID=%s\n", messageID.Hex())
+		fmt.Printf("🔍 [Debug] DeliverMessage呼び出し直前: Context=%v, MessageID=%s\n", c.Request.Context() != nil, messageID.Hex())
+		
 		deliverErr := h.messageService.DeliverMessage(c.Request.Context(), messageID)
+		
+		fmt.Printf("🔍 [Debug] DeliverMessage呼び出し完了: エラー=%v\n", deliverErr)
+		
 		if deliverErr != nil {
-			fmt.Printf("即座送信エラー: %v\n", deliverErr)
+			fmt.Printf("❌ 即座送信エラー: %v\n", deliverErr)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("メッセージの配信処理に失敗しました: %v", deliverErr)})
 			return
 		}
 		
-		fmt.Printf("即座送信完了: メッセージ %s を配信しました\n", req.MessageID)
+		fmt.Printf("✅ 即座送信完了: メッセージ %s を配信しました\n", req.MessageID)
 		
 		c.JSON(http.StatusCreated, gin.H{
 			"data":    schedule,

@@ -17,22 +17,26 @@ COPY . .
 # アプリケーションをビルド（静的バイナリ）
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# 本番用の軽量イメージ
-FROM alpine:latest
+# 開発環境用にGoも含めたイメージ
+FROM golang:1.23-alpine
 
-# セキュリティとタイムゾーン設定
-RUN apk --no-cache add ca-certificates tzdata
-WORKDIR /root/
+# 必要なパッケージをインストール（開発環境用）
+RUN apk add --no-cache git ca-certificates tzdata wget
 
-# ビルドしたバイナリをコピー
-COPY --from=builder /app/main .
+# 作業ディレクトリを設定
+WORKDIR /app
 
-# 設定ファイルをコピー
-COPY --from=builder /app/config ./config
+# go.modとgo.sumをコピーして依存関係をダウンロード
+COPY go.mod go.sum ./
+RUN go mod download
 
-# 環境変数でポートを設定
-ENV PORT=8080
-ENV GIN_MODE=release
+# ソースコードをコピー
+COPY . .
+
+# 開発環境用にビルド（デバッグ情報付き）
+RUN go build -o main .
+
+# 環境変数はdocker-compose.ymlで設定
 
 # ポートを公開
 EXPOSE 8080
@@ -41,5 +45,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
-# アプリケーションを実行
-CMD ["./main"]
+# 開発環境用：ホットリロードでアプリケーションを実行
+CMD ["go", "run", "."]

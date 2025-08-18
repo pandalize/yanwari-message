@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -103,8 +104,11 @@ func NewScheduleService(db *mongo.Database, messageService *MessageService) *Sch
 
 // CreateSchedule スケジュール作成
 func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.ObjectID, request *CreateScheduleRequest) (*Schedule, error) {
+	fmt.Printf("🔧 [CreateSchedule] 開始: UserID=%s, MessageID=%s\n", userID.Hex(), request.MessageID)
+	
 	messageID, err := primitive.ObjectIDFromHex(request.MessageID)
 	if err != nil {
+		fmt.Printf("❌ [CreateSchedule] 無効なMessageID: %v\n", err)
 		return nil, err
 	}
 
@@ -146,17 +150,29 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 		"status":   MessageStatusDraft, // draft状態のメッセージのみ更新可能
 	}
 
-	_, err = s.messageService.collection.UpdateOne(ctx, messageFilter, bson.M{"$set": messageUpdateData})
+	fmt.Printf("🔄 [CreateSchedule] メッセージ更新中: Filter=%v, Update=%v\n", messageFilter, messageUpdateData)
+	updateResult, err := s.messageService.collection.UpdateOne(ctx, messageFilter, bson.M{"$set": messageUpdateData})
 	if err != nil {
+		fmt.Printf("❌ [CreateSchedule] メッセージ更新エラー: %v\n", err)
 		return nil, err
 	}
+	
+	fmt.Printf("📊 [CreateSchedule] メッセージ更新結果: MatchedCount=%d, ModifiedCount=%d\n", updateResult.MatchedCount, updateResult.ModifiedCount)
 
+	if updateResult.MatchedCount == 0 {
+		fmt.Printf("⚠️ [CreateSchedule] メッセージが見つからないか、更新対象外\n")
+		return nil, fmt.Errorf("メッセージが見つからないか、draft状態ではありません")
+	}
+
+	fmt.Printf("📝 [CreateSchedule] スケジュール挿入中...\n")
 	result, err := s.collection.InsertOne(ctx, schedule)
 	if err != nil {
+		fmt.Printf("❌ [CreateSchedule] スケジュール挿入エラー: %v\n", err)
 		return nil, err
 	}
 
 	schedule.ID = result.InsertedID.(primitive.ObjectID)
+	fmt.Printf("✅ [CreateSchedule] 完了: ScheduleID=%s\n", schedule.ID.Hex())
 	return schedule, nil
 }
 
