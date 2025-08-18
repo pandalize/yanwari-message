@@ -90,7 +90,7 @@ class FriendService {
 
   // 友達一覧を取得
   async getFriends(): Promise<FriendshipWithUser[]> {
-    const response = await apiService.get('/friends/')
+    const response = await apiService.get('/friends')
     return response.data.data || []
   }
 
