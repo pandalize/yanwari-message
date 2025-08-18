@@ -15,7 +15,6 @@
     "logs:backend": "docker-compose logs -f backend",
     "logs:frontend": "docker-compose logs -f frontend",
     "logs:db": "docker-compose logs -f mongodb",
-    
     "# ビルド・テスト": "コンテナ内でのビルドとテスト",
     "build": "docker-compose build",
     "build:no-cache": "docker-compose build --no-cache",
@@ -23,38 +22,32 @@
     "test:backend": "docker-compose exec backend go test ./...",
     "test:frontend": "docker-compose exec frontend npm run test:unit",
     "test:e2e": "docker-compose exec frontend npm run test:e2e",
-    
     "# コード品質": "lintとformat",
     "lint": "docker-compose exec backend go vet ./... && docker-compose exec frontend npm run lint",
     "lint:backend": "docker-compose exec backend go vet ./...",
     "lint:frontend": "docker-compose exec frontend npm run lint",
     "format:frontend": "docker-compose exec frontend npm run format",
-    
     "# 環境管理": "クリーンアップと初期化",
     "clean": "docker-compose down -v --remove-orphans && docker system prune -f",
     "clean:volumes": "docker-compose down -v",
     "clean:images": "docker-compose down --rmi all",
     "setup": "cp .env.example .env && echo 'Please edit .env file with your configuration'",
-    
     "# データベース管理": "MongoDBとRedis管理",
     "db:start": "docker-compose up -d mongodb",
     "db:stop": "docker-compose stop mongodb",
     "db:admin": "docker-compose --profile dev up -d mongo-express",
     "db:backup": "docker-compose exec mongodb mongodump --db yanwari-message --out /data/backup",
     "db:restore": "docker-compose exec mongodb mongorestore /data/backup",
-    
     "# サンプルデータ管理": "開発・テスト用データの初期化と投入",
     "db:seed": "docker cp ./scripts/seeders/seed-simple.js $(docker-compose ps -q mongodb):/tmp/ && docker-compose exec mongodb mongosh yanwari-message /tmp/seed-simple.js",
     "db:seed:full": "docker cp ./scripts/seeders/seed-development.js $(docker-compose ps -q mongodb):/tmp/ && docker cp ./scripts/sample-data $(docker-compose ps -q mongodb):/tmp/ && docker-compose exec mongodb mongosh yanwari-message /tmp/seed-development.js",
     "db:reset": "npm run db:clean && npm run db:seed",
     "db:clean": "docker-compose exec mongodb mongosh yanwari-message --eval 'db.users.deleteMany({}); db.messages.deleteMany({}); db.friendships.deleteMany({}); db.message_ratings.deleteMany({}); db.user_settings.deleteMany({}); print(\"データベースをクリアしました\");'",
     "db:status": "docker-compose exec mongodb mongosh yanwari-message --eval 'print(\"=== データベース状況 ===\"); print(\"ユーザー数: \" + db.users.countDocuments()); print(\"メッセージ数: \" + db.messages.countDocuments()); print(\"友達関係数: \" + db.friendships.countDocuments()); print(\"評価数: \" + db.message_ratings.countDocuments()); print(\"設定数: \" + db.user_settings.countDocuments());'",
-    
     "# 本番環境": "本番環境用コマンド",
     "prod:build": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml build",
     "prod:up": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
     "prod:down": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml down",
-    
     "# ローカル開発（非推奨）": "Docker未使用のレガシーコマンド",
     "dev:local:backend": "cd backend && go run main.go",
     "dev:local:frontend": "cd frontend && npm run dev",
@@ -87,5 +80,8 @@
   "bugs": {
     "url": "https://github.com/your-org/yanwari-message/issues"
   },
-  "homepage": "https://github.com/your-org/yanwari-message#readme"
+  "homepage": "https://github.com/your-org/yanwari-message#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.2"
+  }
 }

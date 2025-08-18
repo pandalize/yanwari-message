@@ -318,7 +318,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useJWTAuthStore } from '@/stores/jwtAuth'
 import settingsService, { 
   type UserSettings, 
   type NotificationSettings, 
@@ -328,7 +328,7 @@ import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const authStore = useJWTAuthStore()
 
 // フォームデータ
 const profileForm = reactive({
@@ -500,7 +500,7 @@ const updateLanguageSettings = async () => {
 
 const logout = async () => {
   await authStore.logout()
-  router.push('/firebase-login')
+  router.push('/login')
 }
 
 const showDeleteConfirmation = () => {
