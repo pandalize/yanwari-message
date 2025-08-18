@@ -104,7 +104,7 @@
         <div class="section">
             <h2>1. ユーザー登録</h2>
             <input type="text" id="registerName" placeholder="名前" value="テストユーザー">
-            <input type="email" id="registerEmail" placeholder="メールアドレス" value="test@example.com">
+            <input type="email" id="registerEmail" placeholder="メールアドレス" value="newuser@example.com">
             <input type="password" id="registerPassword" placeholder="パスワード（8文字以上）" value="password123">
             <button onclick="register()">登録</button>
             <div id="registerResponse" class="response"></div>
@@ -113,9 +113,11 @@
         <!-- ログイン -->
         <div class="section">
             <h2>2. ログイン</h2>
-            <input type="email" id="loginEmail" placeholder="メールアドレス" value="test@example.com">
+            <input type="email" id="loginEmail" placeholder="メールアドレス" value="alice@yanwari-message.com">
             <input type="password" id="loginPassword" placeholder="パスワード" value="password123">
             <button onclick="login()">ログイン</button>
+            <button class="secondary" onclick="loginAsAlice()">Aliceでログイン</button>
+            <button class="secondary" onclick="loginAsBob()">Bobでログイン</button>
             <div id="loginResponse" class="response"></div>
         </div>
 
@@ -141,6 +143,8 @@
             <button onclick="testProtectedAPI('/api/v1/users/me')">ユーザー情報取得</button>
             <button onclick="testProtectedAPI('/api/v1/messages')">メッセージ一覧取得</button>
             <button onclick="testProtectedAPI('/api/v1/settings')">設定取得</button>
+            <button onclick="testProtectedAPI('/api/v1/users/search?q=alice&limit=3')">ユーザー検索</button>
+            <button onclick="testProtectedAPI('/api/v1/friends')">友達一覧</button>
             <div id="apiResponse" class="response"></div>
         </div>
     </div>
@@ -334,6 +338,19 @@
         function updateTokenDisplay() {
             document.getElementById('accessToken').textContent = currentAccessToken || '未取得';
             document.getElementById('refreshToken').textContent = currentRefreshToken || '未取得';
+        }
+
+        // シーダーアカウントでのクイックログイン
+        async function loginAsAlice() {
+            document.getElementById('loginEmail').value = 'alice@yanwari-message.com';
+            document.getElementById('loginPassword').value = 'password123';
+            await login();
+        }
+
+        async function loginAsBob() {
+            document.getElementById('loginEmail').value = 'bob@yanwari-message.com';
+            document.getElementById('loginPassword').value = 'password123';
+            await login();
         }
     </script>
 </body>
