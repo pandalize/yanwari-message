@@ -41,7 +41,6 @@ playwright-report/
 # Dockerファイル
 Dockerfile*
 docker-compose*
-nginx.conf
 
 # ログファイル
 *.log
