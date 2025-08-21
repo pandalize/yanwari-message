@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     // 開発環境: 実機からMacのローカルサーバーへアクセス許可
-    allowNavigation: ['http://192.168.0.7:8080', 'http://localhost:8080'],
+    allowNavigation: ['http://192.168.11.18:8080', 'http://localhost:8080'],
     iosScheme: 'http'
   },
   plugins: {

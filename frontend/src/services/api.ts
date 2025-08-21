@@ -15,7 +15,7 @@ class ApiService {
       // Capacitorネイティブアプリの場合
       if (window.location.protocol === 'capacitor:') {
         // 実機テスト用：MacのローカルIPアドレスを使用
-        return 'http://192.168.0.7:8080/api/v1'
+        return 'http://192.168.11.18:8080/api/v1'
       }
       // Web版の場合
       return 'http://localhost:8080/api/v1'
@@ -37,7 +37,7 @@ class ApiService {
 
   async healthCheck(): Promise<any> {
     const url = window.location.protocol === 'capacitor:' 
-      ? 'http://192.168.0.7:8080/health' 
+      ? 'http://192.168.11.18:8080/health' 
       : 'http://localhost:8080/health'
     const response = await axios.get(url)
     return response.data
