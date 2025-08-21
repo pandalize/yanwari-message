@@ -1019,4 +1019,80 @@ onUnmounted(() => {
     text-align: right;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .history-page {
+    padding: 16px 12px 80px 12px;
+    margin: -16px -12px -76px -12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  .filter-bar {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto 16px auto;
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .search-wrapper {
+    width: 100%;
+  }
+  
+  .search-input {
+    font-size: 14px;
+    padding: 8px 12px;
+    height: 36px;
+  }
+  
+  .status-filter {
+    font-size: 14px;
+    padding: 8px 12px;
+    height: 36px;
+  }
+  
+  .section {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto 16px auto;
+  }
+  
+  .section-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .message-item {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .message-left,
+  .message-center,
+  .message-right {
+    font-size: 14px;
+  }
+  
+  .message-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .loading-section,
+  .empty-section,
+  .error-section {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    padding: 20px 12px;
+  }
+  
+  .retry-btn {
+    height: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
 </style>

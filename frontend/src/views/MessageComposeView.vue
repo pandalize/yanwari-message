@@ -795,29 +795,35 @@ const transformTone = async () => {
 /* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
   .message-compose-view {
-    padding-bottom: 70px; /* ボトムナビゲーション分の余白 */
+    padding: 0; /* PageContainerから16px + 12px = 28px のパディングを継承 */
+    margin: -16px -12px -76px -12px; /* PageContainerのパディングを相殺 */
+    padding: 16px 12px 20px 12px; /* 独自のコンパクトなパディング */
+    max-width: 100vw;
+    min-height: calc(100vh - 76px); /* ボトムナビゲーション分を除く */
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
   
   .recipient-info {
-    width: 100% !important;
-    max-width: none !important;
-    margin-bottom: 20px !important;
-    padding: 16px !important;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto 16px auto;
+    padding: 12px;
   }
   
   .recipient-label {
     font-size: 14px;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
   }
   
   .recipient-display {
-    gap: 12px;
+    gap: 10px;
   }
   
   .recipient-avatar {
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
   
   .recipient-name {
@@ -828,95 +834,112 @@ const transformTone = async () => {
     font-size: 12px;
   }
   
-  .message-input-container,
-  .reason-input-container,
-  .drafts-container {
-    width: 100% !important;
-    max-width: none !important;
-    height: 120px !important;
-    margin-bottom: 16px !important;
-    padding: 0 !important;
+  .compose-section {
+    margin-bottom: 16px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+    margin: 0 0 10px 0;
+  }
+  
+  .input-sections {
+    gap: 12px;
+  }
+  
+  .input-label {
+    font-size: 14px;
+    margin: 0 0 4px 0;
+  }
+  
+  .message-input-container {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    height: 90px;
+    margin: 0 auto 8px auto;
   }
   
   .reason-input-container {
-    height: 100px !important;
-    margin-bottom: 24px !important;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    height: 70px;
+    margin: 0 auto 12px auto;
   }
   
   .message-textarea,
   .reason-textarea {
-    padding: var(--spacing-sm) !important;
-    font-size: var(--font-size-sm);
+    padding: 12px;
+    font-size: 14px;
     line-height: 1.4;
   }
   
-  .input-label {
-    font-size: var(--font-size-sm);
-    margin: 0 0 var(--spacing-xs) 0;
-  }
-  
-  .section-title {
-    font-size: var(--font-size-md);
-    margin: 0 0 var(--spacing-md) 0;
-  }
-  
-  .compose-section {
-    margin-bottom: var(--spacing-xl);
-  }
-  
   .action-buttons {
-    gap: var(--spacing-sm);
+    width: auto;
+    max-width: calc(100vw - 24px);
+    gap: 8px;
+    margin: 0 auto 16px auto;
+    flex-direction: column;
   }
   
   .action-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-sm);
+    width: 100%;
+    height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
     min-height: 44px;
     font-weight: 600;
+    border-radius: 6px;
+  }
+  
+  .drafts-section {
+    margin-bottom: 16px;
   }
   
   .drafts-container {
-    height: auto !important;
-    min-height: 120px !important;
-    padding: var(--spacing-sm) !important;
-  }
-  
-  .draft-item {
-    padding: var(--spacing-sm);
-    gap: var(--spacing-xs);
+    width: auto;
+    max-width: calc(100vw - 24px);
+    height: auto;
+    min-height: 80px;
+    max-height: 160px;
+    overflow-y: auto;
+    margin: 0 auto;
   }
   
   .draft-text {
-    font-size: var(--font-size-xs);
+    font-size: 13px;
     line-height: 1.3;
+    -webkit-line-clamp: 2;
   }
   
   .draft-meta {
-    font-size: var(--font-size-xs);
+    font-size: 12px;
   }
   
   .delete-button {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-xs);
+    padding: 6px 12px;
+    font-size: 12px;
     min-height: 32px;
+    border-radius: 4px;
   }
   
   .loading-state,
   .empty-state {
-    padding: var(--spacing-xl) var(--spacing-sm);
+    padding: 20px 12px;
   }
   
   .empty-icon {
-    font-size: 36px;
-    margin-bottom: var(--spacing-md);
+    font-size: 32px;
+    margin-bottom: 12px;
   }
   
   .empty-state p {
-    font-size: var(--font-size-md);
+    font-size: 14px;
+    margin-bottom: 8px;
   }
   
   .empty-state small {
-    font-size: var(--font-size-xs);
+    font-size: 12px;
+    line-height: 1.3;
   }
 }
 </style>

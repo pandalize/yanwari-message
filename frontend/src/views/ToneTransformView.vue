@@ -528,4 +528,69 @@ onMounted(() => {
     width: 100%;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .tone-transform-view {
+    padding: 16px 12px 80px 12px;
+    margin: -16px -12px -76px -12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  
+  .message-container {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    min-height: 80px;
+    padding: 12px;
+  }
+  
+  .tone-options {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    gap: 12px;
+  }
+  
+  .tone-option {
+    padding: 12px;
+    border-width: 2px;
+  }
+  
+  .tone-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  
+  .tone-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .action-section {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    margin-top: 16px;
+  }
+  
+  .proceed-btn {
+    width: 100%;
+    height: 44px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .debug-info {
+    font-size: 12px;
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+}
 </style>

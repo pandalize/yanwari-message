@@ -477,4 +477,85 @@ const getStatusText = (status: string): string => {
     flex-direction: column;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .message-with-rating {
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+  }
+  
+  .message-card {
+    padding: 12px;
+    border-width: 1px;
+  }
+  
+  .sender-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  
+  .sender-name {
+    font-size: 14px;
+  }
+  
+  .sender-email {
+    font-size: 12px;
+  }
+  
+  .message-date {
+    font-size: 12px;
+  }
+  
+  .message-status {
+    font-size: 12px;
+    padding: 2px 6px;
+  }
+  
+  .message-text {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .original-text {
+    font-size: 13px;
+  }
+  
+  .original-text summary {
+    font-size: 12px;
+  }
+  
+  .rating-header h5 {
+    font-size: 14px;
+  }
+  
+  .delete-rating-btn {
+    padding: 4px;
+  }
+  
+  .delete-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .rating-error,
+  .rating-success {
+    font-size: 12px;
+    padding: 6px;
+  }
+  
+  .mark-read-btn,
+  .reply-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  
+  .action-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
 </style>
