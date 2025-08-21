@@ -67,3 +67,29 @@ html, body {
     padding: 0 15%;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .content-wrapper {
+    padding: 0 3%;
+  }
+  
+  /* フォントサイズの全体的な調整 */
+  .section-title {
+    font-size: var(--font-size-md);
+    margin: 0 0 12px 0;
+  }
+  
+  /* ボディのスクロール最適化 */
+  body {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  /* リンクのタッチ領域を拡張 */
+  a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}

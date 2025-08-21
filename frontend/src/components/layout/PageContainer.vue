@@ -31,4 +31,13 @@
     margin: 0 auto;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .page-container {
+    padding: 16px 12px;
+    padding-bottom: 76px; /* ボトムナビゲーション分の余白 */
+    min-height: 100vh;
+  }
+}
 </style>

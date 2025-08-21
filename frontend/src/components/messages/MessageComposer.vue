@@ -643,4 +643,86 @@ onMounted(() => {
     font-size: var(--font-size-xs);
   }
 }
+
+/* 超小型モバイル表示 - 440px以下 */
+@media (max-width: 440px) {
+  .message-composer {
+    padding: var(--spacing-md) var(--spacing-xs);
+    padding-bottom: 80px; /* ボトムナビゲーション分の余白 */
+  }
+  
+  .page-title {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .section-title {
+    font-size: var(--font-size-md);
+    margin: 0 0 var(--spacing-md) 0;
+  }
+  
+  .compose-section {
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .message-input-area {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .message-textarea {
+    padding: var(--spacing-sm);
+    min-height: 100px;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+  }
+  
+  .action-buttons {
+    gap: var(--spacing-sm);
+  }
+  
+  .action-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    min-height: 44px; /* タッチしやすいサイズ */
+    font-weight: 600;
+  }
+  
+  .drafts-section {
+    margin-bottom: var(--spacing-lg);
+  }
+  
+  .drafts-container {
+    padding: var(--spacing-sm);
+    min-height: 150px;
+  }
+  
+  .draft-item {
+    padding: var(--spacing-sm);
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .draft-content {
+    margin-right: 0;
+    width: 100%;
+  }
+  
+  .draft-text {
+    font-size: var(--font-size-xs);
+    line-height: 1.3;
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+  
+  .draft-date {
+    font-size: var(--font-size-xs);
+    align-self: flex-start;
+  }
+  
+  .draft-delete {
+    align-self: flex-end;
+    width: 32px;
+    height: 32px;
+    font-size: var(--font-size-lg);
+  }
+}
 </style>

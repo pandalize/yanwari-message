@@ -791,4 +791,132 @@ const transformTone = async () => {
   font-family: var(--font-family-main);
   font-weight: var(--font-weight-regular);
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .message-compose-view {
+    padding-bottom: 70px; /* ボトムナビゲーション分の余白 */
+  }
+  
+  .recipient-info {
+    width: 100% !important;
+    max-width: none !important;
+    margin-bottom: 20px !important;
+    padding: 16px !important;
+  }
+  
+  .recipient-label {
+    font-size: 14px;
+    margin: 0 0 8px 0;
+  }
+  
+  .recipient-display {
+    gap: 12px;
+  }
+  
+  .recipient-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .recipient-name {
+    font-size: 14px;
+  }
+  
+  .recipient-email {
+    font-size: 12px;
+  }
+  
+  .message-input-container,
+  .reason-input-container,
+  .drafts-container {
+    width: 100% !important;
+    max-width: none !important;
+    height: 120px !important;
+    margin-bottom: 16px !important;
+    padding: 0 !important;
+  }
+  
+  .reason-input-container {
+    height: 100px !important;
+    margin-bottom: 24px !important;
+  }
+  
+  .message-textarea,
+  .reason-textarea {
+    padding: var(--spacing-sm) !important;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+  }
+  
+  .input-label {
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+  
+  .section-title {
+    font-size: var(--font-size-md);
+    margin: 0 0 var(--spacing-md) 0;
+  }
+  
+  .compose-section {
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .action-buttons {
+    gap: var(--spacing-sm);
+  }
+  
+  .action-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    min-height: 44px;
+    font-weight: 600;
+  }
+  
+  .drafts-container {
+    height: auto !important;
+    min-height: 120px !important;
+    padding: var(--spacing-sm) !important;
+  }
+  
+  .draft-item {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+  
+  .draft-text {
+    font-size: var(--font-size-xs);
+    line-height: 1.3;
+  }
+  
+  .draft-meta {
+    font-size: var(--font-size-xs);
+  }
+  
+  .delete-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    min-height: 32px;
+  }
+  
+  .loading-state,
+  .empty-state {
+    padding: var(--spacing-xl) var(--spacing-sm);
+  }
+  
+  .empty-icon {
+    font-size: 36px;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .empty-state p {
+    font-size: var(--font-size-md);
+  }
+  
+  .empty-state small {
+    font-size: var(--font-size-xs);
+  }
+}
 </style>

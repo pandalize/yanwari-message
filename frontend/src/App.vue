@@ -358,6 +358,81 @@ const handleHistoryClick = () => {
   }
 }
 
+/* 超小型モバイル表示 - 440px以下 */
+@media (max-width: 440px) {
+  /* サイドバーを下部に配置 */
+  .sidebar {
+    width: 100%;
+    height: 60px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    top: auto;
+    padding: 0;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .nav-items {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    height: 100%;
+    gap: 0;
+    padding: 0 var(--spacing-xs);
+  }
+  
+  .nav-item {
+    flex: 1;
+    padding: 6px 4px;
+    border-radius: var(--radius-sm);
+    margin: 0 2px;
+    min-width: 0;
+  }
+  
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .nav-text {
+    display: block;
+    font-size: 9px;
+  }
+  
+  /* メインコンテンツの調整 */
+  .main-content.with-sidebar {
+    margin-left: 0;
+    margin-bottom: 60px;
+    padding-bottom: var(--spacing-lg);
+  }
+  
+  /* 認証前ヘッダーの調整 */
+  .simple-header {
+    padding: var(--spacing-sm) var(--spacing-xs);
+  }
+  
+  .header-content {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .header-content h1 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .auth-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-xs);
+  }
+  
+  .auth-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    min-width: 70px;
+  }
+}
+
 .settings-item {
   background: rgba(144, 238, 144, 0.3) !important;
   border: 1px solid rgba(144, 238, 144, 0.4) !important;

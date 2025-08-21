@@ -252,4 +252,86 @@ const fillTestAccount = (testEmail: string) => {
   color: #666;
   margin: 0;
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .login-form {
+    max-width: 100%;
+    margin: 0;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  
+  .form-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .form-header p {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .form-input {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+    min-height: 44px; /* タッチしやすいサイズ */
+  }
+  
+  .login-button {
+    padding: 0.7rem;
+    font-size: 0.9rem;
+    min-height: 44px;
+    font-weight: 600;
+  }
+  
+  .register-link {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+  
+  .test-accounts {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+  
+  .test-accounts h3 {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .test-account-list {
+    gap: 0.4rem;
+  }
+  
+  .test-account {
+    padding: 0.6rem;
+    font-size: 0.85rem;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .test-account strong {
+    font-size: 0.85rem;
+  }
+  
+  .test-account small {
+    font-size: 0.75rem;
+  }
+  
+  .test-note {
+    font-size: 0.8rem;
+  }
+}
 </style>
