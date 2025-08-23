@@ -1131,12 +1131,14 @@ onMounted(() => {
   .schedule-wizard {
     width: 100%;
     height: auto;
-    padding: 16px 12px;
-    overflow: visible;
+    min-height: 100vh;
+    padding: 16px 12px 100px 12px; /* 下部に十分な余白を追加 */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
     position: static;
+    box-sizing: border-box;
   }
   
   .page-title {

@@ -10,8 +10,16 @@ import ScheduleWizard from '@/components/schedule/ScheduleWizard.vue'
 
 <style scoped>
 .schedule-wizard-view {
-  height: 100vh;
+  min-height: 100vh;
   background-color: #f8f9fa;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* モバイル対応 */
+@media (max-width: 440px) {
+  .schedule-wizard-view {
+    height: auto;
+    overflow: visible;
+  }
 }
 </style>

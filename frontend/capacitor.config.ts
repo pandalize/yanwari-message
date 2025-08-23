@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "small"
     }
+  },
+  ios: {
+    contentInset: 'automatic',
+    allowsLinkPreview: false
   }
 };
 
