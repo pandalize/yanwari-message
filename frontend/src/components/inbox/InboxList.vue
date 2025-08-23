@@ -1084,20 +1084,20 @@ const getStatusText = (status: string): string => {
     font-size: 0.75rem;
   }
   
-  :deep(.message-list-item) {
+  .message-item {
     padding: 12px;
     margin-bottom: 8px;
+    overflow: hidden;
   }
   
-  :deep(.item-left),
-  :deep(.item-content) {
-    min-width: auto;
-    flex: 1;
-  }
-  
-  :deep(.item-right) {
-    flex-shrink: 0;
-    min-width: 60px;
+  .text {
+    white-space: normal;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }
 </style>

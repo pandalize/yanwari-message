@@ -687,5 +687,25 @@ watch(() => props.messages, () => {
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
 }
 
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .treemap-view {
+    padding: 0;
+    margin: -16px -12px 0 -12px;
+    width: calc(100vw - 24px);
+    box-sizing: border-box;
+  }
+  
+  .treemap-container {
+    border-radius: 4px;
+    margin: 0 12px;
+    width: calc(100% - 24px);
+    box-sizing: border-box;
+  }
+  
+  .treemap-svg-container {
+    overflow-x: auto;
+  }
+}
 
 </style>

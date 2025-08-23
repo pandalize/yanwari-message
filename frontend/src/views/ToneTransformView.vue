@@ -526,10 +526,11 @@ onMounted(() => {
   }
   
   .action-section {
-    width: auto;
-    max-width: calc(100vw - 24px);
-    margin: 0 auto;
-    margin-top: 16px;
+    width: calc(100vw - 64px);
+    margin: 16px auto 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
   
