@@ -7,10 +7,6 @@
     <!-- 受信者情報表示 -->
     <MessageContainer 
       v-if="recipientInfo" 
-      width="700px" 
-      min-height="auto" 
-      padding="20px"
-      margin-bottom="32px"
       class="recipient-info"
     >
       <h3 class="recipient-label">送信先:</h3>
@@ -36,14 +32,11 @@
         <div class="input-section">
           <h3 class="input-label">メッセージ内容</h3>
           <MessageContainer 
-            width="700px" 
-            height="200px"
-            margin-bottom="var(--spacing-lg)"
             class="message-input-container"
           >
             <textarea
               v-model="messageText"
-              placeholder="送りたいメッセージを入力してください"
+              placeholder="送りたいメッセージを入力"
               class="message-textarea"
               maxlength="500"
             ></textarea>
@@ -54,9 +47,6 @@
         <div class="input-section">
           <h3 class="input-label">送信理由・背景</h3>
           <MessageContainer 
-            width="700px" 
-            height="150px"
-            margin-bottom="var(--spacing-2xl)"
             class="reason-input-container"
           >
             <textarea
@@ -95,8 +85,6 @@
     <section class="drafts-section">
       <h2 class="section-title">下書き</h2>
       <MessageContainer 
-        width="700px" 
-        min-height="100px"
         class="drafts-container"
       >
         <div v-if="messageStore.isLoading" class="loading-state">
@@ -744,6 +732,31 @@ const transformTone = async () => {
   line-height: 1.4;
 }
 
+/* MessageContainer基本スタイル */
+.recipient-info {
+  width: 700px;
+  min-height: auto;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.message-input-container {
+  width: 700px;
+  height: 200px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.reason-input-container {
+  width: 700px;
+  height: 150px;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.drafts-container {
+  width: 700px;
+  min-height: 100px;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .recipient-info,
@@ -796,148 +809,21 @@ const transformTone = async () => {
 
 /* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
-  .message-compose-view {
-    /* PageContainerのパディングをそのまま活用 */
-  }
-  
   .recipient-info,
   .message-input-container,
   .reason-input-container,
-  .drafts-container,
-  .compose-section,
-  .action-buttons,
-  .drafts-section,
-  .input-sections {
+  .drafts-container {
     width: 100%;
     max-width: none;
   }
   
-  .recipient-info {
-    margin-bottom: 16px;
-    padding: 12px;
-  }
-  
-  .recipient-label {
-    font-size: 14px;
-    margin: 0 0 6px 0;
-  }
-  
-  .recipient-display {
-    gap: 10px;
-  }
-  
-  .recipient-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
-  }
-  
-  .recipient-name {
-    font-size: 14px;
-  }
-  
-  .recipient-email {
-    font-size: 12px;
-  }
-  
-  .compose-section {
-    margin-bottom: 16px;
-  }
-  
-  .section-title {
-    font-size: 16px;
-    margin: 0 0 10px 0;
-  }
-  
-  .input-sections {
-    gap: 12px;
-  }
-  
-  .input-label {
-    font-size: 14px;
-    margin: 0 0 4px 0;
-  }
-  
-  .message-input-container {
-    height: 90px;
-    margin-bottom: 8px;
-  }
-  
-  .reason-input-container {
-    height: 70px;
-    margin-bottom: 12px;
-  }
-  
-  .message-textarea,
-  .reason-textarea {
-    padding: 12px;
-    font-size: 14px;
-    line-height: 1.4;
-  }
-  
   .action-buttons {
-    width: 100%;
-    gap: 8px;
-    margin-bottom: 16px;
     flex-direction: column;
+    gap: var(--spacing-md);
   }
-  
+
   .action-btn {
     width: 100%;
-    height: 44px;
-    padding: 10px 16px;
-    font-size: 14px;
-    min-height: 44px;
-    font-weight: 600;
-    border-radius: 6px;
-  }
-  
-  .drafts-section {
-    margin-bottom: 16px;
-  }
-  
-  .drafts-container {
-    height: auto;
-    min-height: 80px;
-    max-height: 160px;
-    overflow-y: auto;
-  }
-  
-  .draft-text {
-    font-size: 13px;
-    line-height: 1.3;
-    -webkit-line-clamp: 2;
-  }
-  
-  .draft-meta {
-    font-size: 12px;
-  }
-  
-  .delete-button {
-    padding: 6px 12px;
-    font-size: 12px;
-    min-height: 32px;
-    border-radius: 4px;
-  }
-  
-  .loading-state,
-  .empty-state {
-    padding: 20px 12px;
-  }
-  
-  .empty-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-  
-  .empty-state p {
-    font-size: 14px;
-    margin-bottom: 8px;
-  }
-  
-  .empty-state small {
-    font-size: 12px;
-    line-height: 1.3;
   }
 }
 </style>

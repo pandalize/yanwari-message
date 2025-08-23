@@ -202,7 +202,6 @@ onMounted(async () => {
 
 <style scoped>
 .recipient-select-view {
-  /* page-containerで統一されたスタイルを使用 */
 }
 
 .friends-section {

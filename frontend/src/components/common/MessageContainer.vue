@@ -55,4 +55,12 @@ const containerStyle = computed(() => {
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
+
+/* モバイル対応 - インラインスタイルより優先させるために!important使用 */
+@media (max-width: 440px) {
+  .message-container {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}
 </style>
