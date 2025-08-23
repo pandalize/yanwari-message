@@ -1064,4 +1064,40 @@ const getStatusText = (status: string): string => {
     right: 0.75rem;
   }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .inbox-list {
+    padding: 0;
+    margin: -16px -12px 0 -12px;
+  }
+  
+  .list-view {
+    padding: 0 12px 1rem 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .inline-select {
+    min-width: 100px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  :deep(.message-list-item) {
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  
+  :deep(.item-left),
+  :deep(.item-content) {
+    min-width: auto;
+    flex: 1;
+  }
+  
+  :deep(.item-right) {
+    flex-shrink: 0;
+    min-width: 60px;
+  }
+}
 </style>

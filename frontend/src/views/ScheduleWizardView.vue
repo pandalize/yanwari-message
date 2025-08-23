@@ -18,6 +18,7 @@ import ScheduleWizard from '@/components/schedule/ScheduleWizard.vue'
 /* モバイル対応 */
 @media (max-width: 440px) {
   .schedule-wizard-view {
+    padding: 20px;
     height: auto;
     overflow: visible;
   }

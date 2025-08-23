@@ -132,4 +132,17 @@ const handleClick = () => {
   cursor: default;
   pointer-events: auto;
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .item-left,
+  .item-content {
+    min-width: auto;
+    flex: 1;
+  }
+  
+  .item-right {
+    min-width: 60px;
+  }
+}
 </style>

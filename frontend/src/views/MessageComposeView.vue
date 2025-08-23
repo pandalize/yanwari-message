@@ -36,7 +36,7 @@
           >
             <textarea
               v-model="messageText"
-              placeholder="送りたいメッセージを入力"
+              placeholder="送りたいメッセージを入力してください"
               class="message-textarea"
               maxlength="500"
             ></textarea>
@@ -560,7 +560,6 @@ const transformTone = async () => {
   color: var(--text-primary);
   font-family: var(--font-family-main);
   font-weight: var(--font-weight-regular);
-  margin: 0 0 var(--spacing-lg) 0;
 }
 
 
@@ -581,7 +580,6 @@ const transformTone = async () => {
   color: var(--text-primary);
   font-family: var(--font-family-main);
   font-weight: 600;
-  margin: 0 0 var(--spacing-sm) 0;
 }
 
 .message-textarea,
@@ -785,6 +783,10 @@ const transformTone = async () => {
 
 /* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
+  .message-compose-view {
+    padding: 20px;
+  }
+  
   .recipient-info,
   .message-input-container,
   .reason-input-container,

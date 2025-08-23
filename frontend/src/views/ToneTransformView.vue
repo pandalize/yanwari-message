@@ -39,7 +39,7 @@
         <!-- 3つのトーン選択肢 -->
         <div v-else class="tone-options">
           <!-- デバッグ情報 -->
-          <div v-if="true" class="debug-info" style="background: #f0f0f0; padding: 1rem; margin-bottom: 1rem; font-size: 0.8rem;">
+          <div v-if="false" class="debug-info" style="background: #f0f0f0; padding: 1rem; margin-bottom: 1rem; font-size: 0.8rem;">
             <details>
               <summary>デバッグ情報</summary>
               <pre>{{ JSON.stringify({ 
@@ -492,23 +492,20 @@ onMounted(() => {
 /* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
   .tone-transform-view {
-    padding: 16px 12px 80px 12px;
-    margin: -16px -12px -76px -12px;
+    padding: 20px;
     box-sizing: border-box;
     overflow-x: hidden;
   }
   
   .message-container {
-    width: auto;
-    max-width: calc(100vw - 24px);
+    width: calc(100vw - 64px);
     margin: 0 auto;
     min-height: 80px;
     padding: 12px;
   }
   
   .tone-options {
-    width: auto;
-    max-width: calc(100vw - 24px);
+    width: calc(100vw - 64px);
     margin: 0 auto;
     gap: 12px;
   }
