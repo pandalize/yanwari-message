@@ -1125,4 +1125,136 @@ onMounted(() => {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* 440px以下の超小型モバイル対応 */
+@media (max-width: 440px) {
+  .schedule-wizard {
+    width: 100%;
+    height: auto;
+    padding: 16px 12px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: static;
+  }
+  
+  .page-title {
+    position: static;
+    text-align: center;
+    font-size: 18px;
+    margin: 0;
+  }
+  
+  /* スケジュールオプションを縦一列に */
+  .schedule-options {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .schedule-card {
+    width: 100%;
+    height: 70px;
+    margin: 0;
+    padding: 8px;
+  }
+  
+  .card-title {
+    font-size: 14px;
+  }
+  
+  .time-display {
+    font-size: 14px;
+  }
+  
+  /* カスタム設定セクション */
+  .custom-section {
+    position: static;
+    width: 100%;
+    margin-top: 0;
+  }
+  
+  .custom-title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 16px;
+  }
+  
+  /* カレンダーと時間選択を縦並びに */
+  .custom-content {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+  
+  .calendar-container {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .calendar-month-header {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .calendar-header {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .calendar-grid {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .calendar-date {
+    width: 36px;
+    height: 28px;
+    font-size: 11px;
+  }
+  
+  .time-selection-container {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .time-select {
+    width: 60px;
+    height: 60px;
+    font-size: 16px;
+  }
+  
+  .time-unit {
+    font-size: 24px;
+  }
+  
+  /* アクションボタン */
+  .action-buttons {
+    position: static;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  .btn {
+    width: 100%;
+    height: 50px;
+    font-size: 16px;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  
+  /* アラート */
+  .alert {
+    position: static;
+    width: 100%;
+    margin-top: 16px;
+    font-size: 14px;
+  }
+}
 </style>
