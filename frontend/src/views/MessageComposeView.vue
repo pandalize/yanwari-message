@@ -746,14 +746,16 @@ const transformTone = async () => {
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
-  
+  .recipient-info,
   .message-input-container,
+  .reason-input-container,
   .drafts-container {
     width: 100%;
-    max-width: 700px;
+    max-width: none;
   }
   
   .action-buttons {
+    width: 100%;
     flex-direction: column;
     gap: var(--spacing-md);
   }
@@ -795,19 +797,19 @@ const transformTone = async () => {
 /* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
   .message-compose-view {
-    padding: 0; /* PageContainerから16px + 12px = 28px のパディングを継承 */
-    margin: -16px -12px -76px -12px; /* PageContainerのパディングを相殺 */
-    padding: 16px 12px 20px 12px; /* 独自のコンパクトなパディング */
-    max-width: 100vw;
-    min-height: calc(100vh - 76px); /* ボトムナビゲーション分を除く */
-    box-sizing: border-box;
-    overflow-x: hidden;
+    /* PageContainerのパディングをそのまま活用 */
+  }
+  
+  .recipient-info,
+  .message-input-container,
+  .reason-input-container,
+  .drafts-container {
+    width: 100%;
+    max-width: none;
   }
   
   .recipient-info {
-    width: auto;
-    max-width: calc(100vw - 24px);
-    margin: 0 auto 16px auto;
+    margin-bottom: 16px;
     padding: 12px;
   }
   
@@ -853,17 +855,13 @@ const transformTone = async () => {
   }
   
   .message-input-container {
-    width: auto;
-    max-width: calc(100vw - 24px);
     height: 90px;
-    margin: 0 auto 8px auto;
+    margin-bottom: 8px;
   }
   
   .reason-input-container {
-    width: auto;
-    max-width: calc(100vw - 24px);
     height: 70px;
-    margin: 0 auto 12px auto;
+    margin-bottom: 12px;
   }
   
   .message-textarea,
@@ -874,10 +872,9 @@ const transformTone = async () => {
   }
   
   .action-buttons {
-    width: auto;
-    max-width: calc(100vw - 24px);
+    width: 100%;
     gap: 8px;
-    margin: 0 auto 16px auto;
+    margin-bottom: 16px;
     flex-direction: column;
   }
   
@@ -896,13 +893,10 @@ const transformTone = async () => {
   }
   
   .drafts-container {
-    width: auto;
-    max-width: calc(100vw - 24px);
     height: auto;
     min-height: 80px;
     max-height: 160px;
     overflow-y: auto;
-    margin: 0 auto;
   }
   
   .draft-text {
