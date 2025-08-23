@@ -146,7 +146,7 @@ const goToHistory = () => {
 .btn {
   padding: 1rem 2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
@@ -210,7 +210,7 @@ const goToHistory = () => {
 .feature-card {
   background-color: #f8f9fa;
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }

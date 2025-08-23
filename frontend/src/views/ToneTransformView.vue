@@ -5,9 +5,9 @@
     <div v-if="error" class="error-container">
       <h2>エラーが発生しました</h2>
       <p>{{ error }}</p>
-      <button @click="$router.go(-1)" class="error-back-btn">
+      <UnifiedButton @click="$router.go(-1)">
         戻る
-      </button>
+      </UnifiedButton>
     </div>
 
     <!-- メイン画面 -->
@@ -72,15 +72,16 @@
       <!-- 次へボタンセクション -->
       <div v-if="!isLoading" class="action-section">
         <!-- 次へボタン -->
-        <button 
-          class="proceed-btn"
+        <UnifiedButton 
+          variant="primary"
+          size="standard"
           @click="proceedToSchedule"
           :disabled="!selectedTone || isSaving"
         >
           <span v-if="isSaving">保存中...</span>
           <span v-else-if="!selectedTone">トーンを選択してください</span>
           <span v-else>送信日時の選択に進む</span>
-        </button>
+        </UnifiedButton>
       </div>
     </div>
     </div>
@@ -94,6 +95,7 @@ import { useMessageStore } from '@/stores/messages'
 import { useTransformStore } from '@/stores/transform'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -277,7 +279,7 @@ onMounted(() => {
   text-align: center;
   width: 700px;
   border: 3px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--neutral-color);
   margin: 0 auto;
 }
@@ -313,15 +315,8 @@ onMounted(() => {
   text-align: center;
 }
 
-.error-back-btn {
+.error-container .unified-btn {
   margin-top: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: var(--primary-color);
-  border: none;
-  border-radius: var(--radius-lg);
-  color: var(--text-primary);
-  font-family: var(--font-family-main);
-  cursor: pointer;
 }
 
 /* メインコンテンツ */
@@ -352,7 +347,7 @@ onMounted(() => {
   width: 700px;
   min-height: 120px;
   border: 3px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--neutral-color);
   padding: var(--spacing-xl);
   cursor: default;
@@ -381,7 +376,7 @@ onMounted(() => {
 
 .tone-option {
   border: 3px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--neutral-color);
   padding: var(--spacing-xl);
   cursor: pointer;
@@ -448,33 +443,6 @@ onMounted(() => {
   justify-content: center;
 }
 
-.proceed-btn {
-  width: 280px;
-  height: 60px;
-  border-radius: 30px;
-  border: none;
-  background: var(--primary-color);
-  color: var(--text-primary);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family-main);
-  font-weight: var(--font-weight-regular);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-
-.proceed-btn:hover:not(:disabled) {
-  background: var(--primary-color-dark);
-}
-
-.proceed-btn:disabled {
-  background: var(--gray-color-light);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
 
 /* レスポンシブ対応 */
 
@@ -509,11 +477,6 @@ onMounted(() => {
     font-size: var(--font-size-lg);
   }
   
-  .proceed-btn {
-    width: 280px;
-    height: 70px;
-    font-size: var(--font-size-lg);
-  }
 }
 
 @media (max-width: 768px) {
@@ -524,9 +487,6 @@ onMounted(() => {
     max-width: 900px;
   }
   
-  .proceed-btn {
-    width: 100%;
-  }
 }
 
 /* 440px以下の超小型モバイル対応 */
@@ -575,12 +535,6 @@ onMounted(() => {
     margin-top: 16px;
   }
   
-  .proceed-btn {
-    width: 100%;
-    height: 44px;
-    font-size: 14px;
-    border-radius: 6px;
-  }
   
   .section-title {
     font-size: 16px;

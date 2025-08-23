@@ -143,7 +143,7 @@ function onRequestSent() {
   background: var(--background-tertiary);
   color: var(--text-secondary);
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   font-size: var(--font-size-sm);
   font-weight: 600;
   min-width: 20px;

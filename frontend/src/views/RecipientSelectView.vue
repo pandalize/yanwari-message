@@ -68,16 +68,16 @@
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <button class="btn btn-secondary" @click="goBack">
+      <UnifiedButton variant="secondary" @click="goBack">
         戻る
-      </button>
-      <button 
-        class="btn btn-primary" 
+      </UnifiedButton>
+      <UnifiedButton 
+        variant="primary"
         @click="proceedToCompose"
         :disabled="!hasSelectedRecipient"
       >
         メッセージ作成へ
-      </button>
+      </UnifiedButton>
     </div>
 
       <!-- エラー表示 -->
@@ -94,6 +94,7 @@ import { useRouter } from 'vue-router'
 import { useFriendsStore } from '@/stores/friends'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 const router = useRouter()
 const friendsStore = useFriendsStore()
@@ -223,7 +224,7 @@ onMounted(async () => {
   height: 48px;
   padding: 0 50px 0 16px;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: var(--font-size-md);
   font-family: var(--font-family-main);
   outline: none;
@@ -298,7 +299,7 @@ onMounted(async () => {
   background: var(--primary-color);
   color: var(--text-primary);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 500;
   margin-top: 16px;
   transition: all 0.2s ease;
@@ -322,7 +323,7 @@ onMounted(async () => {
   padding: 16px;
   background: var(--background-primary);
   border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -384,7 +385,7 @@ onMounted(async () => {
   background: var(--primary-color-light);
   color: var(--primary-color-dark);
   padding: 1px 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   font-weight: 500;
 }
 
@@ -413,47 +414,13 @@ onMounted(async () => {
   margin-top: 40px;
 }
 
-.btn {
-  height: 48px;
-  padding: 0 32px;
-  border: none;
-  border-radius: 8px;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  font-family: var(--font-family-main);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary {
-  background: var(--border-color);
-  color: var(--text-primary);
-}
-
-.btn-secondary:hover {
-  background: var(--gray-color-dark);
-}
-
-.btn-primary {
-  background: var(--primary-color);
-  color: var(--text-primary);
-}
-
-.btn-primary:disabled {
-  background: var(--border-color);
-  cursor: not-allowed;
-}
-
-.btn-primary:not(:disabled):hover {
-  background: var(--primary-color-dark);
-}
 
 /* エラーメッセージ */
 .error-message {
   background: var(--error-color);
   color: var(--text-primary);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 16px;
   text-align: center;
   font-size: var(--font-size-sm);

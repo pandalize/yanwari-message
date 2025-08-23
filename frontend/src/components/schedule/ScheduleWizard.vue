@@ -146,16 +146,17 @@
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <button class="btn btn-secondary" @click="goBack">
+      <UnifiedButton variant="secondary" size="standard" @click="goBack">
         文章を編集
-      </button>
-      <button 
-        class="btn btn-primary" 
+      </UnifiedButton>
+      <UnifiedButton 
+        variant="primary" 
+        size="standard"
         @click="handleScheduleClick"
         :disabled="!canSchedule || isScheduling"
       >
         {{ isScheduling ? '設定中...' : 'この時刻に送信する' }}
-      </button>
+      </UnifiedButton>
     </div>
     
     <!-- メッセージ表示 -->
@@ -179,6 +180,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMessageStore } from '@/stores/messages'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 import scheduleService, { 
   type ScheduleSuggestionResponse,
   type ScheduleSuggestionRequest 
@@ -659,7 +661,7 @@ const scheduleMessage = async () => {
 }
 
 // ボタンクリックハンドラー（デバウンス処理付き）
-let scheduleClickTimeout: NodeJS.Timeout | null = null
+let scheduleClickTimeout: number | null = null
 const handleScheduleClick = () => {
   // 既存のタイムアウトをクリア
   if (scheduleClickTimeout) {
@@ -1033,42 +1035,6 @@ onMounted(() => {
   gap: 177px;
 }
 
-.btn {
-  height: 60px;
-  border: none;
-  border-radius: 30px;
-  color: #000000;
-  font-size: 18px;
-  font-weight: 400;
-  font-family: var(--font-family-main);
-  line-height: 100%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-secondary {
-  width: 150px;
-  background: var(--primary-color);
-}
-
-.btn-primary {
-  width: 250px;
-  background: var(--primary-color);
-}
-
-.btn:hover {
-  background: var(--primary-color-dark);
-}
-
-.btn:disabled {
-  background: #d9d9d9;
-  color: #999999;
-  cursor: not-allowed;
-}
 
 /* アラート */
 .alert {
@@ -1243,13 +1209,6 @@ onMounted(() => {
     margin-top: 20px;
   }
   
-  .btn {
-    width: 100%;
-    height: 50px;
-    font-size: 16px;
-    max-width: 280px;
-    margin: 0 auto;
-  }
   
   /* アラート */
   .alert {

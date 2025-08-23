@@ -61,23 +61,25 @@
 
       <!-- アクションボタン -->
       <div class="action-buttons">
-        <button 
-          class="action-btn draft-btn" 
+        <UnifiedButton 
+          class="draft-btn"
           @click="saveDraft"
           :disabled="isLoading || !messageText.trim()"
+          variant="primary"
         >
           <span v-if="isLoading && currentAction === 'draft'">保存中...</span>
           <span v-else-if="messageStore.currentDraft?.id">下書きを更新</span>
           <span v-else>下書きに追加</span>
-        </button>
-        <button 
-          class="action-btn transform-btn" 
+        </UnifiedButton>
+        <UnifiedButton 
+          class="transform-btn"
           @click="transformTone"
           :disabled="isLoading || !messageText.trim()"
+          variant="primary"
         >
           <span v-if="isLoading && currentAction === 'transform'">処理中...</span>
           <span v-else>トーン変換を行う</span>
-        </button>
+        </UnifiedButton>
       </div>
     </section>
 
@@ -142,6 +144,7 @@ import type { MessageDraft } from '@/services/messageService'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
 import SmallButton from '@/components/common/SmallButton.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 import MessageContainer from '@/components/common/MessageContainer.vue'
 import MessageListItem from '@/components/common/MessageListItem.vue'
 
@@ -621,36 +624,9 @@ const transformTone = async () => {
   width: 700px;
 }
 
-.action-btn {
-  width: 200px;
-  height: 60px;
-  border-radius: 30px;
-  border: none;
-  font-size: var(--font-size-base);
-  font-family: var(--font-family-main);
-  font-weight: var(--font-weight-regular);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .draft-btn,
 .transform-btn {
-  background: var(--primary-color);
-}
-
-.draft-btn:hover,
-.transform-btn:hover {
-  background: var(--primary-color-dark);
-}
-
-.action-btn:disabled {
-  background: var(--gray-color-light);
-  color: var(--text-muted);
-  cursor: not-allowed;
+  width: 200px;
 }
 
 /* 下書きセクション */

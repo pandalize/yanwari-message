@@ -13,7 +13,7 @@
           class="search-input"
         />
       </div>
-      <button class="sort-button" @click="toggleSort">順番切替</button>
+      <UnifiedButton variant="secondary" @click="toggleSort">順番切替</UnifiedButton>
     </div>
 
     <!-- 送信予定セクション -->
@@ -43,20 +43,22 @@
           </template>
           <template #right>
             <div class="action-buttons" @click.stop>
-              <button 
+              <UnifiedButton 
+                variant="secondary" 
+                size="small" 
                 @click.stop="editMessage(message.id)" 
-                class="action-button edit-button"
                 title="メッセージを編集"
               >
                 編集
-              </button>
-              <button 
+              </UnifiedButton>
+              <UnifiedButton 
+                variant="secondary" 
+                size="small" 
                 @click.stop="cancelSchedule(message.id)" 
-                class="action-button cancel-button"
                 title="送信をキャンセル"
               >
                 キャンセル
-              </button>
+              </UnifiedButton>
             </div>
           </template>
         </MessageListItem>
@@ -99,7 +101,7 @@
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">メッセージ詳細</h3>
-          <button class="close-btn" @click="closeModal">×</button>
+          <UnifiedButton variant="secondary" size="small" @click="closeModal">×</UnifiedButton>
         </div>
         
         <div v-if="isLoadingDetail" class="loading-state">
@@ -138,7 +140,7 @@
         
         <div v-if="detailError" class="error-state">
           <p class="error-message">{{ detailError }}</p>
-          <button class="retry-btn" @click="retryLoadDetail">再試行</button>
+          <UnifiedButton variant="secondary" @click="retryLoadDetail">再試行</UnifiedButton>
         </div>
       </div>
     </div>
@@ -155,6 +157,7 @@ import scheduleService from '@/services/scheduleService'
 import { apiService } from '@/services/api'
 import MessageContainer from '@/components/common/MessageContainer.vue'
 import MessageListItem from '@/components/common/MessageListItem.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 interface HistoryMessage {
   id: string
@@ -661,7 +664,7 @@ onUnmounted(() => {
   padding: 0 var(--spacing-lg);
   background: var(--primary-color);
   border: none;
-  border-radius: 28px;
+  border-radius: var(--radius-2xl);
   font-size: var(--font-size-md);
   color: var(--text-primary);
   outline: none;
@@ -674,22 +677,11 @@ onUnmounted(() => {
   font-family: var(--font-family-main);
 }
 
-.sort-button {
+.filter-bar .unified-btn {
   height: 56px;
   padding: 0 var(--spacing-lg);
-  background: var(--background-primary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
   font-size: var(--font-size-md);
-  color: var(--text-primary);
-  cursor: pointer;
   font-weight: var(--font-weight-regular);
-  font-family: var(--font-family-main);
-  transition: all 0.2s ease;
-}
-
-.sort-button:hover {
-  background: var(--background-muted);
 }
 
 /* セクション */
@@ -751,28 +743,13 @@ onUnmounted(() => {
   pointer-events: auto;
 }
 
-.action-button {
+.action-buttons .unified-btn {
   padding: var(--spacing-sm) var(--spacing-md);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--primary-color);
-  color: var(--text-primary);
-  cursor: pointer;
   font-size: var(--font-size-sm);
-  font-family: var(--font-family-main);
   font-weight: var(--font-weight-regular);
   pointer-events: auto;
   z-index: 11;
   position: relative;
-  transition: background-color 0.2s ease;
-}
-
-.action-button:hover {
-  background: var(--primary-color-dark);
-}
-
-.action-button:active {
-  background: var(--primary-color-darker);
 }
 
 
@@ -833,25 +810,12 @@ onUnmounted(() => {
   font-family: var(--font-family-main);
 }
 
-.close-btn {
-  background: none;
-  border: none;
+.modal-header .unified-btn {
   font-size: var(--font-size-2xl);
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 0;
   width: 32px;
   height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: var(--background-muted);
-  color: var(--text-primary);
+  padding: 0;
+  border-radius: var(--radius-sm);
 }
 
 .modal-body {
@@ -960,20 +924,9 @@ onUnmounted(() => {
   font-size: var(--font-size-md);
 }
 
-.retry-btn {
-  background: var(--secondary-color);
-  color: var(--text-primary);
-  border: none;
-  border-radius: var(--radius-sm);
+.error-state .unified-btn {
   padding: var(--spacing-sm) var(--spacing-md);
-  cursor: pointer;
   font-size: var(--font-size-sm);
-  font-family: var(--font-family-main);
-  transition: background 0.2s ease;
-}
-
-.retry-btn:hover {
-  background: var(--secondary-color-dark);
 }
 
 /* レスポンシブ対応 */
