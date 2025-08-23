@@ -803,7 +803,11 @@ const transformTone = async () => {
   .recipient-info,
   .message-input-container,
   .reason-input-container,
-  .drafts-container {
+  .drafts-container,
+  .compose-section,
+  .action-buttons,
+  .drafts-section,
+  .input-sections {
     width: 100%;
     max-width: none;
   }

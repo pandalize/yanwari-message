@@ -461,7 +461,7 @@ onMounted(async () => {
 }
 
 /* レスポンシブ */
-@media (max-width: 768px) {
+@media (max-width: 440px) {
   .recipient-select-view {
     padding: 20px;
   }
