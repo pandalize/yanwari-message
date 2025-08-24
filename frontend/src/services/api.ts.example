@@ -14,11 +14,11 @@ class ApiService {
     const getApiBaseUrl = () => {
       // Capacitorネイティブアプリの場合
       if (window.location.protocol === 'capacitor:') {
-        // 実機テスト用：環境変数から取得
-        return import.meta.env.VITE_CAPACITOR_API_URL || 'http://localhost:8080/api/v1'
+        // 実機テスト用：MacのローカルIPアドレスを使用
+        return 'http://192.168.1.3:8080/api/v1'
       }
       // Web版の場合
-      return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+      return 'http://localhost:8080/api/v1'
     }
 
     this.api = axios.create({
@@ -36,10 +36,10 @@ class ApiService {
 
 
   async healthCheck(): Promise<any> {
-    const baseUrl = window.location.protocol === 'capacitor:' 
-      ? import.meta.env.VITE_CAPACITOR_API_URL?.replace('/api/v1', '') || 'http://localhost:8080'
-      : 'http://localhost:8080'
-    const response = await axios.get(`${baseUrl}/health`)
+    const url = window.location.protocol === 'capacitor:' 
+      ? 'http://192.168.1.3:8080/health' 
+      : 'http://localhost:8080/health'
+    const response = await axios.get(url)
     return response.data
   }
 
