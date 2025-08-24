@@ -19,7 +19,6 @@ type Message struct {
 	SenderID     primitive.ObjectID `bson:"senderId" json:"senderId"`
 	RecipientID  primitive.ObjectID `bson:"recipientId,omitempty" json:"recipientId,omitempty"`
 	OriginalText string             `bson:"originalText" json:"originalText"`
-	Reason       string             `bson:"reason,omitempty" json:"reason,omitempty"`
 	Variations   MessageVariations  `bson:"variations" json:"variations"`
 	SelectedTone string             `bson:"selectedTone,omitempty" json:"selectedTone,omitempty"`
 	FinalText    string             `bson:"finalText,omitempty" json:"finalText,omitempty"`
@@ -62,14 +61,12 @@ const (
 type CreateMessageRequest struct {
 	RecipientEmail string `json:"recipientEmail,omitempty"`
 	OriginalText   string `json:"originalText" binding:"max=1000"`
-	Reason         string `json:"reason,omitempty" binding:"max=500"`
 }
 
 // UpdateMessageRequest メッセージ更新リクエスト
 type UpdateMessageRequest struct {
 	RecipientEmail   string            `json:"recipientEmail,omitempty"`
 	OriginalText     string            `json:"originalText,omitempty"`
-	Reason           string            `json:"reason,omitempty"`
 	Variations       MessageVariations `json:"variations,omitempty"`
 	ToneVariations   map[string]string `json:"toneVariations,omitempty"` // トーン変換結果用
 	SelectedTone     string            `json:"selectedTone,omitempty"`
@@ -99,9 +96,9 @@ func (s *MessageService) GetUserService() *UserService {
 
 // CreateDraft 下書きメッセージを作成
 func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.ObjectID, req *CreateMessageRequest) (*Message, error) {
-	// バリデーション: メッセージまたは理由のいずれかは必須
-	if req.OriginalText == "" && req.Reason == "" {
-		return nil, errors.New("メッセージまたは理由を入力してください")
+	// バリデーション: メッセージは必須
+	if req.OriginalText == "" {
+		return nil, errors.New("メッセージを入力してください")
 	}
 	
 	now := time.Now()
@@ -109,7 +106,6 @@ func (s *MessageService) CreateDraft(ctx context.Context, senderID primitive.Obj
 	message := &Message{
 		SenderID:     senderID,
 		OriginalText: req.OriginalText,
-		Reason:       req.Reason,
 		Status:       MessageStatusDraft,
 		CreatedAt:    now,
 		UpdatedAt:    now,
@@ -156,9 +152,6 @@ func (s *MessageService) UpdateMessage(ctx context.Context, messageID, senderID 
 		updateData["originalText"] = req.OriginalText
 	}
 	
-	if req.Reason != "" {
-		updateData["reason"] = req.Reason
-	}
 	
 	if req.Variations.Gentle != "" || req.Variations.Constructive != "" || req.Variations.Casual != "" {
 		updateData["variations"] = req.Variations

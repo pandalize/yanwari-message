@@ -159,8 +159,7 @@ Authorization: Bearer <firebase_id_token>
 ```json
 {
   "recipientEmail": "recipient@example.com",
-  "originalText": "メッセージ本文",
-  "reason": "送信理由（任意）"
+  "originalText": "メッセージ本文"
 }
 ```
 **レスポンス**:
@@ -172,7 +171,6 @@ Authorization: Bearer <firebase_id_token>
     "recipientId": "ObjectId", 
     "recipientEmail": "recipient@example.com",
     "originalText": "メッセージ本文",
-    "reason": "送信理由",
     "status": "draft",
     "createdAt": "2025-08-10T10:30:00Z"
   },
@@ -188,7 +186,6 @@ Authorization: Bearer <firebase_id_token>
 ```json
 {
   "originalText": "更新されたメッセージ本文",
-  "reason": "更新された送信理由",
   "finalText": "最終送信テキスト（任意）",
   "selectedTone": "gentle|constructive|casual"
 }
@@ -237,7 +234,6 @@ Authorization: Bearer <firebase_id_token>
         "recipientEmail": "recipient@example.com",
         "originalText": "元のメッセージ",
         "finalText": "最終送信テキスト",
-        "reason": "送信理由",
         "status": "delivered|read",
         "sentAt": "2025-08-10T10:30:00Z",
         "deliveredAt": "2025-08-10T10:31:00Z",
@@ -670,7 +666,6 @@ interface Message {
   recipientEmail: string;
   originalText: string;      // 元のメッセージ
   finalText?: string;        // 最終送信テキスト（トーン変換後）
-  reason?: string;          // 送信理由
   selectedTone?: string;    // 選択されたトーン
   status: 'draft' | 'scheduled' | 'sent' | 'delivered' | 'read';
   createdAt: string;

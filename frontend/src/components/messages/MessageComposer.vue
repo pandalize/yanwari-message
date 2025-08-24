@@ -13,7 +13,7 @@
       <div class="message-input-area">
         <textarea
           v-model="form.originalText"
-          placeholder="メッセージを入力 / 変換前のメッセージ&#10;送りたい理由も教えてね"
+          placeholder="メッセージを入力 / 変換前のメッセージ"
           class="message-textarea"
           :class="{ 'error': hasError }"
           maxlength="1000"
