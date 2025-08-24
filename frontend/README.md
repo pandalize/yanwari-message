@@ -23,18 +23,21 @@ npm run dev
 
 #### 1. 環境変数の設定
 
-```bash
-# .env.localファイルを作成（gitignore対象）
-echo "VITE_CAPACITOR_API_URL=http://[あなたのローカルIP]:8080/api/v1" > .env.local
+`.env`ファイルの`VITE_CAPACITOR_API_URL`を自分のローカルIPアドレスに変更：
 
-# ローカルIPの確認方法
-# Mac: ifconfig | grep "inet " | grep -v 127.0.0.1
-# Windows: ipconfig
+```bash
+# ローカルIPの確認
+# Mac: 
+ifconfig | grep "inet " | grep -v 127.0.0.1
+
+# Windows: 
+ipconfig
 ```
 
-例：
+`.env`ファイルを編集：
 ```bash
-echo "VITE_CAPACITOR_API_URL=http://192.168.1.100:8080/api/v1" > .env.local
+# iOS/Android開発用
+VITE_CAPACITOR_API_URL=http://192.168.1.100:8080/api/v1  # あなたのIPに変更
 ```
 
 #### 2. ビルドと同期
@@ -55,8 +58,7 @@ npx cap run android
 
 ### 📝 重要な注意事項
 
-- **`.env`ファイル**: リポジトリにコミット（共通設定）
-- **`.env.local`ファイル**: 各開発者のローカル設定（gitignore対象）
+- **`.env`ファイル**: gitignore対象（各開発者が自分の環境に合わせて設定）
 - **IPアドレス**: 開発PCとモバイルデバイスが同じネットワークに接続されている必要があります
 - **バックエンド**: `docker-compose up -d`でバックエンドを起動してください
 
@@ -89,7 +91,7 @@ npm run build
 
 2. ローカルIPが正しいことを確認
    ```bash
-   cat .env.local
+   grep VITE_CAPACITOR_API_URL .env
    ```
 
 3. ファイアウォールが8080ポートをブロックしていないか確認
@@ -107,6 +109,6 @@ npm install -g ngrok
 # バックエンドを公開
 ngrok http 8080
 
-# 生成されたURLを.env.localに設定
-echo "VITE_CAPACITOR_API_URL=https://abc123.ngrok.io/api/v1" > .env.local
+# 生成されたURLを.envに設定
+# VITE_CAPACITOR_API_URL=https://abc123.ngrok.io/api/v1
 ```

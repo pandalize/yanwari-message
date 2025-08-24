@@ -1,16 +1,21 @@
 # モバイル開発環境セットアップ
 
-## 環境変数の管理方法（標準的な.env.local方式）
+## 環境変数の管理方法（.envのみ使用）
 
 ### ファイル構成
 - `/yanwari-message/.env` - バックエンド設定のみ（ANTHROPIC_API_KEY、JWT、MongoDB）
-- `/frontend/.env` - フロントエンド共通設定（リポジトリにコミット）
-- `/frontend/.env.local` - 各開発者のローカル設定（gitignore対象）
+- `/frontend/.env` - フロントエンド設定（gitignore対象、各開発者が設定）
 - `/frontend/.env.example` - 環境変数のテンプレート
 
 ### iOS/Android開発手順
 
-1. **ローカルIPアドレスを確認**
+1. **環境変数をコピー**
+```bash
+cd frontend
+cp .env.example .env
+```
+
+2. **ローカルIPアドレスを確認**
 ```bash
 # Mac
 ifconfig | grep "inet " | grep -v 127.0.0.1
@@ -18,13 +23,13 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 ipconfig
 ```
 
-2. **.env.localを作成**
+3. **.envファイルを編集**
 ```bash
-cd frontend
-echo "VITE_CAPACITOR_API_URL=http://[あなたのIP]:8080/api/v1" > .env.local
+# VITE_CAPACITOR_API_URLを自分のIPアドレスに変更
+VITE_CAPACITOR_API_URL=http://192.168.1.100:8080/api/v1
 ```
 
-3. **ビルドと実行**
+4. **ビルドと実行**
 ```bash
 npm run build
 npx cap sync ios  # または android
@@ -34,12 +39,11 @@ npx cap run ios   # または android
 ### Capacitor設定
 - `capacitor.config.ts`は固定設定（動的生成なし）
 - `cleartext: true`でHTTP接続を許可
-- IPアドレスは.env.localで管理
 
 ### 注意事項
 - 開発PCとモバイルデバイスは同じWi-Fiネットワークに接続
 - バックエンドは`docker-compose up -d`で起動
-- `.env.local`はgitignoreで除外される
+- `.env`はgitignoreで除外される
 
 ### トラブルシューティング
 - ネットワークエラー: IPアドレスとポート8080の確認
