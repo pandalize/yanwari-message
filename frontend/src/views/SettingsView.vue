@@ -158,117 +158,7 @@
             </div>
           </div>
 
-          <!-- 言語・地域設定 -->
-          <div v-if="activeSection === 'language'" class="section-content">
-            <h2 class="section-title">🌍 言語・地域設定</h2>
-            <div class="settings-card">
-              <div class="form-group">
-                <label for="language">言語</label>
-                <select 
-                  id="language"
-                  v-model="languageSettings.language"
-                  class="form-select"
-                  @change="updateLanguageSettings"
-                >
-                  <option value="ja">日本語</option>
-                  <option value="en">English</option>
-                  <option value="ko">한국어</option>
-                  <option value="zh">中文</option>
-                </select>
-                <small class="form-hint">アプリケーションの表示言語を選択</small>
-              </div>
 
-              <div class="form-group">
-                <label for="timezone">タイムゾーン</label>
-                <select 
-                  id="timezone"
-                  v-model="languageSettings.timezone"
-                  class="form-select"
-                  @change="updateLanguageSettings"
-                >
-                  <option value="Asia/Tokyo">日本標準時 (JST)</option>
-                  <option value="America/New_York">東部標準時 (EST)</option>
-                  <option value="America/Los_Angeles">太平洋標準時 (PST)</option>
-                  <option value="Europe/London">グリニッジ標準時 (GMT)</option>
-                  <option value="Asia/Seoul">韓国標準時 (KST)</option>
-                  <option value="Asia/Shanghai">中国標準時 (CST)</option>
-                </select>
-                <small class="form-hint">メッセージの送信時間などに使用されます</small>
-              </div>
-
-              <div class="form-group">
-                <label for="dateFormat">日付形式</label>
-                <select 
-                  id="dateFormat"
-                  v-model="languageSettings.dateFormat"
-                  class="form-select"
-                  @change="updateLanguageSettings"
-                >
-                  <option value="YYYY/MM/DD">2024/01/15</option>
-                  <option value="MM/DD/YYYY">01/15/2024</option>
-                  <option value="DD/MM/YYYY">15/01/2024</option>
-                  <option value="YYYY-MM-DD">2024-01-15</option>
-                </select>
-                <small class="form-hint">日付の表示形式を選択</small>
-              </div>
-            </div>
-          </div>
-
-          <!-- メッセージ設定 -->
-          <div v-if="activeSection === 'messages'" class="section-content">
-            <h2 class="section-title">💬 メッセージ設定</h2>
-            <div class="settings-card">
-              <div class="form-group">
-                <label for="defaultTone">デフォルトトーン</label>
-                <select 
-                  id="defaultTone"
-                  v-model="messageSettings.defaultTone"
-                  class="form-select"
-                  @change="updateMessageSettings"
-                >
-                  <option value="gentle">💝 やんわり</option>
-                  <option value="constructive">🏗️ 建設的</option>
-                  <option value="casual">🎯 カジュアル</option>
-                </select>
-                <small class="form-hint">新しいメッセージ作成時の初期トーン</small>
-              </div>
-
-              <div class="form-group">
-                <label for="timeRestriction">送信時間制限</label>
-                <select 
-                  id="timeRestriction"
-                  v-model="messageSettings.timeRestriction"
-                  class="form-select"
-                  @change="updateMessageSettings"
-                >
-                  <option value="none">制限なし</option>
-                  <option value="business_hours">営業時間のみ（9:00-18:00）</option>
-                  <option value="extended_hours">拡張時間（8:00-20:00）</option>
-                </select>
-                <small class="form-hint">メッセージ送信可能な時間帯</small>
-              </div>
-
-              <div class="form-group">
-                <label for="autoSave">自動保存</label>
-                <div class="setting-item">
-                  <div class="setting-info">
-                    <h3>下書きの自動保存</h3>
-                    <p>メッセージ入力中に自動的に下書きを保存</p>
-                  </div>
-                  <div class="setting-control">
-                    <label class="toggle-switch">
-                      <input 
-                        type="checkbox" 
-                        v-model="messageSettings.autoSave"
-                        @change="updateMessageSettings"
-                      />
-                      <span class="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- ログアウト -->
           <div v-if="activeSection === 'logout'" class="section-content">
@@ -292,21 +182,6 @@
       </div>
     </div>
 
-    <!-- 削除確認モーダル -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="hideDeleteConfirmation">
-      <div class="modal-content" @click.stop>
-        <h3>⚠️ アカウント削除の確認</h3>
-        <p>この操作は取り消せません。本当にアカウントを削除しますか？</p>
-        <div class="modal-actions">
-          <button @click="hideDeleteConfirmation" class="btn btn-secondary">
-            キャンセル
-          </button>
-          <button @click="deleteAccount" class="btn btn-danger">
-            削除する
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- 成功・エラーメッセージ -->
     <div v-if="message" class="message" :class="messageType">
@@ -321,8 +196,7 @@ import { useRouter } from 'vue-router'
 import { useJWTAuthStore } from '@/stores/jwtAuth'
 import settingsService, { 
   type UserSettings, 
-  type NotificationSettings, 
-  type MessageSettings 
+  type NotificationSettings
 } from '@/services/settingsService'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
@@ -348,25 +222,13 @@ const notificationSettings = reactive({
   browserNotifications: false
 })
 
-const messageSettings = reactive({
-  defaultTone: 'gentle',
-  timeRestriction: 'none',
-  autoSave: true
-})
 
-const languageSettings = reactive({
-  language: 'ja',
-  timezone: 'Asia/Tokyo',
-  dateFormat: 'YYYY/MM/DD'
-})
 
 // サイドバーナビゲーション
 const activeSection = ref('account')
 const settingsSections = [
   { id: 'account', label: 'アカウント' },
   { id: 'notifications', label: '通知' },
-  { id: 'language', label: '言語・地域' },
-  { id: 'messages', label: 'メッセージ' },
   { id: 'logout', label: 'ログアウト' }
 ]
 
@@ -375,7 +237,6 @@ const isLoading = ref(true)
 const isUpdatingProfile = ref(false)
 const isChangingPassword = ref(false)
 const isUpdating = ref(false)
-const showDeleteModal = ref(false)
 const message = ref('')
 const messageType = ref('')
 
@@ -400,9 +261,6 @@ const loadSettings = async () => {
     
     // 通知設定に反映
     Object.assign(notificationSettings, settings.notifications)
-    
-    // メッセージ設定に反映
-    Object.assign(messageSettings, settings.messages)
     
     console.log('設定データ反映完了')
     
@@ -475,56 +333,13 @@ const updateNotificationSettings = async () => {
   }
 }
 
-const updateMessageSettings = async () => {
-  try {
-    await settingsService.updateMessageSettings(messageSettings)
-    showMessage('メッセージ設定を更新しました', 'success')
-  } catch (error: any) {
-    console.error('メッセージ設定更新エラー:', error)
-    const errorMessage = error.response?.data?.error || 'メッセージ設定の更新に失敗しました'
-    showMessage(errorMessage, 'error')
-  }
-}
 
-const updateLanguageSettings = async () => {
-  try {
-    // TODO: バックエンドに言語設定APIを追加する必要があります
-    // await settingsService.updateLanguageSettings(languageSettings)
-    showMessage('言語・地域設定を更新しました', 'success')
-  } catch (error: any) {
-    console.error('言語設定更新エラー:', error)
-    const errorMessage = error.response?.data?.error || '言語設定の更新に失敗しました'
-    showMessage(errorMessage, 'error')
-  }
-}
 
 const logout = async () => {
   await authStore.logout()
   router.push('/login')
 }
 
-const showDeleteConfirmation = () => {
-  showDeleteModal.value = true
-}
-
-const hideDeleteConfirmation = () => {
-  showDeleteModal.value = false
-}
-
-const deleteAccount = async () => {
-  try {
-    await settingsService.deleteAccount()
-    showMessage('アカウントを削除しました', 'success')
-    await authStore.logout()
-    router.push('/login')
-  } catch (error: any) {
-    console.error('アカウント削除エラー:', error)
-    const errorMessage = error.response?.data?.error || 'アカウントの削除に失敗しました'
-    showMessage(errorMessage, 'error')
-  } finally {
-    hideDeleteConfirmation()
-  }
-}
 
 const updateAllSettings = async () => {
   isUpdating.value = true

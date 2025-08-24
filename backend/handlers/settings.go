@@ -200,27 +200,6 @@ func (h *SettingsHandler) UpdateNotificationSettings(c *gin.Context) {
 }
 
 
-// DeleteAccount アカウントを削除
-func (h *SettingsHandler) DeleteAccount(c *gin.Context) {
-	user, err := getUserByJWT(c, h.userService)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
-	}
-	userID := user.ID
-
-	// TODO: アカウント削除の実装
-	// - ユーザーデータの削除
-	_ = userID // 一時的に使用済みとしてマーク
-	// - 関連するメッセージの削除
-	// - 設定の削除
-	// 現在は仮実装
-
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "アカウントを削除しました",
-	})
-}
 
 // RegisterRoutes 設定関連のルートを登録
 func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.HandlerFunc) {
@@ -231,6 +210,5 @@ func (h *SettingsHandler) RegisterRoutes(v1 *gin.RouterGroup, jwtMiddleware gin.
 		settings.PUT("/profile", h.UpdateProfile)                 // プロフィール更新
 		settings.PUT("/password", h.ChangePassword)               // パスワード変更
 		settings.PUT("/notifications", h.UpdateNotificationSettings) // 通知設定更新
-		settings.DELETE("/account", h.DeleteAccount)             // アカウント削除
 	}
 }

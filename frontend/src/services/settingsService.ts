@@ -13,10 +13,6 @@ export interface NotificationSettings {
   browserNotifications: boolean
 }
 
-export interface MessageSettings {
-  defaultTone: 'gentle' | 'constructive' | 'casual'
-  timeRestriction: 'none' | 'business_hours' | 'extended_hours'
-}
 
 export interface UserSettings {
   user: UserProfile
@@ -95,57 +91,8 @@ class SettingsService {
     }
   }
 
-  /**
-   * メッセージ設定を更新
-   */
-  async updateMessageSettings(settings: MessageSettings): Promise<void> {
-    const response = await apiService.put<{
-      success: boolean
-      message: string
-    }>(`${this.baseUrl}/messages`, settings)
-    
-    if (!response.data.success) {
-      throw new Error('メッセージ設定の更新に失敗しました')
-    }
-  }
 
-  /**
-   * アカウントを削除
-   */
-  async deleteAccount(): Promise<void> {
-    const response = await apiService.delete<{
-      success: boolean
-      message: string
-    }>(`${this.baseUrl}/account`)
-    
-    if (!response.data.success) {
-      throw new Error('アカウントの削除に失敗しました')
-    }
-  }
 
-  /**
-   * トーンのラベル取得
-   */
-  getToneLabel(tone: string): string {
-    const labels: Record<string, string> = {
-      gentle: '💝 やんわり',
-      constructive: '🏗️ 建設的',
-      casual: '🎯 カジュアル'
-    }
-    return labels[tone] || tone
-  }
-
-  /**
-   * 時間制限のラベル取得
-   */
-  getTimeRestrictionLabel(restriction: string): string {
-    const labels: Record<string, string> = {
-      none: '制限なし',
-      business_hours: '営業時間のみ（9:00-18:00）',
-      extended_hours: '拡張時間（8:00-20:00）'
-    }
-    return labels[restriction] || restriction
-  }
 }
 
 // シングルトンインスタンスをエクスポート
