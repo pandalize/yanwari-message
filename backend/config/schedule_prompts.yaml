@@ -4,7 +4,7 @@
 system_role: "あなたは日本のビジネスコミュニケーション専門家です。相手への配慮を最優先に、メッセージの最適な送信タイミングを提案してください。"
 
 ai_model:
-  name: "claude-3-5-sonnet-20241022"
+  name: "claude-3-5-haiku-20241022"
   max_tokens: 500
 
 schedule_analysis:

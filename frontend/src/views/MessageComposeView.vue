@@ -43,20 +43,6 @@
           </MessageContainer>
         </div>
 
-        <!-- 送信理由 -->
-        <div class="input-section">
-          <h3 class="input-label">送信理由・背景</h3>
-          <MessageContainer 
-            class="reason-input-container"
-          >
-            <textarea
-              v-model="reasonText"
-              placeholder="このメッセージを送る理由や背景を教えてください（任意）"
-              class="reason-textarea"
-              maxlength="500"
-            ></textarea>
-          </MessageContainer>
-        </div>
       </div>
 
       <!-- アクションボタン -->
@@ -152,7 +138,6 @@ const router = useRouter()
 const route = useRoute()
 const messageStore = useMessageStore()
 const messageText = ref('')
-const reasonText = ref('')
 const isLoading = ref(false)
 const currentAction = ref('')
 const recipientInfo = ref<any>(null)
@@ -185,17 +170,7 @@ const formatDate = (dateString: string) => {
 const loadDraft = async (draft: MessageDraft) => {
   // 組み合わせられたテキストを分離
   const text = draft.originalText
-  const reasonSeparator = '\n\n【送信理由・背景】\n'
-  
-  if (text.includes(reasonSeparator)) {
-    const parts = text.split(reasonSeparator)
-    messageText.value = parts[0]
-    reasonText.value = parts[1] || ''
-  } else {
-    // 古い形式の下書きの場合は全てメッセージテキストに入れる
-    messageText.value = text
-    reasonText.value = ''
-  }
+  messageText.value = text
   
   // 受信者情報を復元
   if (draft.recipientEmail) {
@@ -250,7 +225,6 @@ const deleteDraft = async (draft: MessageDraft) => {
       // 削除した下書きが現在編集中の場合、テキストエリアをクリア
       if (messageStore.currentDraft?.id === draft.id) {
         messageText.value = ''
-        reasonText.value = ''
         recipientInfo.value = null
         // currentDraftをクリアして新規作成状態に戻す
         messageStore.clearCurrentDraft()
@@ -350,11 +324,10 @@ const saveDraft = async () => {
     if (messageStore.currentDraft?.id) {
       // 既存の下書きを更新
       console.log('既存の下書きを更新:', messageStore.currentDraft.id)
-      const combinedText = reasonText.value.trim() 
-        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
-        : messageText.value
+      const combinedText = messageText.value
       success = await messageStore.updateDraft(messageStore.currentDraft.id, {
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       
       if (success) {
@@ -363,11 +336,10 @@ const saveDraft = async () => {
     } else {
       // 新しい下書きを作成
       console.log('新しい下書きを作成')
-      const combinedText = reasonText.value.trim() 
-        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
-        : messageText.value
+      const combinedText = messageText.value
       success = await messageStore.createDraft({
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       
       if (success) {
@@ -377,7 +349,6 @@ const saveDraft = async () => {
     
     if (success) {
       messageText.value = '' // 入力欄をクリア
-      reasonText.value = '' // 理由欄もクリア
       // currentDraftをクリアして新規作成状態に戻す
       messageStore.clearCurrentDraft()
       // 下書き一覧は自動的にストアで更新される
@@ -401,9 +372,7 @@ const transformTone = async () => {
     // 受信者情報がない場合は受信者選択画面に移動
     if (confirm('送信先が選択されていません。受信者選択画面に移動しますか？')) {
       // 現在の内容を一時保存してから受信者選択画面に移動
-      const combinedText = reasonText.value.trim() 
-        ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
-        : messageText.value
+      const combinedText = messageText.value
       
       // クエリパラメータで現在の内容を渡す
       router.push({
@@ -425,14 +394,10 @@ const transformTone = async () => {
   currentAction.value = 'transform'
 
   try {
-    const combinedText = reasonText.value.trim() 
-      ? `${messageText.value}\n\n【送信理由・背景】\n${reasonText.value}`
-      : messageText.value
+    const combinedText = messageText.value
     
     console.log('トーン変換開始:', {
       messageText: messageText.value,
-      reasonText: reasonText.value,
-      combinedText: combinedText,
       recipientEmail: recipientInfo.value.email,
       recipientName: recipientInfo.value.name
     })
@@ -445,7 +410,8 @@ const transformTone = async () => {
       // 既存の下書きを更新（recipientEmailは更新しない）
       console.log('既存の下書きを更新:', messageStore.currentDraft.id)
       success = await messageStore.updateDraft(messageStore.currentDraft.id, {
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       targetDraftId = messageStore.currentDraft.id
     } else {
@@ -582,8 +548,7 @@ const transformTone = async () => {
   font-weight: 600;
 }
 
-.message-textarea,
-.reason-textarea {
+.message-textarea {
   width: 100%;
   height: 100%;
   padding: var(--spacing-xl);
@@ -600,16 +565,14 @@ const transformTone = async () => {
   box-sizing: border-box;
 }
 
-.message-textarea::placeholder,
-.reason-textarea::placeholder {
+.message-textarea::placeholder {
   color: var(--text-primary);
   font-size: var(--font-size-base);
   font-family: var(--font-family-main);
   line-height: var(--line-height-normal);
 }
 
-.message-textarea:focus,
-.reason-textarea:focus {
+.message-textarea:focus {
   border-color: var(--border-color-focus);
 }
 
@@ -720,11 +683,6 @@ const transformTone = async () => {
   margin-bottom: var(--spacing-lg);
 }
 
-.reason-input-container {
-  width: 700px;
-  height: 150px;
-  margin-bottom: var(--spacing-2xl);
-}
 
 .drafts-container {
   width: 700px;
@@ -735,7 +693,6 @@ const transformTone = async () => {
 @media (max-width: 768px) {
   .recipient-info,
   .message-input-container,
-  .reason-input-container,
   .drafts-container {
     width: 100%;
     max-width: none;
@@ -789,7 +746,6 @@ const transformTone = async () => {
   
   .recipient-info,
   .message-input-container,
-  .reason-input-container,
   .drafts-container {
     width: 100%;
     max-width: none;
