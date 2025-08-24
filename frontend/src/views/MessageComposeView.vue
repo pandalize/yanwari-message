@@ -326,7 +326,8 @@ const saveDraft = async () => {
       console.log('既存の下書きを更新:', messageStore.currentDraft.id)
       const combinedText = messageText.value
       success = await messageStore.updateDraft(messageStore.currentDraft.id, {
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       
       if (success) {
@@ -337,7 +338,8 @@ const saveDraft = async () => {
       console.log('新しい下書きを作成')
       const combinedText = messageText.value
       success = await messageStore.createDraft({
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       
       if (success) {
@@ -408,7 +410,8 @@ const transformTone = async () => {
       // 既存の下書きを更新（recipientEmailは更新しない）
       console.log('既存の下書きを更新:', messageStore.currentDraft.id)
       success = await messageStore.updateDraft(messageStore.currentDraft.id, {
-        originalText: combinedText
+        originalText: combinedText,
+        recipientEmail: recipientInfo.value?.email || ''
       })
       targetDraftId = messageStore.currentDraft.id
     } else {
