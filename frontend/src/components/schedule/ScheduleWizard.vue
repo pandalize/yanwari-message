@@ -146,7 +146,7 @@
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <UnifiedButton variant="secondary" size="standard" @click="goBack">
+      <UnifiedButton variant="primary" size="standard" @click="goBack">
         文章を編集
       </UnifiedButton>
       <UnifiedButton 

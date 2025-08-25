@@ -214,7 +214,7 @@ async function removeFriend() {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  background: var(--background-secondary);
+  background: var(--background-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   transition: all 0.2s;
