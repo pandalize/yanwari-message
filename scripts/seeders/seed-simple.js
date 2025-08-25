@@ -89,7 +89,7 @@ function seedDevelopmentData() {
         });
         
         const userResult = db.users.insertMany(processedUsers);
-        logSuccess(`${userResult.insertedIds.length}件のユーザーを投入しました`);
+        logSuccess(`${Object.keys(userResult.insertedIds).length}件のユーザーを投入しました`);
         
         // 3. 友達関係データの投入
         logInfo('友達関係データを投入中...');
@@ -117,7 +117,7 @@ function seedDevelopmentData() {
         ];
         
         const friendshipResult = db.friendships.insertMany(friendships);
-        logSuccess(`${friendshipResult.insertedIds.length}件の友達関係を投入しました`);
+        logSuccess(`${Object.keys(friendshipResult.insertedIds).length}件の友達関係を投入しました`);
         
         // 4. メッセージデータの投入（多様なステータスと時間設定）
         logInfo('メッセージデータを投入中...');
@@ -297,11 +297,11 @@ function seedDevelopmentData() {
         ];
         
         const messageResult = db.messages.insertMany(messages);
-        logSuccess(`${messageResult.insertedIds.length}件のメッセージを投入しました`);
+        logSuccess(`${Object.keys(messageResult.insertedIds).length}件のメッセージを投入しました`);
         
         // 5. メッセージ評価データの投入（配信済み・既読メッセージのみ評価可能）
         logInfo('メッセージ評価データを投入中...');
-        const messageIds = messageResult.insertedIds;
+        const messageIds = Object.values(messageResult.insertedIds);
         const messageRatings = [
             // Alice → Bobのメッセージ (messageIds[0]) をBobが評価
             {
@@ -341,7 +341,7 @@ function seedDevelopmentData() {
         ];
         
         const ratingResult = db.message_ratings.insertMany(messageRatings);
-        logSuccess(`${ratingResult.insertedIds.length}件のメッセージ評価を投入しました`);
+        logSuccess(`${Object.keys(ratingResult.insertedIds).length}件のメッセージ評価を投入しました`);
         
         // 7. データ検証
         logInfo('データ投入の検証中...');
