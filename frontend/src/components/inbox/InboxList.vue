@@ -52,7 +52,6 @@
       <div v-else>
         <!-- メッセージリストの直上にselectボタンを配置 -->
         <div class="message-list-header">
-          <h3>受信メッセージ</h3>
           <select v-model="displayMode" @change="onDisplayModeChange" class="inline-select">
             <option value="treemap">ツリーマップ</option>
             <option value="list-desc">一覧（新しい順）</option>
@@ -646,17 +645,26 @@ const getStatusText = (status: string): string => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 0 1rem 1rem 1rem;
 }
 
 /* ツリーマップヘッダー */
 .treemap-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 1rem 0 1rem 0;
   border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
   background: white;
   flex-shrink: 0;
+}
+
+.treemap-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 /* ツリーマップコンテナ */
@@ -1028,8 +1036,14 @@ const getStatusText = (status: string): string => {
   }
   
   .treemap-header {
-    justify-content: center;
-    padding: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+  }
+  
+  .treemap-header h3 {
+    font-size: 1rem;
   }
   
   .message-list-header {
@@ -1069,10 +1083,16 @@ const getStatusText = (status: string): string => {
 @media (max-width: 440px) {
   .inbox-list {
     padding: 0;
-    margin: -16px -12px 0 -12px;
+    margin: 0;
   }
   
   .list-view {
+    padding: 0 12px 1rem 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .treemap-section {
     padding: 0 12px 1rem 12px;
     width: 100%;
     box-sizing: border-box;

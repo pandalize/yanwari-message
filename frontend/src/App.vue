@@ -18,7 +18,7 @@ const handleHistoryClick = () => {
     <!-- サイドバーナビゲーション -->
     <nav class="sidebar" v-if="authStore.isAuthenticated">
       <div class="nav-items">
-        <RouterLink to="/" class="nav-item">
+        <RouterLink to="/home" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor">
             <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
           </svg>
@@ -62,16 +62,6 @@ const handleHistoryClick = () => {
       </div>
     </nav>
 
-    <!-- 認証されていない場合の簡易ヘッダー -->
-    <header v-else class="simple-header">
-      <div class="header-content">
-        <h1>やんわり伝言</h1>
-        <div class="auth-buttons">
-          <RouterLink to="/login" class="auth-btn jwt">🔑 ログイン</RouterLink>
-          <RouterLink to="/register" class="auth-btn primary">新規登録</RouterLink>
-        </div>
-      </div>
-    </header>
 
     <!-- メインコンテンツ -->
     <main class="main-content" :class="{ 'with-sidebar': authStore.isAuthenticated }">
@@ -152,75 +142,6 @@ const handleHistoryClick = () => {
 }
 
 
-/* ===== 認証前ヘッダー ===== */
-.simple-header {
-  width: 100%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  padding: var(--spacing-lg) 0;
-  box-shadow: var(--shadow-sm);
-}
-
-.header-content {
-  max-width: var(--max-width-content);
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 var(--spacing-lg);
-}
-
-.simple-header h1 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-3xl);
-  font-weight: 600;
-  font-family: var(--font-family-main);
-}
-
-.auth-buttons {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.auth-btn {
-  text-decoration: none;
-  color: var(--text-primary);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-lg);
-  font-weight: 500;
-  font-size: var(--font-size-md);
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.auth-btn:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.auth-btn.jwt {
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-  color: white;
-  border: 1px solid #007bff;
-}
-
-.auth-btn.jwt:hover {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
-  color: white;
-}
-
-.auth-btn.primary {
-  background: var(--neutral-color);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.auth-btn.primary:hover {
-  background: var(--gray-color-light);
-}
 
 /* ===== メインコンテンツ ===== */
 .main-content {
@@ -258,19 +179,6 @@ const handleHistoryClick = () => {
     font-size: var(--font-size-sm);
   }
   
-  .header-content {
-    max-width: 1400px;
-    padding: 0 var(--spacing-2xl);
-  }
-  
-  .simple-header h1 {
-    font-size: var(--font-size-4xl);
-  }
-  
-  .auth-btn {
-    padding: var(--spacing-md) var(--spacing-xl);
-    font-size: var(--font-size-lg);
-  }
 }
 
 /* タブレット表示 */
@@ -311,13 +219,6 @@ const handleHistoryClick = () => {
     padding: var(--spacing-sm) var(--spacing-xs);
   }
   
-  .simple-header {
-    padding: var(--spacing-lg) var(--spacing-md);
-  }
-  
-  .header-content h1 {
-    font-size: var(--font-size-2xl);
-  }
 }
 
 /* 小さいモバイル表示 */
@@ -338,24 +239,6 @@ const handleHistoryClick = () => {
     padding: var(--spacing-md);
   }
   
-  .simple-header {
-    padding: var(--spacing-md);
-  }
-  
-  .header-content {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    align-items: center;
-  }
-  
-  .auth-buttons {
-    gap: var(--spacing-sm);
-  }
-  
-  .auth-btn {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: var(--font-size-sm);
-  }
 }
 
 /* 超小型モバイル表示 - 440px以下 */
@@ -407,30 +290,6 @@ const handleHistoryClick = () => {
     padding-bottom: var(--spacing-lg);
   }
   
-  /* 認証前ヘッダーの調整 */
-  .simple-header {
-    padding: var(--spacing-sm) var(--spacing-xs);
-  }
-  
-  .header-content {
-    padding: 0 var(--spacing-sm);
-  }
-  
-  .header-content h1 {
-    font-size: var(--font-size-xl);
-  }
-  
-  .auth-buttons {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--spacing-xs);
-  }
-  
-  .auth-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-xs);
-    min-width: 70px;
-  }
 }
 
 .settings-item {

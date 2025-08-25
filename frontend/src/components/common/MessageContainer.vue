@@ -59,8 +59,11 @@ const containerStyle = computed(() => {
 /* モバイル対応 - インラインスタイルより優先させるために!important使用 */
 @media (max-width: 440px) {
   .message-container {
-    width: calc(100vw - 64px) !important;
+    width: 100% !important;
     max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
   }
 }
 </style>

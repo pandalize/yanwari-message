@@ -977,7 +977,7 @@ onUnmounted(() => {
 @media (max-width: 440px) {
   .history-page {
     padding: 16px 12px 80px 12px;
-    margin: -16px -12px -76px -12px;
+    margin: 0;
     box-sizing: border-box;
     overflow-x: hidden;
   }

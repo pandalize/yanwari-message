@@ -169,12 +169,15 @@
                   現在のアカウントからログアウトします。<br>
                   再度ログインするにはメールアドレスとパスワードが必要です。
                 </p>
-                <button 
-                  @click="logout"
-                  class="btn btn-logout"
-                >
-                  ログアウトする
-                </button>
+                <div class="button-wrapper">
+                  <UnifiedButton 
+                    @click="logout"
+                    class="logout-button-override"
+                    variant="primary"
+                  >
+                    ログアウトする
+                  </UnifiedButton>
+                </div>
               </div>
             </div>
           </div>
@@ -200,6 +203,7 @@ import settingsService, {
 } from '@/services/settingsService'
 import PageContainer from '@/components/layout/PageContainer.vue'
 import PageTitle from '@/components/layout/PageTitle.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 const router = useRouter()
 const authStore = useJWTAuthStore()
@@ -915,22 +919,21 @@ input:checked + .toggle-slider:before {
   font-size: 1rem;
 }
 
-.btn-logout {
-  background: #dc3545;
-  color: white;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* ボタンラッパー - 中央配置用 */
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
 }
 
-.btn-logout:hover {
-  background: #c82333;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+/* ログアウトボタンのカスタマイズ - UnifiedButtonのスタイルをオーバーライド */
+:deep(.logout-button-override) {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+:deep(.logout-button-override:hover:not(:disabled)) {
+  background: #c82333 !important;
 }
 
 /* レスポンシブデザイン */

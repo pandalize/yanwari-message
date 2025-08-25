@@ -7,20 +7,24 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/login'
+    },
+    {
+      path: '/home',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: true }
     },
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/JWTLoginView.vue'),
+      component: () => import('../components/auth/JWTLoginForm.vue'),
       meta: { requiresAuth: false }
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/JWTRegisterView.vue'),
+      component: () => import('../components/auth/JWTRegisterForm.vue'),
       meta: { requiresAuth: false }
     },
     {
@@ -135,7 +139,7 @@ router.beforeEach(async (to, from, next) => {
     next('/login')
   } else if ((to.name === 'login' || to.name === 'register') && authStore.isAuthenticated) {
     console.log('🔑 Redirecting to home - already authenticated')
-    next('/')
+    next('/home')
   } else {
     console.log('🔑 Navigation allowed - proceeding to:', to.path)
     next()

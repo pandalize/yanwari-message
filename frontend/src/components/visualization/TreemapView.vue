@@ -648,6 +648,11 @@ watch(() => props.messages, () => {
   position: relative;
   overflow: hidden;
   z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .treemap-svg {
@@ -691,20 +696,32 @@ watch(() => props.messages, () => {
 @media (max-width: 440px) {
   .treemap-view {
     padding: 0;
-    margin: -16px -12px 0 -12px;
-    width: calc(100vw - 24px);
+    margin: 0;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
   }
   
   .treemap-container {
     border-radius: 4px;
-    margin: 0 12px;
-    width: calc(100% - 24px);
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
   }
   
   .treemap-svg-container {
     overflow-x: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .treemap-svg {
+    max-width: 100%;
+    height: auto;
   }
 }
 

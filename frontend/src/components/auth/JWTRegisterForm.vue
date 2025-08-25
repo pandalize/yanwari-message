@@ -1,5 +1,5 @@
 <template>
-  <div class="jwt-register-form">
+  <PageContainer>
     <form @submit.prevent="handleRegister" class="register-form">
       <h2 class="form-title">新規登録</h2>
       
@@ -10,7 +10,7 @@
       
       <!-- 名前 -->
       <div class="form-group">
-        <label for="name">お名前</label>
+        <label for="name" class="form-label">お名前</label>
         <input
           id="name"
           v-model="name"
@@ -24,7 +24,7 @@
       
       <!-- メールアドレス -->
       <div class="form-group">
-        <label for="email">メールアドレス</label>
+        <label for="email" class="form-label">メールアドレス</label>
         <input
           id="email"
           v-model="email"
@@ -38,7 +38,7 @@
       
       <!-- パスワード -->
       <div class="form-group">
-        <label for="password">パスワード</label>
+        <label for="password" class="form-label">パスワード</label>
         <input
           id="password"
           v-model="password"
@@ -53,7 +53,7 @@
       
       <!-- パスワード確認 -->
       <div class="form-group">
-        <label for="confirmPassword">パスワード（確認）</label>
+        <label for="confirmPassword" class="form-label">パスワード（確認）</label>
         <input
           id="confirmPassword"
           v-model="confirmPassword"
@@ -62,6 +62,9 @@
           :disabled="authStore.isLoading"
           placeholder="パスワードを再入力"
           class="form-input"
+          :class="{ 
+            'input-error': confirmPassword && password !== confirmPassword
+          }"
         />
         <div v-if="password && confirmPassword && password !== confirmPassword" class="field-error">
           パスワードが一致しません
@@ -69,30 +72,34 @@
       </div>
       
       <!-- 登録ボタン -->
-      <button
-        type="submit"
-        :disabled="authStore.isLoading || !isFormValid"
-        class="register-button"
-      >
-        <span v-if="authStore.isLoading">登録中...</span>
-        <span v-else>新規登録</span>
-      </button>
+      <div class="button-wrapper">
+        <UnifiedButton
+          type="submit"
+          :disabled="authStore.isLoading || !isFormValid"
+          variant="primary"
+        >
+          <span v-if="authStore.isLoading">登録中...</span>
+          <span v-else>新規登録</span>
+        </UnifiedButton>
+      </div>
       
       <!-- ログインリンク -->
-      <div class="login-link">
+      <div class="register-link">
         <p>
-          既にアカウントをお持ちの方は
+          既にアカウントをお持ちの方は<br>
           <router-link to="/login" class="link">ログイン</router-link>
         </p>
       </div>
     </form>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJWTAuthStore } from '@/stores/jwtAuth'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 const router = useRouter()
 const authStore = useJWTAuthStore()
@@ -118,7 +125,7 @@ const handleRegister = async () => {
   try {
     await authStore.register(email.value, password.value, name.value)
     console.log('✅ 登録成功、ホームページにリダイレクト')
-    router.push('/')
+    router.push('/home')
   } catch (err) {
     console.error('❌ 登録失敗:', err)
     // エラーはストアで管理されるため、ここでは何もしない
@@ -127,108 +134,133 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-.jwt-register-form {
+.register-form {
   max-width: 400px;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-.register-form {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
 }
 
 .form-title {
   text-align: center;
-  margin-bottom: 2rem;
-  color: #333;
-  font-size: 1.5rem;
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-primary);
+  font-size: var(--font-size-2xl);
+  line-height: 1.2;
+  font-weight: 600;
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border: 1px solid #fcc;
-  font-size: 0.9rem;
+  background: var(--error-color);
+  color: var(--text-primary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
-.form-group label {
+.form-label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
   font-weight: 500;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
+  padding: var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  background: var(--gray-color-light);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  background: var(--neutral-color);
+  box-shadow: 0 0 0 2px var(--secondary-color);
 }
 
 .form-input:disabled {
-  background: #f5f5f5;
+  background: var(--background-muted);
   cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.form-input::placeholder {
+  color: var(--text-tertiary);
 }
 
 .field-error {
-  color: #c33;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-sm);
+  background: var(--error-color);
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-xs);
 }
 
-.register-button {
-  width: 100%;
-  padding: 0.75rem;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
 }
 
-.register-button:hover:not(:disabled) {
-  background: #218838;
-}
 
-.register-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.login-link {
+.register-link {
   text-align: center;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
 }
+
 
 .link {
-  color: #007bff;
+  color: var(--secondary-color);
   text-decoration: none;
 }
 
 .link:hover {
+  color: var(--secondary-color-dark);
   text-decoration: underline;
 }
+
+@media (max-width: 440px) {
+  .register-form {
+    max-width: 100%;
+    margin: 0;
+    padding: 1rem;
+  }
+  
+  .form-title {
+    font-size: var(--font-size-xl);
+  }
+  
+  .form-input {
+    padding: var(--spacing-sm);
+    font-size: 16px;
+    min-height: 44px;
+  }
+  
+  
+  .form-group {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .register-link {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+  }
+  
+  .register-link p {
+    font-size: var(--font-size-sm);
+  }
+  
+}
+
 </style>

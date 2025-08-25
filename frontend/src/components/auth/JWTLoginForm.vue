@@ -1,7 +1,7 @@
 <template>
-  <div class="jwt-login-form">
-    <form @submit.prevent="handleLogin" class="login-form">
-      <h2 class="form-title">ログイン</h2>
+  <PageContainer>
+      <form @submit.prevent="handleLogin" class="login-form">
+          <h2 class="form-title">ログイン</h2>
       
       <!-- エラーメッセージ -->
       <div v-if="authStore.error" class="error-message">
@@ -10,7 +10,7 @@
       
       <!-- メールアドレス -->
       <div class="form-group">
-        <label for="email">メールアドレス</label>
+        <label for="email" class="form-label">メールアドレス</label>
         <input
           id="email"
           v-model="email"
@@ -24,7 +24,7 @@
       
       <!-- パスワード -->
       <div class="form-group">
-        <label for="password">パスワード</label>
+        <label for="password" class="form-label">パスワード</label>
         <input
           id="password"
           v-model="password"
@@ -37,19 +37,21 @@
       </div>
       
       <!-- ログインボタン -->
-      <button
-        type="submit"
-        :disabled="authStore.isLoading"
-        class="login-button"
-      >
-        <span v-if="authStore.isLoading">ログイン中...</span>
-        <span v-else>ログイン</span>
-      </button>
+      <div class="button-wrapper">
+        <UnifiedButton
+          type="submit"
+          :disabled="authStore.isLoading"
+          variant="primary"
+        >
+          <span v-if="authStore.isLoading">ログイン中...</span>
+          <span v-else>ログイン</span>
+        </UnifiedButton>
+      </div>
       
       <!-- 登録リンク -->
       <div class="register-link">
         <p>
-          アカウントをお持ちでない方は
+          アカウントをお持ちでない方は<br>
           <router-link to="/register" class="link">新規登録</router-link>
         </p>
       </div>
@@ -75,14 +77,16 @@
           <small>パスワード: password123（クリックで自動入力）</small>
         </p>
       </div>
-    </form>
-  </div>
+      </form>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useJWTAuthStore } from '@/stores/jwtAuth'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import UnifiedButton from '@/components/ui/UnifiedButton.vue'
 
 const router = useRouter()
 const authStore = useJWTAuthStore()
@@ -94,7 +98,7 @@ const handleLogin = async () => {
   try {
     await authStore.login(email.value, password.value)
     console.log('✅ ログイン成功、ホームページにリダイレクト')
-    router.push('/')
+    router.push('/home')
   } catch (err) {
     console.error('❌ ログイン失敗:', err)
     // エラーはストアで管理されるため、ここでは何もしない
@@ -108,214 +112,185 @@ const fillTestAccount = (testEmail: string) => {
 </script>
 
 <style scoped>
-.jwt-login-form {
+.login-form {
   max-width: 400px;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-.login-form {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
 }
 
 .form-title {
   text-align: center;
-  margin-bottom: 2rem;
-  color: #333;
-  font-size: 1.5rem;
+  margin-bottom: var(--spacing-xl);
+  color: var(--text-primary);
+  font-size: var(--font-size-2xl);
+  line-height: 1.2;
+  font-weight: 600;
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
-  padding: 0.75rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  border: 1px solid #fcc;
-  font-size: 0.9rem;
+  background: var(--error-color);
+  color: var(--text-primary);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-sm);
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-lg);
 }
 
-.form-group label {
+.form-label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--spacing-sm);
   font-weight: 500;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .form-input {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
+  padding: var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  background: var(--gray-color-light);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  background: var(--neutral-color);
+  box-shadow: 0 0 0 2px var(--secondary-color);
 }
 
 .form-input:disabled {
-  background: #f5f5f5;
+  background: var(--background-muted);
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
-.login-button {
-  width: 100%;
-  padding: 0.75rem;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.form-input::placeholder {
+  color: var(--text-tertiary);
 }
 
-.login-button:hover:not(:disabled) {
-  background: #0056b3;
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
 }
 
-.login-button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
 
 .register-link {
   text-align: center;
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #eee;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
 }
 
 .link {
-  color: #007bff;
+  color: var(--secondary-color);
   text-decoration: none;
 }
 
 .link:hover {
+  color: var(--secondary-color-dark);
   text-decoration: underline;
 }
 
 .test-accounts {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #eee;
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
 }
 
 .test-accounts h3 {
   text-align: center;
-  color: #666;
-  margin-bottom: 1rem;
-  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-md);
 }
 
 .test-account-list {
   display: grid;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .test-account {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 4px;
+  padding: var(--spacing-md);
+  background: var(--gray-color-light);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background-color 0.3s;
   text-align: center;
 }
 
 .test-account:hover {
-  background: #e9ecef;
+  background: var(--gray-color);
 }
 
 .test-account strong {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .test-account small {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .test-note {
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
-/* 440px以下の超小型モバイル対応 */
 @media (max-width: 440px) {
   .login-form {
     max-width: 100%;
     margin: 0;
     padding: 1rem;
-    border-radius: 8px;
   }
   
-  .form-header h2 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .form-header p {
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
+  .form-title {
+    font-size: var(--font-size-xl);
   }
   
   .form-group {
-    margin-bottom: 1rem;
-  }
-  
-  .form-label {
-    font-size: 0.85rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--spacing-md);
   }
   
   .form-input {
-    padding: 0.6rem;
-    font-size: 0.9rem;
-    min-height: 44px; /* タッチしやすいサイズ */
+    padding: var(--spacing-sm);
+    font-size: 16px;
+    min-height: 44px;
   }
   
-  .login-button {
-    padding: 0.7rem;
-    font-size: 0.9rem;
-    min-height: 44px;
-    font-weight: 600;
-  }
   
   .register-link {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+  }
+  
+  .register-link p {
+    font-size: var(--font-size-sm);
   }
   
   .test-accounts {
-    margin-top: 1rem;
-    padding-top: 1rem;
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
   }
   
   .test-accounts h3 {
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
   }
   
   .test-account-list {
-    gap: 0.4rem;
+    gap: var(--spacing-xs);
   }
   
   .test-account {
-    padding: 0.6rem;
-    font-size: 0.85rem;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
     min-height: 44px;
     display: flex;
     flex-direction: column;
@@ -323,15 +298,16 @@ const fillTestAccount = (testEmail: string) => {
   }
   
   .test-account strong {
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
   }
   
   .test-account small {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
   }
   
   .test-note {
-    font-size: 0.8rem;
+    font-size: var(--font-size-xs);
   }
 }
+
 </style>
