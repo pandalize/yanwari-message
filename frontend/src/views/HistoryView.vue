@@ -13,7 +13,7 @@
           class="search-input"
         />
       </div>
-      <UnifiedButton variant="secondary" @click="toggleSort">順番切替</UnifiedButton>
+      <button @click="toggleSort" class="inline-select">順番切替</button>
     </div>
 
     <!-- 送信予定セクション -->
@@ -682,6 +682,30 @@ onUnmounted(() => {
   padding: 0 var(--spacing-lg);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-regular);
+}
+
+.inline-select {
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--background-primary);
+  cursor: pointer;
+  min-width: 140px;
+  transition: all 0.2s ease;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-family-main);
+  color: var(--text-primary);
+}
+
+.inline-select:hover {
+  background: var(--background-secondary);
+  border-color: var(--border-color-hover);
+}
+
+.inline-select:focus {
+  outline: none;
+  border-color: var(--border-color-focus);
+  box-shadow: 0 0 0 1px var(--border-color-focus);
 }
 
 /* セクション */

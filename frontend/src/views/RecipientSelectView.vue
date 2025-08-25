@@ -68,9 +68,6 @@
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <UnifiedButton variant="secondary" @click="goBack">
-        戻る
-      </UnifiedButton>
       <UnifiedButton 
         variant="primary"
         @click="proceedToCompose"
@@ -89,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFriendsStore } from '@/stores/friends'
 import PageContainer from '@/components/layout/PageContainer.vue'
@@ -174,9 +171,6 @@ const loadFriends = async () => {
   }
 }
 
-const goBack = () => {
-  router.go(-1)
-}
 
 const proceedToCompose = () => {
   const recipient = selectedRecipient.value
