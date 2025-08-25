@@ -144,12 +144,12 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 	}
 
 	// メッセージを更新
-	// draft状態またはscheduled状態のメッセージを更新可能（再スケジュール可能）
+	// draft, scheduled, delivered状態のメッセージを更新可能（再スケジュール可能）
 	messageFilter := bson.M{
 		"_id":      messageID,
 		"senderId": userID,
 		"status": bson.M{
-			"$in": []string{string(MessageStatusDraft), string(MessageStatusScheduled)},
+			"$in": []string{string(MessageStatusDraft), string(MessageStatusScheduled), string(MessageStatusDelivered)},
 		},
 	}
 
