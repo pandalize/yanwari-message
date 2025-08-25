@@ -44,6 +44,7 @@
     "db:reset": "npm run db:clean && npm run db:seed",
     "db:clean": "docker-compose exec mongodb mongosh yanwari-message --eval 'db.users.deleteMany({}); db.messages.deleteMany({}); db.friendships.deleteMany({}); db.message_ratings.deleteMany({}); db.user_settings.deleteMany({}); print(\"データベースをクリアしました\");'",
     "db:status": "docker-compose exec mongodb mongosh yanwari-message --eval 'print(\"=== データベース状況 ===\"); print(\"ユーザー数: \" + db.users.countDocuments()); print(\"メッセージ数: \" + db.messages.countDocuments()); print(\"友達関係数: \" + db.friendships.countDocuments()); print(\"評価数: \" + db.message_ratings.countDocuments()); print(\"設定数: \" + db.user_settings.countDocuments());'",
+    "db:fix-friend-requests": "docker cp ./scripts/fix-friend-request-indexes.js $(docker-compose ps -q mongodb):/tmp/ && docker-compose exec mongodb mongosh yanwari-message /tmp/fix-friend-request-indexes.js",
     "# 本番環境": "本番環境用コマンド",
     "prod:build": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml build",
     "prod:up": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",

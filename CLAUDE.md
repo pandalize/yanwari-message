@@ -268,3 +268,12 @@ git push origin feature/xxx
    lsof -i :5173   # フロントエンドポート確認
    lsof -i :27017  # MongoDBポート確認
    ```
+
+4. **友達申請で500エラー**
+   - 症状: 友達申請送信時に500エラーが発生
+   - 原因: 古いMongoDBインデックス（sender_id, recipient_id）が残存
+   - 解決: 古いインデックスを削除
+   ```bash
+   docker-compose exec mongodb mongosh yanwari-message --eval 'db.friend_requests.dropIndex("sender_id_1_recipient_id_1")'
+   ```
+   - 詳細: [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)を参照
