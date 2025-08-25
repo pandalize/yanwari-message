@@ -618,11 +618,13 @@ const scheduleMessage = async () => {
         customMinute.value
       )
       
-      if (scheduled <= now) {
-        throw new Error('送信時刻は現在より未来である必要があります')
-      }
-      
+      // 過去の時刻でも許可（バックエンドで即座送信として処理される）
       scheduledAt = scheduled.toISOString()
+      
+      // 過去時刻の場合は警告メッセージを表示（ただし処理は続行）
+      if (scheduled <= now) {
+        console.log('過去の時刻が指定されました。即座に送信されます。')
+      }
     } else {
       throw new Error('無効な選択です')
     }

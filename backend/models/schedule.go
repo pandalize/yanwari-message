@@ -144,10 +144,13 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 	}
 
 	// メッセージを更新
+	// draft状態またはscheduled状態のメッセージを更新可能（再スケジュール可能）
 	messageFilter := bson.M{
 		"_id":      messageID,
 		"senderId": userID,
-		"status":   MessageStatusDraft, // draft状態のメッセージのみ更新可能
+		"status": bson.M{
+			"$in": []string{string(MessageStatusDraft), string(MessageStatusScheduled)},
+		},
 	}
 
 	fmt.Printf("🔄 [CreateSchedule] メッセージ更新中: Filter=%v, Update=%v\n", messageFilter, messageUpdateData)
@@ -161,7 +164,7 @@ func (s *ScheduleService) CreateSchedule(ctx context.Context, userID primitive.O
 
 	if updateResult.MatchedCount == 0 {
 		fmt.Printf("⚠️ [CreateSchedule] メッセージが見つからないか、更新対象外\n")
-		return nil, fmt.Errorf("メッセージが見つからないか、draft状態ではありません")
+		return nil, fmt.Errorf("メッセージが見つからないか、既に送信済みです")
 	}
 
 	fmt.Printf("📝 [CreateSchedule] スケジュール挿入中...\n")
